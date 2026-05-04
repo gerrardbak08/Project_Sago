@@ -3,12 +3,35 @@ llm.py — Bedrock LLM 안전 가이드 생성 + Mock 모드
 
 USE_MOCK_LLM=true 또는 Bedrock 자격증명이 없으면 Mock 자동 전환.
 Bedrock 모델: us.anthropic.claude-sonnet-4-20250514-v1:0 (us-east-1)
+
+환경변수 (.env 파일 지원):
+  USE_MOCK_LLM       — true이면 Mock 모드 강제
+  AWS_ACCESS_KEY_ID   — AWS 자격증명
+  AWS_SECRET_ACCESS_KEY — AWS 자격증명
+  AWS_SESSION_TOKEN   — (선택) 임시 자격증명
+  AWS_DEFAULT_REGION  — (선택) 기본 리전
+  BEDROCK_MODEL_ID    — (선택) 모델 ID 오버라이드
+  BEDROCK_REGION      — (선택) Bedrock 리전 오버라이드
 """
 
 import json
 import os
 import re
 from datetime import date
+from pathlib import Path
+
+# .env 파일 로드 (python-dotenv가 있으면)
+try:
+    from dotenv import load_dotenv
+    # 프로젝트 루트의 .env 파일을 찾아 로드
+    _env_path = Path(__file__).resolve().parent.parent / ".env"
+    if _env_path.exists():
+        load_dotenv(_env_path)
+        print(f"[llm] .env 로드: {_env_path}")
+    else:
+        load_dotenv()  # 현재 디렉토리 또는 상위에서 .env 탐색
+except ImportError:
+    pass  # python-dotenv 없으면 무시 (Lambda 환경에서는 환경변수 직접 설정)
 
 
 # ---------------------------------------------------------------------------
@@ -220,8 +243,8 @@ def _parse_llm_json(text: str) -> dict:
 # Bedrock 호출
 # ---------------------------------------------------------------------------
 
-_MODEL_ID = "us.anthropic.claude-sonnet-4-20250514-v1:0"
-_REGION = "us-east-1"
+_MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-20250514-v1:0")
+_REGION = os.environ.get("BEDROCK_REGION", "us-east-1")
 
 
 def _call_bedrock(prompt: str) -> dict:
