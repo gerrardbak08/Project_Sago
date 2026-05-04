@@ -198,8 +198,12 @@ def main():
     frontend_dir.mkdir(exist_ok=True)
 
     import socket
-    server = HTTPServer(("", PORT), LocalHandler)
-    server.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    class ReusableHTTPServer(HTTPServer):
+        allow_reuse_address = True
+        allow_reuse_port = True
+
+    server = ReusableHTTPServer(("", PORT), LocalHandler)
     print(f"로컬 개발 서버 시작: http://localhost:{PORT}")
     print(f"  POST /api/simulate       → Lambda 핸들러")
     print(f"  GET  /api/daily/{{date}}   → daily/{{date}}/results.json")
