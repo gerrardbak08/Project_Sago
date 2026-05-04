@@ -244,7 +244,11 @@ def _parse_llm_json(text: str) -> dict:
 # ---------------------------------------------------------------------------
 
 _MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-20250514-v1:0")
-_REGION = os.environ.get("BEDROCK_REGION", "us-east-1")
+_REGION = (
+    os.environ.get("BEDROCK_REGION")
+    or os.environ.get("AWS_DEFAULT_REGION")
+    or "us-east-1"
+)
 
 
 def _get_bedrock_api_key() -> str | None:
