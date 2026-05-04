@@ -28,6 +28,16 @@ from urllib.parse import parse_qs, urlparse
 PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+# .env 파일 로드 (가장 먼저 실행하여 모든 모듈에서 환경변수 사용 가능)
+try:
+    from dotenv import load_dotenv
+    _env_file = PROJECT_ROOT / ".env"
+    if _env_file.exists():
+        load_dotenv(_env_file)
+        print(f"[server] .env 로드: {_env_file}")
+except ImportError:
+    pass
+
 PORT = 8000
 
 CORS_HEADERS = {
