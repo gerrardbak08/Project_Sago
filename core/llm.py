@@ -247,12 +247,64 @@ _MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-202
 _REGION = os.environ.get("BEDROCK_REGION", "us-east-1")
 
 
-def _call_bedrock(prompt: str) -> dict:
-    """Bedrock converse API를 호출하여 JSON 응답을 반환한다.
+def _get_bedrock_api_key() -> str | None:
+    """Bedrock API 키를 환경변수에서 가져온다.
 
-    Raises:
-        Exception: Bedrock 호출 또는 JSON 파싱 실패 시
+    AWS_BEARER_TOKEN_BEDROCK 또는 BEDROCK_API_KEY 환경변수를 확인.
     """
+    return (
+        os.environ.get("AWS_BEARER_TOKEN_BEDROCK")
+        or os.environ.get("BEDROCK_API_KEY")
+        or None
+    )
+
+
+def _call_bedrock_with_api_key(prompt: str, api_key: str) -> dict:
+    """Bedrock API 키(Bearer Token)로 Converse API를 HTTP 직접 호출한다.
+
+    Bedrock API 키는 Authorization: Bearer 헤더로 전달.
+    엔드포인트: https://bedrock-runtime.{region}.amazonaws.com/model/{model_id}/converse
+    """
+    import requests as _requests
+
+    url = (
+        f"https://bedrock-runtime.{_REGION}.amazonaws.com"
+        f"/model/{_MODEL_ID}/converse"
+    )
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "messages": [
+            {
+                "role": "user",
+                "content": [{"text": prompt}],
+            }
+        ],
+        "inferenceConfig": {
+            "maxTokens": 2048,
+            "temperature": 0.3,
+        },
+    }
+
+    resp = _requests.post(url, headers=headers, json=payload, timeout=60)
+    resp.raise_for_status()
+    data = resp.json()
+
+    output_message = data["output"]["message"]
+    result_text = ""
+    for block in output_message["content"]:
+        if "text" in block:
+            result_text += block["text"]
+
+    return _parse_llm_json(result_text)
+
+
+def _call_bedrock_with_boto3(prompt: str) -> dict:
+    """boto3 SDK로 Bedrock Converse API를 호출한다 (IAM 자격증명 방식)."""
     import boto3
 
     client = boto3.client("bedrock-runtime", region_name=_REGION)
@@ -280,6 +332,25 @@ def _call_bedrock(prompt: str) -> dict:
     return _parse_llm_json(result_text)
 
 
+def _call_bedrock(prompt: str) -> dict:
+    """Bedrock Converse API를 호출한다.
+
+    우선순위:
+      1. API 키 (AWS_BEARER_TOKEN_BEDROCK / BEDROCK_API_KEY) → HTTP 직접 호출
+      2. IAM 자격증명 (boto3) → SDK 호출
+
+    Raises:
+        Exception: 호출 또는 JSON 파싱 실패 시
+    """
+    api_key = _get_bedrock_api_key()
+    if api_key:
+        print(f"[llm] Bedrock API 키 방식으로 호출 (region={_REGION})")
+        return _call_bedrock_with_api_key(prompt, api_key)
+    else:
+        print(f"[llm] boto3 IAM 방식으로 호출 (region={_REGION})")
+        return _call_bedrock_with_boto3(prompt)
+
+
 # ---------------------------------------------------------------------------
 # 메인 함수
 # ---------------------------------------------------------------------------
@@ -288,20 +359,24 @@ def _is_mock_mode() -> bool:
     """Mock 모드 여부를 판단한다.
 
     USE_MOCK_LLM=true 이면 Mock 모드.
-    그렇지 않으면 boto3 import 및 자격증명 확인 시도.
+    Bedrock API 키가 있으면 Mock이 아님.
+    그렇지 않으면 boto3 자격증명 확인.
     """
     env_val = os.environ.get("USE_MOCK_LLM", "").lower()
     if env_val in ("true", "1", "yes"):
         return True
 
-    # boto3 import 가능 여부 및 자격증명 확인
+    # Bedrock API 키가 있으면 Mock 아님
+    if _get_bedrock_api_key():
+        return False
+
+    # boto3 IAM 자격증명 확인
     try:
         import boto3
         session = boto3.Session(region_name=_REGION)
         credentials = session.get_credentials()
         if credentials is None:
             return True
-        # 자격증명이 resolve 가능한지 확인
         credentials = credentials.get_frozen_credentials()
         if not credentials.access_key:
             return True
