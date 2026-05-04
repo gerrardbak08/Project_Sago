@@ -48,6 +48,9 @@ CORS_HEADERS = {
 
 # daily API 경로 패턴: /api/daily/{date}
 DAILY_PATTERN = re.compile(r"^/api/daily/(\d{4}-\d{2}-\d{2})$")
+# alerts API 경로 패턴
+ALERTS_INDEX_PATTERN = re.compile(r"^/api/alerts/(\d{4}-\d{2}-\d{2})$")
+ALERTS_DETAIL_PATTERN = re.compile(r"^/api/alerts/(\d{4}-\d{2}-\d{2})/(.+)$")
 
 
 class LocalHandler(SimpleHTTPRequestHandler):
@@ -133,6 +136,23 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if method == "GET" and daily_match:
             date_str = daily_match.group(1)
             file_path = PROJECT_ROOT / "daily" / date_str / "results.json"
+            self._serve_file(file_path)
+            return
+
+        # GET /api/alerts/{date} → alerts/{date}/index.json (알림 목록)
+        alerts_index_match = ALERTS_INDEX_PATTERN.match(path)
+        if method == "GET" and alerts_index_match:
+            date_str = alerts_index_match.group(1)
+            file_path = PROJECT_ROOT / "alerts" / date_str / "index.json"
+            self._serve_file(file_path)
+            return
+
+        # GET /api/alerts/{date}/{filename} → alerts/{date}/{filename} (알림 상세)
+        alerts_detail_match = ALERTS_DETAIL_PATTERN.match(path)
+        if method == "GET" and alerts_detail_match:
+            date_str = alerts_detail_match.group(1)
+            filename = alerts_detail_match.group(2)
+            file_path = PROJECT_ROOT / "alerts" / date_str / filename
             self._serve_file(file_path)
             return
 

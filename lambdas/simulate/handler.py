@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import json
 import os
+import time
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -163,6 +165,111 @@ def _build_features(
 
 
 # ──────────────────────────────────────────────
+# 알림 결과 저장
+# ──────────────────────────────────────────────
+KST = timezone(timedelta(hours=9))
+ALERTS_DIR = PROJECT_ROOT / "alerts"
+
+
+def _save_alert(response_body: dict, trigger_type: str = "manual") -> str | None:
+    """알림 결과를 JSON 파일로 저장한다.
+
+    로컬: alerts/{date}/{store_code}_{timestamp}.json
+    AWS:  s3://DAILY_BUCKET/alerts/{date}/{store_code}_{timestamp}.json
+
+    또한 alerts/{date}/index.json에 요약 레코드를 추가한다.
+
+    Returns:
+        저장된 파일 키 또는 None
+    """
+    store_code = response_body.get("store_code", "unknown")
+    date_str = response_body.get("date", "unknown")
+    ts = int(time.time())
+    file_key = f"alerts/{date_str}/{store_code}_{ts}.json"
+
+    # 요약 레코드 (index.json에 추가할 내용)
+    cust_result = response_body.get("results", {}).get("cust", {})
+    emp_result = response_body.get("results", {}).get("emp", {})
+
+    summary_record = {
+        "store_code": store_code,
+        "store_name": response_body.get("store_name", ""),
+        "region": response_body.get("region", ""),
+        "date": date_str,
+        "timestamp": datetime.now(KST).isoformat(timespec="seconds"),
+        "trigger_type": trigger_type,
+        "risk_cust": cust_result.get("risk", {}).get("grade", ""),
+        "risk_cust_score": cust_result.get("risk", {}).get("score", 0),
+        "risk_emp": emp_result.get("risk", {}).get("grade", ""),
+        "risk_emp_score": emp_result.get("risk", {}).get("score", 0),
+        "dominant_type_cust": cust_result.get("risk", {}).get("dominant_type", ""),
+        "dominant_type_emp": emp_result.get("risk", {}).get("dominant_type", ""),
+        "detail_key": file_key,
+    }
+
+    daily_bucket = os.environ.get("DAILY_BUCKET")
+
+    if daily_bucket:
+        # AWS: S3에 저장
+        try:
+            import boto3
+            s3 = boto3.client("s3")
+
+            # 상세 파일 저장
+            s3.put_object(
+                Bucket=daily_bucket,
+                Key=file_key,
+                Body=json.dumps(response_body, ensure_ascii=False, indent=2).encode("utf-8"),
+                ContentType="application/json; charset=utf-8",
+            )
+
+            # index.json 업데이트 (기존 내용에 추가)
+            index_key = f"alerts/{date_str}/index.json"
+            try:
+                resp = s3.get_object(Bucket=daily_bucket, Key=index_key)
+                index_data = json.loads(resp["Body"].read().decode("utf-8"))
+            except Exception:
+                index_data = []
+
+            index_data.append(summary_record)
+            s3.put_object(
+                Bucket=daily_bucket,
+                Key=index_key,
+                Body=json.dumps(index_data, ensure_ascii=False, indent=2).encode("utf-8"),
+                ContentType="application/json; charset=utf-8",
+            )
+            print(f"[save] S3 저장: s3://{daily_bucket}/{file_key}")
+            return file_key
+        except Exception as e:
+            print(f"[save] S3 저장 실패: {e}")
+
+    # 로컬: 파일시스템에 저장
+    try:
+        detail_path = ALERTS_DIR / date_str / f"{store_code}_{ts}.json"
+        detail_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(detail_path, "w", encoding="utf-8") as f:
+            json.dump(response_body, f, ensure_ascii=False, indent=2)
+
+        # index.json 업데이트
+        index_path = ALERTS_DIR / date_str / "index.json"
+        if index_path.exists():
+            with open(index_path, "r", encoding="utf-8") as f:
+                index_data = json.load(f)
+        else:
+            index_data = []
+
+        index_data.append(summary_record)
+        with open(index_path, "w", encoding="utf-8") as f:
+            json.dump(index_data, f, ensure_ascii=False, indent=2)
+
+        print(f"[save] 로컬 저장: {detail_path}")
+        return file_key
+    except Exception as e:
+        print(f"[save] 로컬 저장 실패: {e}")
+        return None
+
+
+# ──────────────────────────────────────────────
 # 응답 헬퍼
 # ──────────────────────────────────────────────
 def _response(status_code: int, body: Any) -> dict:
@@ -287,5 +394,8 @@ def lambda_handler(event: dict, context: Any) -> dict:
         "weather": weather,
         "results": results,
     }
+
+    # ── 알림 결과 저장 ──
+    _save_alert(response_body, trigger_type="manual")
 
     return _response(200, response_body)
