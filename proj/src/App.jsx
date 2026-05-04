@@ -1,0 +1,456 @@
+import { useState, useEffect, useMemo, useRef, Fragment, Component } from 'react';
+import { createRoot } from 'react-dom/client';
+
+// ── 데이터 ─────────────────────────────────────────────
+import DEFAULT_DATA from './data/workerData.js';
+import MAP_STORES   from './data/storesData.js';
+import DAISO_LOGO   from './data/logo.js';
+
+// ── 색상 + 상수 ────────────────────────────────────────
+import { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, DAISO_GRAY,
+         BL, OR, NV, GR, RD, GN, CANVAS } from './constants/colors.js';
+import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN } from './constants/metrics.js';
+import { TABS_VIEWER, HUB_LABELS }   from './constants/tabs.js';
+
+// ── 유틸 ──────────────────────────────────────────────
+import { pct, fmt, fmtKrw, TT, EmptyState } from './utils/uiHelpers.jsx';
+import { ExportBtn }          from './utils/exportUtils.jsx';
+import { getFilteredData }    from './utils/filterData.js';
+import { parseExcelFile, parseExcelFileWorkers } from './utils/parseExcel.js';
+import { processAccidents }   from './utils/processAccidents.js';
+import { processStores }      from './utils/processStores.js';
+import { processWorkers }     from './utils/processData.js';
+
+// ── 아이콘 ─────────────────────────────────────────────
+import { Lock, Unlock, LayoutDashboard, Building, Building2, MapPin,
+         TrendingUp, GitBranch, UserCircle, Users, Scale, Banknote,
+         Stethoscope, Bell, ChevronRight, Sparkles, ShieldCheck, Store,
+         X, AlertCircle } from 'lucide-react';
+
+// ── 공유 컴포넌트 ──────────────────────────────────────
+import { Card }              from './components/shared/Card.jsx';
+import AdminLoginPanel       from './components/admin/AdminLoginPanel.jsx';
+import AdminUpload           from './components/admin/AdminUpload.jsx';
+import CustomerDashboard     from './components/layout/CustomerDashboard.jsx';
+
+// ── 근로자 탭 컴포넌트 ─────────────────────────────────
+import Overview          from './components/tabs/worker/Overview.jsx';
+import DeptTeamStore     from './components/tabs/worker/DeptTeamStore.jsx';
+import StoreRiskMap      from './components/tabs/worker/StoreRiskMap.jsx';
+import TimeSeries        from './components/tabs/worker/TimeSeries.jsx';
+import CrossAnalysis     from './components/tabs/worker/CrossAnalysis.jsx';
+import HumanFactors      from './components/tabs/worker/HumanFactors.jsx';
+import CostRisk          from './components/tabs/worker/CostRisk.jsx';
+import LegalReporting    from './components/tabs/worker/LegalReporting.jsx';
+import StoreAnalysis     from './components/tabs/worker/StoreAnalysis.jsx';
+import RepeatWorkers     from './components/tabs/worker/RepeatWorkers.jsx';
+import SeverityAnalysis  from './components/tabs/worker/SeverityAnalysis.jsx';
+import ParjangDashboard  from './components/tabs/worker/ParjangDashboard.jsx';
+import StoreDeepDive     from './components/tabs/worker/StoreDeepDive.jsx';
+
+// ── TabErrorBoundary ───────────────────────────────────
+class TabErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(e) { return { error: e }; }
+  componentDidCatch(e, info) { console.error("[TabErrorBoundary]", e, info); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex items-center justify-center py-16 px-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 max-w-md w-full text-center">
+            <div className="text-3xl mb-3">⚠️</div>
+            <div className="text-sm font-semibold text-amber-800 mb-2">이 탭에서 오류가 발생했습니다</div>
+            <div className="text-xs text-amber-700 bg-white rounded-lg p-2.5 border border-amber-100 font-mono text-left mb-3 break-all">
+              {this.state.error.message}
+            </div>
+            <button onClick={() => this.setState({ error: null })}
+              className="px-4 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold cursor-pointer">
+              다시 시도
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const _INIT_HASH_PARAMS = (() => {
+  try {
+    if (typeof window === "undefined") return {};
+    const h = window.location.hash.replace(/^#/, "");
+    if (!h) return {};
+    const params = Object.fromEntries(
+      h.split("&").map(s => s.split("=")).filter(a => a.length === 2 && a[0] && a[1])
+    );
+    if (params.store) params.store = decodeURIComponent(params.store);
+    return params;
+  } catch { return {}; }
+})();
+
+function App() {
+  const [dashMode, setDashMode] = useState("worker");
+  // === 역할 기반 랜딩 ===
+  const initialRole = (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("role")) || null;
+  const ROLE_LANDING = { ceo: "overview", manager: "dept", team: "parjang", part: "store", safety: "overview" };
+  const ROLE_LABELS = { ceo: "경영진", manager: "영업부문장", team: "팀장", part: "파트장", safety: "안전보건팀" };
+
+  const [tab, setTabState] = useState(
+    _INIT_HASH_PARAMS.tab || (initialRole && ROLE_LANDING[initialRole] ? ROLE_LANDING[initialRole] : "overview")
+  );
+  const [currentRole, setCurrentRole] = useState(_INIT_HASH_PARAMS.role || initialRole || null);
+  const [yearFilter, setYearState] = useState(_INIT_HASH_PARAMS.year || "all");
+
+  // URL hash 동기화 — history.replaceState (리로드 없음)
+  const setTab = (t) => {
+    setTabState(t);
+    try {
+      const p = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      p.set("tab", t);
+      history.replaceState(null, "", "#" + p.toString());
+    } catch {}
+  };
+  const setYearFilter = (y) => {
+    setYearState(y);
+    try {
+      const p = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      if (!y || y === "all") p.delete("year"); else p.set("year", y);
+      const s = p.toString();
+      history.replaceState(null, "", s ? "#" + s : window.location.pathname + window.location.search);
+    } catch {}
+  };
+  // F4: 매장 URL 동기화
+  const syncStoreToUrl = (storeName) => {
+    try {
+      const p = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      if (!storeName) p.delete("store"); else p.set("store", encodeURIComponent(storeName));
+      const s = p.toString();
+      history.replaceState(null, "", s ? "#" + s : window.location.pathname + window.location.search);
+    } catch {}
+  };
+  const [data, setData] = useState(DEFAULT_DATA);
+  const [rawAccidents, setRawAccidents] = useState(null);
+  const [rawStores, setRawStores] = useState(null);
+  const [rawWorkers, setRawWorkers] = useState(null);
+  const [accidentFileName, setAccidentFileName] = useState(null);
+  const [storeFileName, setStoreFileName] = useState(null);
+  const [workerFileName, setWorkerFileName] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
+  // Admin mode
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  
+  const isDefault = !accidentFileName && !storeFileName && !workerFileName;
+  
+  // Fix Recharts initial render on mobile — force resize after mount
+  useEffect(() => {
+    const t = setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+    const t2 = setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
+    return () => { clearTimeout(t); clearTimeout(t2); };
+  }, [tab, data]);
+  
+  const processUploaded = async (accRows, storeRows, workerRows, workerRefDate = null) => {
+    try {
+      setLoading(true); setError(null);
+      let newData;
+      const storesProcessed = storeRows ? processStores(storeRows) : null;
+      const workersProcessed = workerRows ? processWorkers(workerRows, workerRefDate) : null;
+      if (accRows) {
+        newData = processAccidents(accRows, storesProcessed, workersProcessed);
+      } else if (rawAccidents) {
+        newData = processAccidents(rawAccidents, storesProcessed, workersProcessed);
+      } else if (storeRows) {
+        newData = { ...data, store_kpi: { total: storesProcessed.length } };
+        if (workersProcessed) newData.worker_kpis = workersProcessed.kpis;
+      } else if (workersProcessed) {
+        newData = { ...data, worker_kpis: workersProcessed.kpis };
+      }
+      if (newData) setData(newData);
+    } catch (e) {
+      console.error("[processUploaded]", e);
+      setError("데이터 처리 실패: " + e.message);
+    } finally { setLoading(false); }
+  };
+
+  const handleAccidentFile = async (file) => {
+    try {
+      setLoading(true); setError(null);
+      const rows = await parseExcelFile(file);
+      setRawAccidents(rows); setAccidentFileName(file.name);
+      await processUploaded(rows, rawStores, rawWorkers);
+    } catch (e) { setError("사고 DB 파싱 실패: " + e.message); setLoading(false); }
+  };
+  
+  const handleStoreFile = async (file) => {
+    try {
+      setLoading(true); setError(null);
+      const rows = await parseExcelFile(file);
+      setRawStores(rows); setStoreFileName(file.name);
+      await processUploaded(rawAccidents, rows, rawWorkers);
+    } catch (e) { setError("매장 DB 파싱 실패: " + e.message); setLoading(false); }
+  };
+
+  const handleWorkerFile = async (file) => {
+    try {
+      setLoading(true); setError(null);
+      const parsed = await parseExcelFileWorkers(file);
+      if (!parsed.rows || parsed.rows.length === 0) {
+        throw new Error("'영업부' 시트가 비어 있거나 읽을 수 없습니다");
+      }
+      // 파일명에서 날짜 자동 추출 (예: 현장사원_인원현황_20260428.xlsx)
+      let refDate = null;
+      const dm = file.name.match(/(\d{8})/);
+      if (dm) {
+        const d = dm[1];
+        const candidate = new Date(`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`);
+        if (!isNaN(candidate.getTime())) refDate = candidate;
+      }
+      setRawWorkers(parsed.rows); setWorkerFileName(file.name);
+      await processUploaded(rawAccidents, rawStores, parsed.rows, refDate);
+    } catch (e) {
+      console.error("[handleWorkerFile]", e);
+      setError("매장근로자 DB 파싱 실패: " + e.message);
+      setLoading(false);
+    }
+  };
+  
+  const resetData = () => {
+    setData(DEFAULT_DATA);
+    setRawAccidents(null); setRawStores(null); setRawWorkers(null);
+    setAccidentFileName(null); setStoreFileName(null); setWorkerFileName(null);
+    setError(null);
+  };
+  
+  const handleLogout = () => {
+    setIsAdmin(false);
+    if (tab === "admin") setTab("overview");
+  };
+  
+  // === 역할별 탭 필터링 (RBAC Phase 2) ===
+  const ROLE_TAB_VISIBILITY = {
+    // 경영진: 요약·트렌드·재무·심각도 집중
+    ceo:     ["overview", "time", "legal", "severity", "cost", "sigungu"],
+    // 영업부문장: 부서/팀/매장 + 지역 + 트렌드 + 위험지도
+    manager: ["overview", "dept", "store", "riskmap", "sigungu", "time", "legal", "human"],
+    // 팀장: 매장IR + 파트장 + 인적요인 + 재발 + 위험지도
+    team:    ["overview", "dept", "store", "riskmap", "parjang", "repeat", "human", "severity"],
+    // 파트장: 자기 담당 매장 위주
+    part:    ["overview", "store", "riskmap", "repeat"],
+    // 안전보건팀: 전체 접근
+    safety:  null,
+  };
+  
+  // 연도 필터 적용된 데이터 (모든 탭 일괄 처리)
+  const dataFiltered = useMemo(() => getFilteredData(data, yearFilter), [data, yearFilter]);
+  
+  const visibleTabs = currentRole && ROLE_TAB_VISIBILITY[currentRole]
+    ? TABS_VIEWER.filter(t => ROLE_TAB_VISIBILITY[currentRole].includes(t.id))
+    : TABS_VIEWER;
+  
+  // Visible tabs (admin sees extra admin tab)
+  const TABS = isAdmin 
+    ? [...visibleTabs, { id: "admin", l: "데이터 관리", short: "관리", Icon: Lock }]
+    : visibleTabs;
+  
+
+  if (dashMode === "customer") return (
+    <>
+      {showLogin && <AdminLoginPanel onLogin={() => { setIsAdmin(true); setShowLogin(false); }} onCancel={() => setShowLogin(false)} />}
+      <CustomerDashboard 
+        onBack={() => setDashMode("worker")}
+        isAdmin={isAdmin}
+        onAdminLoginClick={() => setShowLogin(true)}
+        onLogout={handleLogout}
+      />
+    </>
+  );
+
+  return (
+    <div className="min-h-screen" style={{background:"linear-gradient(135deg, #F5F5F4 0%, #FAFAF9 40%, #F0F4FF 100%)"}}>
+      {showLogin && <AdminLoginPanel onLogin={() => { setIsAdmin(true); setShowLogin(false); setTab("admin"); }} onCancel={() => setShowLogin(false)} />}
+      
+      {/* ═══ 헤더 (모바일 최적화) ═══ */}
+      <div className="sticky top-0 z-40 shadow-sm">
+
+        {/* ── 1행: 흰 배경 + CI + 회사명 + 모드 토글 ── */}
+        <div className="bg-white border-b border-stone-200">
+          <div className="max-w-[1400px] mx-auto px-3 sm:px-5 flex items-center gap-2 sm:gap-4" style={{height:56}}>
+            {/* 다이소 CI 로고 */}
+            <img src={DAISO_LOGO} alt="DAISO" className="flex-shrink-0" style={{height:32,width:"auto",objectFit:"contain"}} />
+            {/* 제목 + 회사명 */}
+            <div className="flex flex-col justify-center min-w-0">
+              <span className="text-stone-900 font-extrabold leading-none tracking-tight whitespace-nowrap text-base sm:text-xl">
+                근로자 사고 현황
+              </span>
+              <span className="text-stone-400 text-[10px] sm:text-xs font-medium leading-none mt-0.5 whitespace-nowrap">
+                ㈜아성다이소 · 안전보건팀
+              </span>
+            </div>
+            {isAdmin && (
+              <span className="flex-shrink-0 px-1.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[9px] font-bold hidden sm:flex items-center gap-0.5">
+                <Lock size={8} /> 관리자
+              </span>
+            )}
+            <div className="flex-1" />
+            {/* 모드 토글 */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button onClick={() => setDashMode("worker")} className="cursor-pointer whitespace-nowrap"
+                style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,
+                  background: dashMode==="worker" ? DAISO_RED : "#F5F5F4",
+                  color: dashMode==="worker" ? "white" : "#78716C", border:"none"}}>
+                근로자 사고
+              </button>
+              <button onClick={() => setDashMode("customer")} className="cursor-pointer whitespace-nowrap"
+                style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,
+                  background: dashMode==="customer" ? DEEP_BLUE : "#F5F5F4",
+                  color: dashMode==="customer" ? "white" : "#78716C", border:"none"}}>
+                고객 사고
+              </button>
+            </div>
+            {/* 관리자 버튼 */}
+            <div className="flex-shrink-0">
+              {!isAdmin ? (
+                <button onClick={() => setShowLogin(true)}
+                  className="h-8 w-8 sm:w-auto sm:px-3 rounded-md border border-stone-200 text-xs font-medium text-stone-600 bg-white hover:bg-stone-50 cursor-pointer flex items-center justify-center gap-1">
+                  <Lock size={13} /><span className="hidden sm:inline">관리자</span>
+                </button>
+              ) : (
+                <button onClick={handleLogout}
+                  className="h-8 px-2 sm:px-3 rounded-md border border-red-200 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 cursor-pointer flex items-center gap-1">
+                  <Unlock size={13} /><span className="hidden sm:inline">로그아웃</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── 2행: 기간 필터 + 건수 + 역할 ── */}
+        <div className="bg-white border-b border-stone-100">
+          <div className="max-w-[1400px] mx-auto px-3 sm:px-5 h-10 flex items-center gap-2">
+            <span className="text-xs text-stone-400 font-medium hidden sm:inline flex-shrink-0">기간:</span>
+            <div className="flex items-center gap-0.5">
+              {["all", "2024", "2025", "2026"].map(y => (
+                <button key={y} onClick={() => setYearFilter(y)}
+                  className="cursor-pointer"
+                  style={{padding:"3px 10px",borderRadius:5,fontSize:12,fontWeight:600,
+                    background: yearFilter===y ? "#1C1917" : "transparent",
+                    color: yearFilter===y ? "white" : "#78716C",
+                    border:"none",transition:"all .15s"}}>
+                  {y === "all" ? "전체" : y}
+                </button>
+              ))}
+            </div>
+            <div className="h-4 w-px bg-stone-200 mx-1 flex-shrink-0" />
+            <span className="text-xs text-stone-500 flex-shrink-0">
+              {yearFilter === "all" ? "전체" : `${yearFilter}년`}&nbsp;
+              <b className="text-stone-900 tabular-nums">{fmt(yearFilter === "all" ? data.kpis.total : yearFilter === "2024" ? data.kpis.y2024 : yearFilter === "2025" ? data.kpis.y2025 : yearFilter === "2026" ? data.kpis.y2026 : data.kpis.total)}건</b>
+            </span>
+            {data.store_kpi && (
+              <span className="text-xs text-stone-500 hidden sm:inline flex-shrink-0">
+                · 영업매장 <b className="text-stone-900 tabular-nums">{fmt(data.store_kpi.total)}개</b>
+              </span>
+            )}
+            <div className="flex-1" />
+            <select value={currentRole || ""} onChange={(e) => {
+              const r = e.target.value || null;
+              setCurrentRole(r);
+              if (r && ROLE_LANDING[r]) setTab(ROLE_LANDING[r]);
+              else if (!r) setTab("overview");
+            }} className="h-7 px-2 rounded-md border border-stone-200 text-xs font-medium text-stone-700 bg-white cursor-pointer" style={{ fontFamily: "inherit" }}>
+              <option value="">역할 선택</option>
+              <option value="ceo">경영진</option>
+              <option value="manager">영업부문장</option>
+              <option value="team">팀장</option>
+              <option value="part">파트장</option>
+              <option value="safety">안전보건팀</option>
+            </select>
+            <button onClick={() => window.print()} className="hidden md:flex h-7 px-2.5 rounded-md border border-stone-200 text-xs font-medium text-stone-500 bg-white hover:bg-stone-50 cursor-pointer items-center gap-1">
+              🖨 인쇄
+            </button>
+          </div>
+        </div>
+
+        {/* ── 3행: 탭바 ── */}
+        <div className="bg-white border-b border-stone-200">
+          <div className="max-w-[1400px] mx-auto px-2 sm:px-4 flex gap-0 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+            {TABS.map(t => (
+              <button key={t.id} onClick={() => setTab(t.id)}
+                className={`min-h-[42px] sm:min-h-[46px] px-3 sm:px-4 py-2.5 text-xs sm:text-[13px] font-medium whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 border-b-2 ${tab === t.id ? "border-stone-900 text-stone-900 font-bold" : "border-transparent text-stone-400 hover:text-stone-700 hover:border-stone-300"}`}
+                style={{ minWidth: 48, flexShrink: 0 }}>
+                <t.Icon size={13} strokeWidth={2} className="flex-shrink-0" />
+                <span className="hidden sm:inline">{t.l}</span>
+                <span className="sm:hidden">{t.short}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      {/* 역할 안내 배너 */}
+      {currentRole && (
+        <div className="max-w-[1400px] mx-auto px-3 sm:px-4 pt-2 sm:pt-3">
+          <div className="rounded-lg bg-white border border-stone-200 p-3 flex items-start gap-3" style={{ borderLeft: `3px solid ${currentRole === "ceo" ? "#1C1917" : currentRole === "manager" ? "#4F46E5" : currentRole === "team" ? "#0891B2" : currentRole === "part" ? "#B45309" : DAISO_RED}` }}>
+            <div style={{ width: 28, height: 28, borderRadius: 6, background: currentRole === "ceo" ? "#1C1917" : currentRole === "manager" ? "#4F46E5" : currentRole === "team" ? "#0891B2" : currentRole === "part" ? "#B45309" : DAISO_RED, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              {currentRole === "ceo" && <Building2 size={14} color="white" />}
+              {currentRole === "manager" && <Users size={14} color="white" />}
+              {currentRole === "team" && <ShieldCheck size={14} color="white" />}
+              {currentRole === "part" && <Store size={14} color="white" />}
+              {currentRole === "safety" && <Lock size={14} color="white" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                {ROLE_LABELS[currentRole]} 뷰
+                <span className="text-[10px] font-normal text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded">
+                  {ROLE_TAB_VISIBILITY[currentRole] ? `${ROLE_TAB_VISIBILITY[currentRole].length}개 탭` : "전체 탭"}
+                </span>
+              </div>
+              <div className="text-xs text-stone-500 mt-0.5">
+                {currentRole === "ceo" && "월간 보고 · 비용 손실 · 전사 KPI · 중상해사고 조기경보 · 지역 분포"}
+                {currentRole === "manager" && "영업부문별 비교 · 팀 순위 · 위험지도 · 인적요인 · 지역 분석"}
+                {currentRole === "team" && "매장 IR · 파트장 평가 · 재발재해자 · 위험지도 · 인적요인"}
+                {currentRole === "part" && "관할 매장 모니터링 · 위험지도 · 재발재해자"}
+                {currentRole === "safety" && "전사 데이터 관리 · 법규 감사 · 중처법 대응 · 전체 탭 접근"}
+              </div>
+            </div>
+            <button onClick={() => { setCurrentRole(null); }} className="text-xs text-stone-400 hover:text-stone-600 flex-shrink-0 cursor-pointer"><X size={16} /></button>
+          </div>
+        </div>
+      )}
+      
+      {error && <div className="max-w-[1400px] mx-auto px-4 pt-4"><div className="p-3 rounded-lg bg-[#FEF2F3] border border-[#FCE0E3] text-sm text-red-700 flex items-center gap-2"><AlertCircle size={16} /> {error}</div></div>}
+      
+      <div className="max-w-[1400px] mx-auto px-3 sm:px-4 py-3 sm:py-5">
+        <TabErrorBoundary key={tab}>
+          {tab === "overview" && <Overview D={dataFiltered} yearFilter={yearFilter} role={currentRole} setTab={setTab} />}
+          {tab === "dept" && <DeptTeamStore D={data} yearFilter={yearFilter} />}
+          {tab === "store" && <StoreAnalysis D={dataFiltered} yearFilter={yearFilter} setYearFilter={setYearFilter} />}
+          {tab === "riskmap" && <StoreRiskMap D={data} yearFilter={yearFilter} setYearFilter={setYearFilter} syncStoreToUrl={syncStoreToUrl} initStore={_INIT_HASH_PARAMS.store} />}
+          {tab === "sigungu" && <StoreDeepDive D={dataFiltered} yearFilter={yearFilter} />}
+          {tab === "time" && <TimeSeries D={data} yearFilter={yearFilter} />}
+          {tab === "cross" && <CrossAnalysis D={dataFiltered} yearFilter={yearFilter} />}
+          {tab === "human" && <HumanFactors D={dataFiltered} yearFilter={yearFilter} />}
+          {tab === "repeat" && <RepeatWorkers D={dataFiltered} yearFilter={yearFilter} />}
+          {tab === "severity" && <SeverityAnalysis D={data} yearFilter={yearFilter} />}
+          {tab === "parjang" && <ParjangDashboard D={dataFiltered} yearFilter={yearFilter} />}
+          {tab === "cost" && <CostRisk D={dataFiltered} yearFilter={yearFilter} />}
+          {tab === "legal" && <LegalReporting D={dataFiltered} yearFilter={yearFilter} />}
+          {tab === "admin" && isAdmin && <AdminUpload 
+            onAccidentFile={handleAccidentFile} onStoreFile={handleStoreFile} onWorkerFile={handleWorkerFile}
+            accidentFileName={accidentFileName} storeFileName={storeFileName} workerFileName={workerFileName}
+            loading={loading} resetData={resetData} isDefault={isDefault}
+            onLogout={handleLogout}
+            workerJoin={data.worker_join} workerKpis={data.worker_kpis} workerIrSummary={data.worker_ir_summary}
+          />}
+        </TabErrorBoundary>
+      </div>
+      
+      <div className="max-w-[1400px] mx-auto px-4 py-4 text-xs text-stone-400 border-t border-stone-100 mt-6 flex justify-between flex-wrap gap-2">
+        <div>© ㈜아성다이소 안전보건팀 · v9 · {new Date().getFullYear()}.{String(new Date().getMonth()+1).padStart(2,"0")}</div>
+        <div>13개 분석 탭 · 55+ 지표 · 역할별 권한 분리 · Gemini AI 분석 · 브라우저 기반 파싱</div>
+      </div>
+    </div>
+  );
+}
+export default App;

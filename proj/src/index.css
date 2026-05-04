@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*, *::before, *::after {
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+.overflow-x-auto::-webkit-scrollbar { display: none; }
+
+@media print {
+  header, .sticky, button, select { display: none !important; }
+  body, html { background: white !important; }
+  * { background: white !important; box-shadow: none !important; }
+  @page { margin: 15mm; size: A4; }
+}

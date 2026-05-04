@@ -1,0 +1,17 @@
+[
+  {
+    "store_code": "10931",
+    "store_name": "의정부민락2호점",
+    "region": "강북팀",
+    "date": "2026-05-04",
+    "timestamp": "2026-05-04T20:38:59+09:00",
+    "trigger_type": "manual",
+    "risk_cust": "low",
+    "risk_cust_score": 47,
+    "risk_emp": "low",
+    "risk_emp_score": 25,
+    "dominant_type_cust": "낙상",
+    "dominant_type_emp": "넘어짐",
+    "detail_key": "alerts/2026-05-04/10931_1777894739.json"
+  }
+]
