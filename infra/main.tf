@@ -19,7 +19,7 @@ terraform {
 
 variable "aws_region" {
   description = "AWS 리전"
-  default     = "us-east-1"
+  default     = "ap-northeast-2"
 }
 
 variable "project" {
@@ -369,4 +369,9 @@ output "models_bucket" {
 output "daily_bucket" {
   description = "배치 결과 S3 버킷"
   value       = aws_s3_bucket.daily.id
+}
+
+output "frontend_bucket_name" {
+  description = "프론트엔드 S3 버킷 이름 (deploy.sh 참조용)"
+  value       = aws_s3_bucket.frontend.id
 }
