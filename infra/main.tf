@@ -364,7 +364,7 @@ output "api_url" {
 
 output "frontend_url" {
   description = "프론트엔드 정적 웹사이트 URL"
-  value       = "http://${aws_s3_bucket.frontend.bucket}.s3-website-${var.aws_region}.amazonaws.com"
+  value       = aws_s3_bucket_website_configuration.frontend.website_endpoint
 }
 
 output "models_bucket" {
