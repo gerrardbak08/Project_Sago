@@ -56,14 +56,14 @@ echo "=== [3/6] Terraform apply ==="
 terraform -chdir="$INFRA_DIR" apply -input=false -auto-approve \
   -var="ses_sender_email=${SES_SENDER_EMAIL:?'SES_SENDER_EMAIL 환경변수를 설정하세요'}"
 
-echo "=== [4/6] Terraform output 읽기 ==="
+echo "=== [4/7] Terraform output 읽기 ==="
 BUCKET=$(terraform -chdir="$INFRA_DIR" output -raw frontend_bucket_name)
 API_URL=$(terraform -chdir="$INFRA_DIR" output -raw api_url)
 
 echo "  S3 버킷: $BUCKET"
 echo "  API URL: $API_URL"
 
-echo "=== [5/6] .env.production 업데이트 ==="
+echo "=== [5/7] .env.production 업데이트 ==="
 # VITE_API_BASE 라인을 API_URL로 교체 (없으면 추가)
 if grep -q "^VITE_API_BASE=" "$ENV_PROD"; then
   sed -i.bak "s|^VITE_API_BASE=.*|VITE_API_BASE=$API_URL|" "$ENV_PROD"

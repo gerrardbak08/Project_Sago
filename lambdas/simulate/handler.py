@@ -210,35 +210,36 @@ def _save_alert(response_body: dict, trigger_type: str = "manual") -> str | None
     daily_bucket = os.environ.get("DAILY_BUCKET")
 
     if daily_bucket:
-        # AWS: S3에 저장
+        # AWS: S3에 저장 (alerts는 frontend 버킷에, 나머지는 daily 버킷에)
+        frontend_bucket = os.environ.get("FRONTEND_BUCKET") or daily_bucket
         try:
             import boto3
             s3 = boto3.client("s3")
 
-            # 상세 파일 저장
+            # 상세 파일 → frontend 버킷 (대시보드에서 직접 접근)
             s3.put_object(
-                Bucket=daily_bucket,
+                Bucket=frontend_bucket,
                 Key=file_key,
                 Body=json.dumps(response_body, ensure_ascii=False, indent=2).encode("utf-8"),
                 ContentType="application/json; charset=utf-8",
             )
 
-            # index.json 업데이트 (기존 내용에 추가)
+            # index.json → frontend 버킷 (기존 내용에 추가)
             index_key = f"alerts/{date_str}/index.json"
             try:
-                resp = s3.get_object(Bucket=daily_bucket, Key=index_key)
+                resp = s3.get_object(Bucket=frontend_bucket, Key=index_key)
                 index_data = json.loads(resp["Body"].read().decode("utf-8"))
             except Exception:
                 index_data = []
 
             index_data.append(summary_record)
             s3.put_object(
-                Bucket=daily_bucket,
+                Bucket=frontend_bucket,
                 Key=index_key,
                 Body=json.dumps(index_data, ensure_ascii=False, indent=2).encode("utf-8"),
                 ContentType="application/json; charset=utf-8",
             )
-            print(f"[save] S3 저장: s3://{daily_bucket}/{file_key}")
+            print(f"[save] S3 저장: s3://{frontend_bucket}/{file_key}")
             return file_key
         except Exception as e:
             print(f"[save] S3 저장 실패: {e}")

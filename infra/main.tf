@@ -106,7 +106,7 @@ resource "aws_s3_bucket" "models" {
   }
 }
 
-# 3) 배치 결과 저장
+# 3) 배치 결과 저장 (내부용, 퍼블릭 불필요)
 resource "aws_s3_bucket" "daily" {
   bucket = "${var.project}-daily"
 
@@ -152,6 +152,8 @@ data "aws_iam_policy_document" "lambda_permissions" {
       "${aws_s3_bucket.models.arn}/*",
       aws_s3_bucket.daily.arn,
       "${aws_s3_bucket.daily.arn}/*",
+      aws_s3_bucket.frontend.arn,
+      "${aws_s3_bucket.frontend.arn}/alerts/*",
     ]
   }
 
@@ -228,10 +230,11 @@ resource "aws_lambda_function" "simulate" {
 
   environment {
     variables = {
-      MODELS_BUCKET  = aws_s3_bucket.models.id
-      DAILY_BUCKET   = aws_s3_bucket.daily.id
-      SES_SENDER     = var.ses_sender_email
-      BEDROCK_REGION = "us-east-1"
+      MODELS_BUCKET   = aws_s3_bucket.models.id
+      DAILY_BUCKET    = aws_s3_bucket.daily.id
+      FRONTEND_BUCKET = aws_s3_bucket.frontend.id
+      SES_SENDER      = var.ses_sender_email
+      BEDROCK_REGION  = "us-east-1"
     }
   }
 
@@ -261,6 +264,7 @@ resource "aws_lambda_function" "batch_orchestrator" {
     variables = {
       MODELS_BUCKET     = aws_s3_bucket.models.id
       DAILY_BUCKET      = aws_s3_bucket.daily.id
+      FRONTEND_BUCKET   = aws_s3_bucket.frontend.id
       SES_SENDER        = var.ses_sender_email
       SIMULATE_FUNCTION = aws_lambda_function.simulate.function_name
       BEDROCK_REGION    = "us-east-1"
