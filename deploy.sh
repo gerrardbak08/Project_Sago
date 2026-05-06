@@ -14,12 +14,22 @@ DIST_DIR="dist"
 echo "=== [1/6] Lambda zip 패키징 ==="
 mkdir -p "$DIST_DIR"
 
-# core-layer.zip — Lambda Layer용 (python/lib/python3.12/site-packages/core/)
+# core-layer.zip — Lambda Layer용 (core/ 모듈 + requests 패키지 포함)
 echo "  core-layer.zip 생성 중..."
 rm -rf /tmp/core-layer-build
-mkdir -p /tmp/core-layer-build/python/lib/python3.12/site-packages/core
+SITE_PKG="/tmp/core-layer-build/python/lib/python3.12/site-packages"
+mkdir -p "$SITE_PKG/core"
+
+# core 모듈 복사
 cp core/__init__.py core/llm.py core/risk.py core/rule_matcher.py core/weather.py \
-  /tmp/core-layer-build/python/lib/python3.12/site-packages/core/
+  "$SITE_PKG/core/"
+
+# 외부 패키지 설치 (requests, python-dotenv)
+pip install requests python-dotenv \
+  --target "$SITE_PKG" \
+  --quiet \
+  --no-cache-dir
+
 (cd /tmp/core-layer-build && zip -r9 - python) > "$DIST_DIR/core-layer.zip"
 echo "  ✓ core-layer.zip ($(du -sh "$DIST_DIR/core-layer.zip" | cut -f1))"
 
