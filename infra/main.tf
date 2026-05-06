@@ -228,9 +228,10 @@ resource "aws_lambda_function" "simulate" {
 
   environment {
     variables = {
-      MODELS_BUCKET    = aws_s3_bucket.models.id
-      DAILY_BUCKET     = aws_s3_bucket.daily.id
-      SES_SENDER_EMAIL = var.ses_sender_email
+      MODELS_BUCKET  = aws_s3_bucket.models.id
+      DAILY_BUCKET   = aws_s3_bucket.daily.id
+      SES_SENDER     = var.ses_sender_email
+      BEDROCK_REGION = "us-east-1"
     }
   }
 
@@ -258,10 +259,11 @@ resource "aws_lambda_function" "batch_orchestrator" {
 
   environment {
     variables = {
-      MODELS_BUCKET    = aws_s3_bucket.models.id
-      DAILY_BUCKET     = aws_s3_bucket.daily.id
-      SES_SENDER_EMAIL = var.ses_sender_email
-      SIMULATE_FN_NAME = aws_lambda_function.simulate.function_name
+      MODELS_BUCKET     = aws_s3_bucket.models.id
+      DAILY_BUCKET      = aws_s3_bucket.daily.id
+      SES_SENDER        = var.ses_sender_email
+      SIMULATE_FUNCTION = aws_lambda_function.simulate.function_name
+      BEDROCK_REGION    = "us-east-1"
     }
   }
 
