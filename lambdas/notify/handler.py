@@ -1,21 +1,23 @@
 """
-notify Lambda 핸들러 — 안전 가이드 생성 + 발송 기록
+notify Lambda 핸들러 — 여러 매장 안전 가이드 생성 + 발송 기록
 
 POST /api/notify
 Body: {
-    "store_code": 1234,
+    "store_codes": [1234, 5678, 9012],   # 여러 매장 코드 배열
     "date": "2026-05-06"
 }
 
-흐름:
-  1. simulate Lambda 내부 호출 → 안전 가이드 생성
-  2. get_notifier(channel) → 발송 (현재: MockNotifier, 나중에: KakaoNotifier)
-  3. 발송 결과를 S3 alerts/{date}/index.json에 기록
+흐름 (매장별 독립 처리):
+  1. S3에서 stores.json + 모델 파일 로드
+  2. 각 매장별: 기상 조회 → 리프 매칭 → 위험도 산출 → 가이드 생성
+  3. get_notifier(channel) → 발송 (현재: MockNotifier)
+  4. 발송 완료 후 S3 alerts/{date}/index.json에 기록
 
-프로토타입 단계:
-  - 실제 메시지 전송 없음 (MockNotifier)
-  - 매장 직원 연락처 미등록 → recipients = []
-  - 카카오 연동 후 KakaoNotifier + 직원 연락처 DB 연결
+환경변수:
+    MODELS_BUCKET   : stores.json + 모델 파일이 있는 S3 버킷
+    FRONTEND_BUCKET : alerts/ 기록용 S3 버킷
+    NOTIFY_CHANNEL  : "mock" (기본) 또는 "kakao" (나중에)
+    BEDROCK_REGION  : Bedrock 리전 (기본 us-east-1)
 """
 
 from __future__ import annotations
@@ -24,8 +26,13 @@ import json
 import os
 import time
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from typing import Any
 
+from core.weather import get_weather
+from core.rule_matcher import match_with_fallback
+from core.risk import calculate_risk
+from core.llm import generate_guide
 from core.notifier import get_notifier
 
 # ──────────────────────────────────────────────
@@ -40,8 +47,20 @@ CORS_HEADERS = {
 }
 
 SOURCES = ["cust", "emp"]
+LABEL_COLS = {"cust": "사고유형", "emp": "재해 유형"}
 SOURCE_LABEL = {"cust": "고객 안전 (CUST)", "emp": "직원 안전 (EMP)"}
 
+WEATHER_FEATURES = [
+    "temperature_2m_min", "temperature_2m_max",
+    "precipitation_sum", "snowfall_sum", "rain_sum",
+    "wind_speed_10m_max", "relative_humidity_2m_mean",
+    "soil_temperature_0_to_7cm_mean",
+]
+
+STORE_NUM_FEATURES = [
+    "평수", "실평수", "진열평수", "창고", "계약면적(㎡)",
+    "매장인원", "입고도우미PO", "일평균매출", "일평균물동량",
+]
 
 # ──────────────────────────────────────────────
 # 응답 헬퍼
@@ -49,97 +68,152 @@ SOURCE_LABEL = {"cust": "고객 안전 (CUST)", "emp": "직원 안전 (EMP)"}
 def _response(status_code: int, body: Any) -> dict:
     return {
         "statusCode": status_code,
-        "headers": {
-            "Content-Type": "application/json; charset=utf-8",
-            **CORS_HEADERS,
-        },
+        "headers": {"Content-Type": "application/json; charset=utf-8", **CORS_HEADERS},
         "body": json.dumps(body, ensure_ascii=False),
     }
 
 
 # ──────────────────────────────────────────────
-# simulate Lambda 내부 호출
+# S3 로딩 + 메모리 캐싱
 # ──────────────────────────────────────────────
-def _invoke_simulate(store_code: int, date_str: str) -> dict:
-    """simulate Lambda를 동기 호출하고 결과 body를 반환한다."""
+_cache: dict[str, Any] = {}
+
+
+def _load_json_s3(key: str) -> Any:
+    """S3에서 JSON을 로드한다. 결과는 Lambda 컨테이너 수명 동안 캐싱된다."""
+    if key in _cache:
+        return _cache[key]
+
+    bucket = os.environ.get("MODELS_BUCKET", "")
+    if not bucket:
+        raise ValueError("MODELS_BUCKET 환경변수가 설정되지 않았습니다.")
+
     import boto3
+    s3 = boto3.client("s3")
+    resp = s3.get_object(Bucket=bucket, Key=key)
+    data = json.loads(resp["Body"].read().decode("utf-8"))
+    _cache[key] = data
+    print(f"[notify] S3 로드: s3://{bucket}/{key}")
+    return data
 
-    function_name = os.environ.get("SIMULATE_FUNCTION", "")
-    if not function_name:
-        raise ValueError("SIMULATE_FUNCTION 환경변수가 설정되지 않았습니다.")
 
-    client = boto3.client("lambda")
-    payload = {
-        "httpMethod": "POST",
-        "body": json.dumps({"store_code": store_code, "date": date_str}),
-    }
+def _load_stores() -> list[dict]:
+    return _load_json_s3("stores.json")
 
-    resp = client.invoke(
-        FunctionName=function_name,
-        InvocationType="RequestResponse",
-        Payload=json.dumps(payload),
+
+def _load_model_files(source: str) -> tuple[dict, dict, dict, dict]:
+    prefix = f"models/{source}"
+    return (
+        _load_json_s3(f"{prefix}/leaf_table.json"),
+        _load_json_s3(f"{prefix}/metadata.json"),
+        _load_json_s3(f"{prefix}/encoder_map.json"),
+        _load_json_s3(f"{prefix}/siblings.json"),
     )
 
-    resp_payload = json.loads(resp["Payload"].read().decode("utf-8"))
 
-    if "FunctionError" in resp:
-        raise Exception(
-            f"simulate Lambda 오류: {resp_payload.get('errorMessage', resp_payload)}"
+# ──────────────────────────────────────────────
+# 피처 구성
+# ──────────────────────────────────────────────
+def _build_features(weather: dict, store: dict, encoder_map: dict) -> dict[str, float]:
+    features: dict[str, float] = {}
+    for feat in WEATHER_FEATURES:
+        val = weather.get(feat)
+        features[feat] = float(val) if val is not None else 0.0
+    for feat in STORE_NUM_FEATURES:
+        val = store.get(feat)
+        features[feat] = float(val) if val is not None else 0.0
+    store_type = store.get("형태", "직영점")
+    type_mapping = encoder_map.get("형태", {})
+    features["형태"] = float(type_mapping.get(store_type, type_mapping.get("직영점", 2)))
+    return features
+
+
+# ──────────────────────────────────────────────
+# 단일 매장 가이드 생성
+# ──────────────────────────────────────────────
+def _generate_store_guide(store: dict, date_str: str) -> dict:
+    """한 매장의 안전 가이드를 생성한다."""
+    store_code = str(store.get("매장", ""))
+    store_name = store.get("매장명", "")
+    lat = store.get("위도")
+    lon = store.get("경도")
+
+    if lat is None or lon is None:
+        return {
+            "store_code": store_code,
+            "store_name": store_name,
+            "error": "위경도 정보 없음",
+        }
+
+    weather = get_weather(float(lat), float(lon), date_str)
+    if weather is None:
+        weather = {feat: 0.0 for feat in WEATHER_FEATURES}
+        print(f"[notify] 기상 조회 실패 → 기본값 사용: {store_name}")
+
+    results: dict[str, Any] = {}
+    for source in SOURCES:
+        try:
+            leaf_table, metadata, encoder_map, siblings = _load_model_files(source)
+        except Exception as e:
+            results[source] = {"error": str(e)}
+            continue
+
+        label_col = LABEL_COLS.get(source, metadata.get("label_column", "사고유형"))
+        total_incidents = metadata.get("total_incidents", 0)
+        features = _build_features(weather, store, encoder_map)
+        leaf_id, leaf_data, fallback_level = match_with_fallback(
+            features, leaf_table, siblings, metadata
         )
+        if leaf_data is None:
+            results[source] = {"error": "리프 매칭 실패"}
+            continue
 
-    status_code = resp_payload.get("statusCode", 500)
-    body = resp_payload.get("body", "{}")
-    if isinstance(body, str):
-        body = json.loads(body)
+        leaf_summary = leaf_data.get("summary", {})
+        risk_info = calculate_risk(leaf_summary, total_incidents, label_col)
+        guide = generate_guide(store, weather, leaf_data, risk_info)
 
-    if status_code != 200:
-        raise Exception(f"simulate 응답 오류 (HTTP {status_code}): {body}")
+        results[source] = {
+            "leaf_id": str(leaf_id) if leaf_id is not None else None,
+            "fallback_level": fallback_level,
+            "risk": risk_info,
+            "guide": guide,
+            "matched_rule": leaf_data.get("rule", ""),
+            "incident_count": leaf_summary.get("total", 0),
+        }
 
-    return body
+    return {
+        "store_code": store_code,
+        "store_name": store_name,
+        "region": store.get("지역", ""),
+        "date": date_str,
+        "weather": weather,
+        "results": results,
+    }
 
 
 # ──────────────────────────────────────────────
 # 메시지 본문 구성
 # ──────────────────────────────────────────────
 def _build_message_body(store_name: str, date_str: str, results: dict) -> str:
-    lines = [
-        f"🏪 {store_name} 안전 가이드",
-        f"📅 날짜: {date_str}",
-        "",
-    ]
-
+    lines = [f"🏪 {store_name} 안전 가이드", f"📅 날짜: {date_str}", ""]
     for source in SOURCES:
         source_data = results.get(source, {})
-        label = SOURCE_LABEL.get(source, source.upper())
-        lines.append(f"━━ {label} ━━")
-
+        lines.append(f"━━ {SOURCE_LABEL.get(source, source.upper())} ━━")
         if "error" in source_data:
             lines.append(f"  ❌ 오류: {source_data['error']}")
-            lines.append("")
-            continue
-
-        guide = source_data.get("guide", {})
-        risk_summary = guide.get("위험_요약", "정보 없음")
-        lines.append(f"⚠️ {risk_summary}")
-
-        tips = guide.get("안전_수칙", [])
-        for tip in tips:
-            lines.append(f"  ☑️ {tip}")
-
+        else:
+            guide = source_data.get("guide", {})
+            lines.append(f"⚠️ {guide.get('위험_요약', '정보 없음')}")
+            for tip in guide.get("안전_수칙", []):
+                lines.append(f"  ☑️ {tip}")
         lines.append("")
-
     return "\n".join(lines)
 
 
 # ──────────────────────────────────────────────
 # 알림 현황 S3 기록
 # ──────────────────────────────────────────────
-def _record_alert(
-    sim_result: dict,
-    sent: list[str],
-    failed: list[str],
-    channel: str,
-) -> None:
+def _record_alert(guide_result: dict, channel: str) -> None:
     """발송 결과를 S3 frontend 버킷의 alerts/{date}/index.json에 기록한다."""
     import boto3
 
@@ -148,47 +222,43 @@ def _record_alert(
         print("[notify] FRONTEND_BUCKET 미설정 → 기록 스킵")
         return
 
-    store_code = sim_result.get("store_code", "unknown")
-    date_str = sim_result.get("date", "unknown")
+    store_code = guide_result.get("store_code", "unknown")
+    date_str = guide_result.get("date", "unknown")
     ts = int(time.time())
     file_key = f"alerts/{date_str}/{store_code}_{ts}.json"
 
-    cust_result = sim_result.get("results", {}).get("cust", {})
-    emp_result = sim_result.get("results", {}).get("emp", {})
+    cust = guide_result.get("results", {}).get("cust", {})
+    emp = guide_result.get("results", {}).get("emp", {})
 
     summary_record = {
         "store_code": store_code,
-        "store_name": sim_result.get("store_name", ""),
-        "region": sim_result.get("region", ""),
+        "store_name": guide_result.get("store_name", ""),
+        "region": guide_result.get("region", ""),
         "date": date_str,
         "timestamp": datetime.now(KST).isoformat(timespec="seconds"),
         "trigger_type": f"manual_send_{channel}",
         "channel": channel,
-        "sent_to": sent,
-        "send_failed": failed,
-        "risk_cust": cust_result.get("risk", {}).get("grade", ""),
-        "risk_cust_score": cust_result.get("risk", {}).get("score", 0),
-        "risk_emp": emp_result.get("risk", {}).get("grade", ""),
-        "risk_emp_score": emp_result.get("risk", {}).get("score", 0),
-        "dominant_type_cust": cust_result.get("risk", {}).get("dominant_type", ""),
-        "dominant_type_emp": emp_result.get("risk", {}).get("dominant_type", ""),
+        "risk_cust": cust.get("risk", {}).get("grade", ""),
+        "risk_cust_score": cust.get("risk", {}).get("score", 0),
+        "risk_emp": emp.get("risk", {}).get("grade", ""),
+        "risk_emp_score": emp.get("risk", {}).get("score", 0),
+        "dominant_type_cust": cust.get("risk", {}).get("dominant_type", ""),
+        "dominant_type_emp": emp.get("risk", {}).get("dominant_type", ""),
         "detail_key": file_key,
     }
 
     s3 = boto3.client("s3")
 
-    # 상세 파일 저장
     try:
         s3.put_object(
             Bucket=frontend_bucket,
             Key=file_key,
-            Body=json.dumps(sim_result, ensure_ascii=False, indent=2).encode("utf-8"),
+            Body=json.dumps(guide_result, ensure_ascii=False, indent=2).encode("utf-8"),
             ContentType="application/json; charset=utf-8",
         )
     except Exception as e:
         print(f"[notify] 상세 파일 저장 실패: {e}")
 
-    # index.json 업데이트
     index_key = f"alerts/{date_str}/index.json"
     try:
         resp = s3.get_object(Bucket=frontend_bucket, Key=index_key)
@@ -197,7 +267,6 @@ def _record_alert(
         index_data = []
 
     index_data.append(summary_record)
-
     try:
         s3.put_object(
             Bucket=frontend_bucket,
@@ -205,7 +274,7 @@ def _record_alert(
             Body=json.dumps(index_data, ensure_ascii=False, indent=2).encode("utf-8"),
             ContentType="application/json; charset=utf-8",
         )
-        print(f"[notify] 현황 기록 완료: s3://{frontend_bucket}/{index_key}")
+        print(f"[notify] 현황 기록: {store_code} → s3://{frontend_bucket}/{index_key}")
     except Exception as e:
         print(f"[notify] index.json 업데이트 실패: {e}")
 
@@ -217,9 +286,8 @@ def lambda_handler(event: dict, context: Any) -> dict:
     """notify Lambda 메인 핸들러.
 
     POST /api/notify
-    Body: { "store_code": 1234, "date": "2026-05-06" }
+    Body: { "store_codes": [1234, 5678], "date": "2026-05-06" }
     """
-    # CORS preflight
     method = (
         event.get("requestContext", {}).get("http", {}).get("method", "")
         or event.get("httpMethod", "")
@@ -232,54 +300,99 @@ def lambda_handler(event: dict, context: Any) -> dict:
         body = event.get("body", "{}")
         if isinstance(body, str):
             body = json.loads(body)
-        store_code = body.get("store_code")
+
+        store_codes = body.get("store_codes", [])
         date_str = body.get("date")
         channel = body.get("channel") or os.environ.get("NOTIFY_CHANNEL", "mock")
 
-        if store_code is None or date_str is None:
-            return _response(400, {"error": "store_code와 date는 필수입니다."})
+        if not store_codes or date_str is None:
+            return _response(400, {"error": "store_codes(배열)와 date는 필수입니다."})
+        if not isinstance(store_codes, list):
+            return _response(400, {"error": "store_codes는 배열이어야 합니다."})
 
-        store_code = int(store_code)
+        store_codes = [int(c) for c in store_codes]
     except (json.JSONDecodeError, ValueError, TypeError) as e:
         return _response(400, {"error": f"요청 파싱 실패: {e}"})
 
-    # 1. simulate 호출 → 안전 가이드 생성
+    # stores.json 로드
     try:
-        sim_result = _invoke_simulate(store_code, date_str)
+        all_stores = _load_stores()
     except Exception as e:
-        return _response(500, {"error": f"안전 가이드 생성 실패: {e}"})
+        return _response(500, {"error": f"stores.json 로드 실패: {e}"})
 
-    store_name = sim_result.get("store_name", str(store_code))
+    store_map = {int(s["매장"]): s for s in all_stores if s.get("매장") is not None}
 
-    # 2. 발송 (프로토타입: recipients 없음 → MockNotifier가 빈 목록 처리)
-    # 나중에 카카오 연동 시: 직원 연락처 DB에서 recipients 조회 후 전달
-    recipients: list[str] = []  # TODO: 직원 연락처 DB 연동 후 채울 것
+    notifier = get_notifier(channel)
 
-    subject = f"[다이소 안전가이드] {store_name} - {date_str}"
-    message_body = _build_message_body(store_name, date_str, sim_result.get("results", {}))
+    # 매장별 처리
+    store_results = []
+    success_count = 0
+    failed_count = 0
 
-    try:
-        notifier = get_notifier(channel)
-        send_result = notifier.send(recipients, subject, message_body)
-    except Exception as e:
-        return _response(500, {"error": f"발송 처리 실패: {e}"})
+    for store_code in store_codes:
+        store = store_map.get(store_code)
+        if store is None:
+            store_results.append({
+                "store_code": str(store_code),
+                "status": "failed",
+                "error": f"매장코드 {store_code}를 찾을 수 없습니다.",
+            })
+            failed_count += 1
+            continue
 
-    sent = send_result.get("sent", [])
-    failed = send_result.get("failed", [])
+        try:
+            # 가이드 생성
+            guide_result = _generate_store_guide(store, date_str)
 
-    # 3. 현황 기록 (발송 처리 완료 시 항상 기록)
-    _record_alert(sim_result, sent, failed, channel)
+            if "error" in guide_result:
+                raise Exception(guide_result["error"])
+
+            store_name = guide_result.get("store_name", str(store_code))
+
+            # 발송 (프로토타입: recipients=[], 카카오 연동 후 직원 연락처 전달)
+            recipients: list[str] = []  # TODO: 직원 연락처 DB 연동
+            subject = f"[다이소 안전가이드] {store_name} - {date_str}"
+            msg_body = _build_message_body(store_name, date_str, guide_result.get("results", {}))
+            notifier.send(recipients, subject, msg_body)
+
+            # 현황 기록
+            _record_alert(guide_result, channel)
+
+            cust = guide_result.get("results", {}).get("cust", {})
+            emp = guide_result.get("results", {}).get("emp", {})
+
+            store_results.append({
+                "store_code": str(store_code),
+                "store_name": store_name,
+                "status": "sent",
+                "risk_cust": cust.get("risk", {}).get("grade", ""),
+                "risk_emp": emp.get("risk", {}).get("grade", ""),
+                "guide_preview": {
+                    "cust": cust.get("guide", {}).get("위험_요약", ""),
+                    "emp": emp.get("guide", {}).get("위험_요약", ""),
+                },
+            })
+            success_count += 1
+            print(f"[notify] 완료: {store_name} ({store_code})")
+
+        except Exception as e:
+            store_results.append({
+                "store_code": str(store_code),
+                "store_name": store.get("매장명", ""),
+                "status": "failed",
+                "error": str(e),
+            })
+            failed_count += 1
+            print(f"[notify] 실패: {store_code} — {e}")
 
     return _response(200, {
-        "store_code": str(store_code),
-        "store_name": store_name,
         "date": date_str,
         "channel": channel,
-        "status": "sent",
-        "recipients_count": len(recipients),
-        "note": "프로토타입: 실제 발송 없음. 카카오 연동 후 직원 연락처로 실제 발송됩니다.",
-        "guide_preview": {
-            "cust": sim_result.get("results", {}).get("cust", {}).get("guide", {}).get("위험_요약", ""),
-            "emp": sim_result.get("results", {}).get("emp", {}).get("guide", {}).get("위험_요약", ""),
+        "summary": {
+            "total": len(store_codes),
+            "success": success_count,
+            "failed": failed_count,
         },
+        "stores": store_results,
+        "note": "프로토타입: 실제 발송 없음. 카카오 연동 후 직원 연락처로 실제 발송됩니다.",
     })

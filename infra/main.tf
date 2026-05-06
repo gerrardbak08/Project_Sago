@@ -247,10 +247,10 @@ resource "aws_lambda_function" "notify" {
 
   environment {
     variables = {
-      FRONTEND_BUCKET   = aws_s3_bucket.frontend.id
-      SIMULATE_FUNCTION = aws_lambda_function.simulate.function_name
-      NOTIFY_CHANNEL    = "mock"
-      BEDROCK_REGION    = "us-east-1"
+      MODELS_BUCKET   = aws_s3_bucket.models.id
+      FRONTEND_BUCKET = aws_s3_bucket.frontend.id
+      NOTIFY_CHANNEL  = "mock"
+      BEDROCK_REGION  = "us-east-1"
     }
   }
 
