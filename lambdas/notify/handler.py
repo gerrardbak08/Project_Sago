@@ -1,18 +1,21 @@
 """
-notify Lambda 핸들러 — 안전 가이드 생성 + 메시지 발송 + 현황 기록
+notify Lambda 핸들러 — 안전 가이드 생성 + 발송 기록
 
 POST /api/notify
 Body: {
     "store_code": 1234,
-    "date": "2026-05-06",
-    "recipients": ["a@b.com", "c@d.com"],
-    "channel": "email"   (선택, 기본값 "email")
+    "date": "2026-05-06"
 }
 
 흐름:
   1. simulate Lambda 내부 호출 → 안전 가이드 생성
-  2. get_notifier(channel) → 발송
-  3. 발송 성공 건만 → S3 alerts/{date}/index.json 기록
+  2. get_notifier(channel) → 발송 (현재: MockNotifier, 나중에: KakaoNotifier)
+  3. 발송 결과를 S3 alerts/{date}/index.json에 기록
+
+프로토타입 단계:
+  - 실제 메시지 전송 없음 (MockNotifier)
+  - 매장 직원 연락처 미등록 → recipients = []
+  - 카카오 연동 후 KakaoNotifier + 직원 연락처 DB 연결
 """
 
 from __future__ import annotations
@@ -96,10 +99,9 @@ def _invoke_simulate(store_code: int, date_str: str) -> dict:
 
 
 # ──────────────────────────────────────────────
-# 이메일 본문 구성
+# 메시지 본문 구성
 # ──────────────────────────────────────────────
 def _build_message_body(store_name: str, date_str: str, results: dict) -> str:
-    """안전 가이드 메시지 본문을 구성한다."""
     lines = [
         f"🏪 {store_name} 안전 가이드",
         f"📅 날짜: {date_str}",
@@ -130,7 +132,7 @@ def _build_message_body(store_name: str, date_str: str, results: dict) -> str:
 
 
 # ──────────────────────────────────────────────
-# 알림 현황 S3 기록 (발송 성공 시에만)
+# 알림 현황 S3 기록
 # ──────────────────────────────────────────────
 def _record_alert(
     sim_result: dict,
@@ -215,16 +217,13 @@ def lambda_handler(event: dict, context: Any) -> dict:
     """notify Lambda 메인 핸들러.
 
     POST /api/notify
-    Body: {
-        "store_code": 1234,
-        "date": "2026-05-06",
-        "recipients": ["a@b.com"],
-        "channel": "email"
-    }
+    Body: { "store_code": 1234, "date": "2026-05-06" }
     """
     # CORS preflight
-    method = event.get("requestContext", {}).get("http", {}).get("method", "") \
-             or event.get("httpMethod", "")
+    method = (
+        event.get("requestContext", {}).get("http", {}).get("method", "")
+        or event.get("httpMethod", "")
+    )
     if method == "OPTIONS":
         return _response(200, {"message": "OK"})
 
@@ -235,15 +234,10 @@ def lambda_handler(event: dict, context: Any) -> dict:
             body = json.loads(body)
         store_code = body.get("store_code")
         date_str = body.get("date")
-        recipients = body.get("recipients", [])
-        channel = body.get("channel", "email")
+        channel = body.get("channel") or os.environ.get("NOTIFY_CHANNEL", "mock")
 
         if store_code is None or date_str is None:
             return _response(400, {"error": "store_code와 date는 필수입니다."})
-        if not recipients:
-            return _response(400, {"error": "recipients가 비어 있습니다."})
-        if not isinstance(recipients, list):
-            return _response(400, {"error": "recipients는 배열이어야 합니다."})
 
         store_code = int(store_code)
     except (json.JSONDecodeError, ValueError, TypeError) as e:
@@ -255,8 +249,12 @@ def lambda_handler(event: dict, context: Any) -> dict:
     except Exception as e:
         return _response(500, {"error": f"안전 가이드 생성 실패: {e}"})
 
-    # 2. 메시지 발송
     store_name = sim_result.get("store_name", str(store_code))
+
+    # 2. 발송 (프로토타입: recipients 없음 → MockNotifier가 빈 목록 처리)
+    # 나중에 카카오 연동 시: 직원 연락처 DB에서 recipients 조회 후 전달
+    recipients: list[str] = []  # TODO: 직원 연락처 DB 연동 후 채울 것
+
     subject = f"[다이소 안전가이드] {store_name} - {date_str}"
     message_body = _build_message_body(store_name, date_str, sim_result.get("results", {}))
 
@@ -264,22 +262,24 @@ def lambda_handler(event: dict, context: Any) -> dict:
         notifier = get_notifier(channel)
         send_result = notifier.send(recipients, subject, message_body)
     except Exception as e:
-        return _response(500, {"error": f"발송 실패: {e}"})
+        return _response(500, {"error": f"발송 처리 실패: {e}"})
 
     sent = send_result.get("sent", [])
     failed = send_result.get("failed", [])
 
-    # 3. 발송 성공 건이 있을 때만 현황 기록
-    if sent:
-        _record_alert(sim_result, sent, failed, channel)
+    # 3. 현황 기록 (발송 처리 완료 시 항상 기록)
+    _record_alert(sim_result, sent, failed, channel)
 
     return _response(200, {
         "store_code": str(store_code),
         "store_name": store_name,
         "date": date_str,
         "channel": channel,
-        "sent": sent,
-        "failed": failed,
-        "total_sent": len(sent),
-        "total_failed": len(failed),
+        "status": "sent",
+        "recipients_count": len(recipients),
+        "note": "프로토타입: 실제 발송 없음. 카카오 연동 후 직원 연락처로 실제 발송됩니다.",
+        "guide_preview": {
+            "cust": sim_result.get("results", {}).get("cust", {}).get("guide", {}).get("위험_요약", ""),
+            "emp": sim_result.get("results", {}).get("emp", {}).get("guide", {}).get("위험_요약", ""),
+        },
     })

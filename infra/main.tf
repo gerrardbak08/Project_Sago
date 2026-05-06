@@ -263,10 +263,8 @@ resource "aws_lambda_function" "notify" {
   environment {
     variables = {
       FRONTEND_BUCKET   = aws_s3_bucket.frontend.id
-      SES_SENDER        = var.ses_sender_email
-      SES_REGION        = "ap-northeast-2"
       SIMULATE_FUNCTION = aws_lambda_function.simulate.function_name
-      NOTIFY_CHANNEL    = "email"
+      NOTIFY_CHANNEL    = "mock"
       BEDROCK_REGION    = "us-east-1"
     }
   }
