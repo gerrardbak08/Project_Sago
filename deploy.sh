@@ -73,7 +73,28 @@ else
 fi
 echo "  VITE_API_BASE=$API_URL 설정 완료"
 
-echo "=== [6/6] 프론트엔드 빌드 및 S3 업로드 ==="
+echo "=== [6/7] 모델 파일 및 stores.json → S3 업로드 ==="
+MODELS_BUCKET=$(terraform -chdir="$INFRA_DIR" output -raw models_bucket)
+echo "  모델 버킷: $MODELS_BUCKET"
+
+# stores.json (프론트엔드 빌드 결과물 재사용)
+aws s3 cp "$PROJ_DIR/dist/stores.json" "s3://$MODELS_BUCKET/stores.json" \
+  --region ap-northeast-2
+echo "  ✓ stores.json 업로드"
+
+# models/cust/ — JSON + pkl 파일
+aws s3 sync models/cust/ "s3://$MODELS_BUCKET/models/cust/" \
+  --region ap-northeast-2 \
+  --exclude ".gitkeep"
+echo "  ✓ models/cust/ 업로드"
+
+# models/emp/ — JSON + pkl 파일
+aws s3 sync models/emp/ "s3://$MODELS_BUCKET/models/emp/" \
+  --region ap-northeast-2 \
+  --exclude ".gitkeep"
+echo "  ✓ models/emp/ 업로드"
+
+echo "=== [7/7] 프론트엔드 빌드 및 S3 업로드 ==="
 npm --prefix "$PROJ_DIR" run build
 
 # index.html, stores.json — no-cache (항상 최신 버전 제공)
