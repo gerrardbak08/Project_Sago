@@ -38,7 +38,9 @@ function DetailModal({ item, onClose }) {
 
   useEffect(() => {
     if (!item?.detail_key) { setLoading(false); return; }
-    fetch(`/${item.detail_key}`)
+    const base = import.meta.env.VITE_API_BASE ?? '';
+    const filename = item.detail_key.split('/').pop();
+    fetch(`${base}/api/alerts/${item.date}/${filename}`)
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => { setDetail(d); setLoading(false); })
       .catch(e => { setError(e.message); setLoading(false); });
@@ -171,7 +173,8 @@ function AlertMonitoring() {
   const load = async (d) => {
     setLoading(true); setError(null); setResult(null);
     try {
-      const res = await fetch(`/alerts/${d}/index.json`);
+      const base = import.meta.env.VITE_API_BASE ?? '';
+      const res = await fetch(`${base}/api/alerts/${d}`);
       if (!res.ok) throw new Error(`데이터 없음 (HTTP ${res.status})`);
       const data = await res.json();
       setResult(Array.isArray(data) ? data : data.stores || []);

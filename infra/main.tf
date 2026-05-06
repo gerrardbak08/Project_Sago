@@ -135,7 +135,7 @@ resource "aws_iam_role" "lambda_exec" {
 }
 
 data "aws_iam_policy_document" "lambda_permissions" {
-  # S3 읽기/쓰기
+  # S3 읽기/쓰기 (models + daily)
   statement {
     actions = [
       "s3:GetObject",
@@ -147,8 +147,6 @@ data "aws_iam_policy_document" "lambda_permissions" {
       "${aws_s3_bucket.models.arn}/*",
       aws_s3_bucket.daily.arn,
       "${aws_s3_bucket.daily.arn}/*",
-      aws_s3_bucket.frontend.arn,
-      "${aws_s3_bucket.frontend.arn}/alerts/*",
     ]
   }
 
@@ -182,6 +180,43 @@ resource "aws_iam_role_policy" "lambda_permissions" {
   name   = "${var.project}-lambda-permissions"
   role   = aws_iam_role.lambda_exec.id
   policy = data.aws_iam_policy_document.lambda_permissions.json
+}
+
+# ---------------------------------------------------------------------------
+# IAM — alerts Lambda 전용 역할 (daily 버킷 읽기 전용)
+# ---------------------------------------------------------------------------
+
+data "aws_iam_policy_document" "alerts_permissions" {
+  # daily 버킷 alerts/ 경로 읽기만 허용
+  statement {
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.daily.arn}/alerts/*"]
+  }
+
+  # CloudWatch Logs
+  statement {
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+    ]
+    resources = ["arn:aws:logs:*:*:*"]
+  }
+}
+
+resource "aws_iam_role" "alerts_exec" {
+  name               = "${var.project}-alerts-exec"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  tags = {
+    Project = var.project
+  }
+}
+
+resource "aws_iam_role_policy" "alerts_permissions" {
+  name   = "${var.project}-alerts-permissions"
+  role   = aws_iam_role.alerts_exec.id
+  policy = data.aws_iam_policy_document.alerts_permissions.json
 }
 
 # ---------------------------------------------------------------------------
@@ -247,10 +282,10 @@ resource "aws_lambda_function" "notify" {
 
   environment {
     variables = {
-      MODELS_BUCKET   = aws_s3_bucket.models.id
-      FRONTEND_BUCKET = aws_s3_bucket.frontend.id
-      NOTIFY_CHANNEL  = "mock"
-      BEDROCK_REGION  = "us-east-1"
+      MODELS_BUCKET  = aws_s3_bucket.models.id
+      DAILY_BUCKET   = aws_s3_bucket.daily.id
+      NOTIFY_CHANNEL = "mock"
+      BEDROCK_REGION = "us-east-1"
     }
   }
 
@@ -282,6 +317,60 @@ resource "aws_lambda_permission" "apigw_notify" {
 }
 
 # ---------------------------------------------------------------------------
+# Lambda — alerts (GET /api/alerts/{date}, GET /api/alerts/{date}/{filename})
+# ---------------------------------------------------------------------------
+
+resource "aws_lambda_function" "alerts" {
+  function_name    = "${var.project}-alerts"
+  role             = aws_iam_role.alerts_exec.arn
+  handler          = "handler.lambda_handler"
+  runtime          = "python3.12"
+  filename         = "${path.module}/../dist/alerts.zip"
+  source_code_hash = filebase64sha256("${path.module}/../dist/alerts.zip")
+
+  memory_size = 128
+  timeout     = 10
+
+  environment {
+    variables = {
+      DAILY_BUCKET = aws_s3_bucket.daily.id
+    }
+  }
+
+  tags = {
+    Project = var.project
+  }
+}
+
+resource "aws_apigatewayv2_integration" "alerts" {
+  api_id                 = aws_apigatewayv2_api.api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.alerts.invoke_arn
+  integration_method     = "POST"
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "alerts_index" {
+  api_id    = aws_apigatewayv2_api.api.id
+  route_key = "GET /api/alerts/{date}"
+  target    = "integrations/${aws_apigatewayv2_integration.alerts.id}"
+}
+
+resource "aws_apigatewayv2_route" "alerts_detail" {
+  api_id    = aws_apigatewayv2_api.api.id
+  route_key = "GET /api/alerts/{date}/{filename}"
+  target    = "integrations/${aws_apigatewayv2_integration.alerts.id}"
+}
+
+resource "aws_lambda_permission" "apigw_alerts" {
+  statement_id  = "AllowAPIGatewayInvokeAlerts"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.alerts.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/*"
+}
+
+# ---------------------------------------------------------------------------
 # Lambda — batch-orchestrator (EventBridge 배치)
 # ---------------------------------------------------------------------------
 
@@ -300,11 +389,10 @@ resource "aws_lambda_function" "batch_orchestrator" {
 
   environment {
     variables = {
-      MODELS_BUCKET   = aws_s3_bucket.models.id
-      DAILY_BUCKET    = aws_s3_bucket.daily.id
-      FRONTEND_BUCKET = aws_s3_bucket.frontend.id
-      NOTIFY_CHANNEL  = "mock"
-      BEDROCK_REGION  = "us-east-1"
+      MODELS_BUCKET  = aws_s3_bucket.models.id
+      DAILY_BUCKET   = aws_s3_bucket.daily.id
+      NOTIFY_CHANNEL = "mock"
+      BEDROCK_REGION = "us-east-1"
     }
   }
 

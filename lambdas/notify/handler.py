@@ -214,12 +214,12 @@ def _build_message_body(store_name: str, date_str: str, results: dict) -> str:
 # 알림 현황 S3 기록
 # ──────────────────────────────────────────────
 def _record_alert(guide_result: dict, channel: str) -> None:
-    """발송 결과를 S3 frontend 버킷의 alerts/{date}/index.json에 기록한다."""
+    """발송 결과를 S3 daily 버킷의 alerts/{date}/index.json에 기록한다."""
     import boto3
 
-    frontend_bucket = os.environ.get("FRONTEND_BUCKET", "")
-    if not frontend_bucket:
-        print("[notify] FRONTEND_BUCKET 미설정 → 기록 스킵")
+    daily_bucket = os.environ.get("DAILY_BUCKET", "")
+    if not daily_bucket:
+        print("[notify] DAILY_BUCKET 미설정 → 기록 스킵")
         return
 
     store_code = guide_result.get("store_code", "unknown")
@@ -251,7 +251,7 @@ def _record_alert(guide_result: dict, channel: str) -> None:
 
     try:
         s3.put_object(
-            Bucket=frontend_bucket,
+            Bucket=daily_bucket,
             Key=file_key,
             Body=json.dumps(guide_result, ensure_ascii=False, indent=2).encode("utf-8"),
             ContentType="application/json; charset=utf-8",
@@ -261,7 +261,7 @@ def _record_alert(guide_result: dict, channel: str) -> None:
 
     index_key = f"alerts/{date_str}/index.json"
     try:
-        resp = s3.get_object(Bucket=frontend_bucket, Key=index_key)
+        resp = s3.get_object(Bucket=daily_bucket, Key=index_key)
         index_data = json.loads(resp["Body"].read().decode("utf-8"))
     except Exception:
         index_data = []
@@ -269,12 +269,12 @@ def _record_alert(guide_result: dict, channel: str) -> None:
     index_data.append(summary_record)
     try:
         s3.put_object(
-            Bucket=frontend_bucket,
+            Bucket=daily_bucket,
             Key=index_key,
             Body=json.dumps(index_data, ensure_ascii=False, indent=2).encode("utf-8"),
             ContentType="application/json; charset=utf-8",
         )
-        print(f"[notify] 현황 기록: {store_code} → s3://{frontend_bucket}/{index_key}")
+        print(f"[notify] 현황 기록: {store_code} → s3://{daily_bucket}/{index_key}")
     except Exception as e:
         print(f"[notify] index.json 업데이트 실패: {e}")
 
