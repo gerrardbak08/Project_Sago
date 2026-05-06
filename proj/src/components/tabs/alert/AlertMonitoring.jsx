@@ -292,6 +292,7 @@ function AlertMonitoring() {
                 <tr className="border-b-2 border-stone-100 text-xs text-stone-400 uppercase">
                   <th className="text-left py-2 px-2 font-semibold">매장</th>
                   <th className="text-left py-2 px-2 font-semibold">지역</th>
+                  <th className="text-center py-2 px-2 font-semibold">발송 유형</th>
                   <th className="text-center py-2 px-2 font-semibold">고객 위험도</th>
                   <th className="text-center py-2 px-2 font-semibold">직원 위험도</th>
                   <th className="text-left py-2 px-2 font-semibold">주 유형 (고객)</th>
@@ -307,6 +308,12 @@ function AlertMonitoring() {
                       <div className="text-[10px] text-stone-400 tabular-nums">{s.store_code}</div>
                     </td>
                     <td className="py-2.5 px-2 text-xs text-stone-500">{s.region}</td>
+                    <td className="py-2.5 px-2 text-center">
+                      {s.trigger_type === 'batch'
+                        ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 border border-indigo-200 text-indigo-700">⏰ 배치</span>
+                        : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-stone-100 border border-stone-200 text-stone-600">✋ 수동</span>
+                      }
+                    </td>
                     <td className="py-2.5 px-2 text-center">
                       <div className="flex flex-col items-center gap-1">
                         <RiskBadge grade={s.risk_cust} />
@@ -333,7 +340,7 @@ function AlertMonitoring() {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-10 text-center text-stone-400 text-xs">해당 위험 등급의 매장이 없습니다.</td>
+                    <td colSpan={8} className="py-10 text-center text-stone-400 text-xs">해당 위험 등급의 매장이 없습니다.</td>
                   </tr>
                 )}
               </tbody>

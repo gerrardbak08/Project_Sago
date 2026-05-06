@@ -389,10 +389,11 @@ resource "aws_lambda_function" "batch_orchestrator" {
 
   environment {
     variables = {
-      MODELS_BUCKET  = aws_s3_bucket.models.id
-      DAILY_BUCKET   = aws_s3_bucket.daily.id
-      NOTIFY_CHANNEL = "mock"
-      BEDROCK_REGION = "us-east-1"
+      MODELS_BUCKET     = aws_s3_bucket.models.id
+      DAILY_BUCKET      = aws_s3_bucket.daily.id
+      NOTIFY_CHANNEL    = "mock"
+      BEDROCK_REGION    = "us-east-1"
+      BATCH_STORE_CODES = "10130,10481,10931,11071,11224"
     }
   }
 

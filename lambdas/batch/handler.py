@@ -277,9 +277,20 @@ def lambda_handler(event: dict, context: Any) -> dict:
         print(f"[batch] 치명적 오류: {e}")
         return {"date": date_str, "timestamp": timestamp, "error": str(e)}
 
-    # 영업 중인 매장만
-    active_stores = [s for s in all_stores if s.get("폐점여부") == "영업"]
-    print(f"[batch] 대상 매장 수: {len(active_stores)}")
+    # 환경변수 BATCH_STORE_CODES로 대상 매장 지정
+    # 형식: "10130,10481,10931,11071,11224" (쉼표 구분 매장코드)
+    store_codes_env = os.environ.get("BATCH_STORE_CODES", "")
+    if store_codes_env:
+        target_codes = {int(c.strip()) for c in store_codes_env.split(",") if c.strip()}
+        active_stores = [
+            s for s in all_stores
+            if s.get("폐점여부") == "영업" and int(s["매장"]) in target_codes
+        ]
+        print(f"[batch] 지정 매장 {len(target_codes)}개 중 {len(active_stores)}개 영업 확인")
+    else:
+        # 환경변수 미설정 시 전체 영업 매장 (주의: 매장 수 많음)
+        active_stores = [s for s in all_stores if s.get("폐점여부") == "영업"]
+        print(f"[batch] 전체 영업 매장: {len(active_stores)}개")
 
     store_results: list[dict] = []
     success_count = 0
