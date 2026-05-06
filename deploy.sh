@@ -61,8 +61,7 @@ echo "=== [2/6] Terraform init (필요시) ==="
 terraform -chdir="$INFRA_DIR" init -input=false
 
 echo "=== [3/6] Terraform apply ==="
-terraform -chdir="$INFRA_DIR" apply -input=false -auto-approve \
-  -var="ses_sender_email=${SES_SENDER_EMAIL:?'SES_SENDER_EMAIL 환경변수를 설정하세요'}"
+terraform -chdir="$INFRA_DIR" apply -input=false -auto-approve
 
 echo "=== [4/7] Terraform output 읽기 ==="
 BUCKET=$(terraform -chdir="$INFRA_DIR" output -raw frontend_bucket_name)

@@ -1,6 +1,6 @@
 ###############################################################################
 # Daiso Safety AI — Terraform Infrastructure
-# AWS 리소스: S3, Lambda, Lambda Layer, API Gateway (HTTP), EventBridge, SES, IAM
+# AWS 리소스: S3, Lambda, Lambda Layer, API Gateway (HTTP), EventBridge, IAM
 ###############################################################################
 
 terraform {
@@ -25,11 +25,6 @@ variable "aws_region" {
 variable "project" {
   description = "프로젝트 이름 (리소스 접두사)"
   default     = "daiso-safety"
-}
-
-variable "ses_sender_email" {
-  description = "SES 발신 이메일"
-  type        = string
 }
 
 provider "aws" {
@@ -166,15 +161,6 @@ data "aws_iam_policy_document" "lambda_permissions" {
     resources = ["*"]
   }
 
-  # SES 이메일 발송
-  statement {
-    actions = [
-      "ses:SendEmail",
-      "ses:SendRawEmail",
-    ]
-    resources = ["*"]
-  }
-
   # Lambda invoke (batch → simulate 호출 등)
   statement {
     actions   = ["lambda:InvokeFunction"]
@@ -233,7 +219,6 @@ resource "aws_lambda_function" "simulate" {
       MODELS_BUCKET   = aws_s3_bucket.models.id
       DAILY_BUCKET    = aws_s3_bucket.daily.id
       FRONTEND_BUCKET = aws_s3_bucket.frontend.id
-      SES_SENDER      = var.ses_sender_email
       BEDROCK_REGION  = "us-east-1"
     }
   }
@@ -297,7 +282,7 @@ resource "aws_lambda_permission" "apigw_notify" {
 }
 
 # ---------------------------------------------------------------------------
-# Lambda — batch-orchestrator (EventBridge 배치 + SES 발송)
+# Lambda — batch-orchestrator (EventBridge 배치)
 # ---------------------------------------------------------------------------
 
 resource "aws_lambda_function" "batch_orchestrator" {
@@ -318,7 +303,6 @@ resource "aws_lambda_function" "batch_orchestrator" {
       MODELS_BUCKET     = aws_s3_bucket.models.id
       DAILY_BUCKET      = aws_s3_bucket.daily.id
       FRONTEND_BUCKET   = aws_s3_bucket.frontend.id
-      SES_SENDER        = var.ses_sender_email
       SIMULATE_FUNCTION = aws_lambda_function.simulate.function_name
       BEDROCK_REGION    = "us-east-1"
     }
@@ -402,14 +386,6 @@ resource "aws_lambda_permission" "eventbridge_batch" {
   function_name = aws_lambda_function.batch_orchestrator.function_name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.daily_batch.arn
-}
-
-# ---------------------------------------------------------------------------
-# SES — 이메일 인증
-# ---------------------------------------------------------------------------
-
-resource "aws_ses_email_identity" "sender" {
-  email = var.ses_sender_email
 }
 
 # ---------------------------------------------------------------------------
