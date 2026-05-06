@@ -300,11 +300,11 @@ resource "aws_lambda_function" "batch_orchestrator" {
 
   environment {
     variables = {
-      MODELS_BUCKET     = aws_s3_bucket.models.id
-      DAILY_BUCKET      = aws_s3_bucket.daily.id
-      FRONTEND_BUCKET   = aws_s3_bucket.frontend.id
-      SIMULATE_FUNCTION = aws_lambda_function.simulate.function_name
-      BEDROCK_REGION    = "us-east-1"
+      MODELS_BUCKET   = aws_s3_bucket.models.id
+      DAILY_BUCKET    = aws_s3_bucket.daily.id
+      FRONTEND_BUCKET = aws_s3_bucket.frontend.id
+      NOTIFY_CHANNEL  = "mock"
+      BEDROCK_REGION  = "us-east-1"
     }
   }
 

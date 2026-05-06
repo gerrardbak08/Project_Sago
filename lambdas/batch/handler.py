@@ -3,244 +3,250 @@ batch-orchestrator Lambda 핸들러
 
 EventBridge 트리거: 매일 06:00 KST (cron(0 21 * * ? *) UTC)
 
-전체 매장 순회 → simulate Lambda 동기 호출 → 결과 수집 → S3 저장 → SES 이메일 발송
+전체 영업 매장 순회 → 안전 가이드 생성 → 발송(MockNotifier) → S3 기록
 
 환경변수:
-    MODELS_BUCKET   : stores.json이 있는 S3 버킷
-    DAILY_BUCKET    : 배치 결과 저장 S3 버킷
-    SIMULATE_FUNCTION : simulate Lambda 함수명
-    SES_SENDER      : 발신 이메일
-    SES_REGION      : SES 리전
+    MODELS_BUCKET   : stores.json + 모델 파일이 있는 S3 버킷
+    FRONTEND_BUCKET : alerts/ 기록용 S3 버킷 (대시보드에서 조회)
+    DAILY_BUCKET    : 배치 전체 결과 저장 S3 버킷 (daily/{date}/results.json)
+    NOTIFY_CHANNEL  : "mock" (기본) 또는 "kakao" (나중에)
+    BEDROCK_REGION  : Bedrock 리전 (기본 us-east-1)
 """
 
 from __future__ import annotations
 
 import json
 import os
+import time
 from datetime import datetime, timezone, timedelta
-from pathlib import Path
 from typing import Any
+
+from core.weather import get_weather
+from core.rule_matcher import match_with_fallback
+from core.risk import calculate_risk
+from core.llm import generate_guide
+from core.notifier import get_notifier
 
 # ──────────────────────────────────────────────
 # 상수
 # ──────────────────────────────────────────────
 KST = timezone(timedelta(hours=9))
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 SOURCES = ["cust", "emp"]
+LABEL_COLS = {"cust": "사고유형", "emp": "재해 유형"}
 SOURCE_LABEL = {"cust": "고객 안전 (CUST)", "emp": "직원 안전 (EMP)"}
 
+WEATHER_FEATURES = [
+    "temperature_2m_min", "temperature_2m_max",
+    "precipitation_sum", "snowfall_sum", "rain_sum",
+    "wind_speed_10m_max", "relative_humidity_2m_mean",
+    "soil_temperature_0_to_7cm_mean",
+]
+
+STORE_NUM_FEATURES = [
+    "평수", "실평수", "진열평수", "창고", "계약면적(㎡)",
+    "매장인원", "입고도우미PO", "일평균매출", "일평균물동량",
+]
 
 # ──────────────────────────────────────────────
-# S3 로딩 + 로컬 Fallback
+# S3 로딩 + 메모리 캐싱
 # ──────────────────────────────────────────────
-def _load_stores_from_s3(bucket: str) -> list[dict] | None:
-    """S3에서 stores.json을 로드한다."""
-    try:
-        import boto3
-
-        s3 = boto3.client("s3")
-        resp = s3.get_object(Bucket=bucket, Key="stores.json")
-        data = json.loads(resp["Body"].read().decode("utf-8"))
-        print(f"[batch] S3 로드 성공: s3://{bucket}/stores.json")
-        return data
-    except Exception as e:
-        print(f"[batch] S3 로드 실패: {e}")
-        return None
+_cache: dict[str, Any] = {}
 
 
-def _load_stores_local() -> list[dict] | None:
-    """로컬 stores.json을 로드한다."""
-    fp = PROJECT_ROOT / "stores.json"
-    if fp.exists():
-        with open(fp, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        print(f"[batch] 로컬 로드: {fp}")
-        return data
-    return None
+def _load_json_s3(key: str) -> Any:
+    if key in _cache:
+        return _cache[key]
+    import boto3
+    bucket = os.environ.get("MODELS_BUCKET", "")
+    if not bucket:
+        raise ValueError("MODELS_BUCKET 환경변수가 설정되지 않았습니다.")
+    s3 = boto3.client("s3")
+    resp = s3.get_object(Bucket=bucket, Key=key)
+    data = json.loads(resp["Body"].read().decode("utf-8"))
+    _cache[key] = data
+    print(f"[batch] S3 로드: s3://{bucket}/{key}")
+    return data
 
 
 def _load_stores() -> list[dict]:
-    """stores.json을 로드한다 (S3 우선, 로컬 Fallback)."""
-    bucket = os.environ.get("MODELS_BUCKET")
-    stores = None
-
-    if bucket:
-        stores = _load_stores_from_s3(bucket)
-
-    if stores is None:
-        stores = _load_stores_local()
-
-    if stores is None:
-        raise FileNotFoundError(
-            "stores.json을 찾을 수 없습니다 (S3, 로컬 모두 실패)"
-        )
-
-    return stores
+    return _load_json_s3("stores.json")
 
 
-# ──────────────────────────────────────────────
-# simulate Lambda 동기 호출
-# ──────────────────────────────────────────────
-def _invoke_simulate(
-    lambda_client: Any,
-    function_name: str,
-    store_code: int,
-    date_str: str,
-) -> dict:
-    """simulate Lambda를 동기 호출하고 결과를 반환한다.
-
-    Args:
-        lambda_client: boto3 Lambda 클라이언트
-        function_name: simulate Lambda 함수명
-        store_code: 매장코드
-        date_str: 날짜 (YYYY-MM-DD)
-
-    Returns:
-        simulate Lambda 응답 body (dict)
-
-    Raises:
-        Exception: Lambda 호출 또는 응답 파싱 실패 시
-    """
-    payload = {
-        "httpMethod": "POST",
-        "body": json.dumps({"store_code": store_code, "date": date_str}),
-    }
-
-    resp = lambda_client.invoke(
-        FunctionName=function_name,
-        InvocationType="RequestResponse",
-        Payload=json.dumps(payload),
+def _load_model_files(source: str) -> tuple[dict, dict, dict, dict]:
+    prefix = f"models/{source}"
+    return (
+        _load_json_s3(f"{prefix}/leaf_table.json"),
+        _load_json_s3(f"{prefix}/metadata.json"),
+        _load_json_s3(f"{prefix}/encoder_map.json"),
+        _load_json_s3(f"{prefix}/siblings.json"),
     )
 
-    resp_payload = json.loads(resp["Payload"].read().decode("utf-8"))
 
-    # Lambda 실행 에러 체크
-    if "FunctionError" in resp:
-        raise Exception(
-            f"Lambda 실행 에러: {resp_payload.get('errorMessage', resp_payload)}"
-        )
-
-    # API Gateway 형식 응답 파싱
-    status_code = resp_payload.get("statusCode", 500)
-    body = resp_payload.get("body", "{}")
-    if isinstance(body, str):
-        body = json.loads(body)
-
-    if status_code != 200:
-        raise Exception(f"simulate 응답 에러 (HTTP {status_code}): {body}")
-
-    return body
+# ──────────────────────────────────────────────
+# 피처 구성
+# ──────────────────────────────────────────────
+def _build_features(weather: dict, store: dict, encoder_map: dict) -> dict[str, float]:
+    features: dict[str, float] = {}
+    for feat in WEATHER_FEATURES:
+        val = weather.get(feat)
+        features[feat] = float(val) if val is not None else 0.0
+    for feat in STORE_NUM_FEATURES:
+        val = store.get(feat)
+        features[feat] = float(val) if val is not None else 0.0
+    store_type = store.get("형태", "직영점")
+    type_mapping = encoder_map.get("형태", {})
+    features["형태"] = float(type_mapping.get(store_type, type_mapping.get("직영점", 2)))
+    return features
 
 
 # ──────────────────────────────────────────────
-# 이메일 본문 구성
+# 단일 매장 가이드 생성
 # ──────────────────────────────────────────────
-def _build_email_body(store_name: str, date_str: str, results: dict) -> str:
-    """매장별 안전 가이드 이메일 본문을 구성한다.
+def _generate_store_guide(store: dict, date_str: str) -> dict:
+    store_code = str(store.get("매장", ""))
+    store_name = store.get("매장명", "")
+    lat = store.get("위도")
+    lon = store.get("경도")
 
-    Args:
-        store_name: 매장명
-        date_str: 날짜 (YYYY-MM-DD)
-        results: simulate 결과의 results dict (cust, emp 키)
+    if lat is None or lon is None:
+        return {"store_code": store_code, "store_name": store_name, "error": "위경도 정보 없음"}
 
-    Returns:
-        이메일 본문 문자열
-    """
-    lines = [
-        f"🏪 {store_name} 안전 가이드",
-        f"📅 날짜: {date_str}",
-        "",
-    ]
+    weather = get_weather(float(lat), float(lon), date_str)
+    if weather is None:
+        weather = {feat: 0.0 for feat in WEATHER_FEATURES}
+        print(f"[batch] 기상 조회 실패 → 기본값: {store_name}")
 
+    results: dict[str, Any] = {}
     for source in SOURCES:
-        source_data = results.get(source, {})
-        label = SOURCE_LABEL.get(source, source.upper())
-
-        lines.append(f"━━ {label} ━━")
-
-        if "error" in source_data:
-            lines.append(f"  ❌ 오류: {source_data['error']}")
-            lines.append("")
+        try:
+            leaf_table, metadata, encoder_map, siblings = _load_model_files(source)
+        except Exception as e:
+            results[source] = {"error": str(e)}
             continue
 
-        # 위험도 정보
-        risk = source_data.get("risk", {})
-        guide = source_data.get("guide", {})
+        label_col = LABEL_COLS.get(source, metadata.get("label_column", "사고유형"))
+        total_incidents = metadata.get("total_incidents", 0)
+        features = _build_features(weather, store, encoder_map)
+        leaf_id, leaf_data, fallback_level = match_with_fallback(
+            features, leaf_table, siblings, metadata
+        )
+        if leaf_data is None:
+            results[source] = {"error": "리프 매칭 실패"}
+            continue
 
-        risk_summary = guide.get("위험_요약", "정보 없음")
-        lines.append(f"⚠️ {risk_summary}")
+        leaf_summary = leaf_data.get("summary", {})
+        risk_info = calculate_risk(leaf_summary, total_incidents, label_col)
+        guide = generate_guide(store, weather, leaf_data, risk_info)
 
-        # 안전 수칙
-        tips = guide.get("안전_수칙", [])
-        for tip in tips:
-            lines.append(f"  ☑️ {tip}")
+        results[source] = {
+            "leaf_id": str(leaf_id) if leaf_id is not None else None,
+            "fallback_level": fallback_level,
+            "risk": risk_info,
+            "guide": guide,
+            "matched_rule": leaf_data.get("rule", ""),
+            "incident_count": leaf_summary.get("total", 0),
+        }
 
+    return {
+        "store_code": store_code,
+        "store_name": store_name,
+        "region": store.get("지역", ""),
+        "date": date_str,
+        "weather": weather,
+        "results": results,
+    }
+
+
+# ──────────────────────────────────────────────
+# 메시지 본문 구성
+# ──────────────────────────────────────────────
+def _build_message_body(store_name: str, date_str: str, results: dict) -> str:
+    lines = [f"🏪 {store_name} 안전 가이드", f"📅 날짜: {date_str}", ""]
+    for source in SOURCES:
+        source_data = results.get(source, {})
+        lines.append(f"━━ {SOURCE_LABEL.get(source, source.upper())} ━━")
+        if "error" in source_data:
+            lines.append(f"  ❌ 오류: {source_data['error']}")
+        else:
+            guide = source_data.get("guide", {})
+            lines.append(f"⚠️ {guide.get('위험_요약', '정보 없음')}")
+            for tip in guide.get("안전_수칙", []):
+                lines.append(f"  ☑️ {tip}")
         lines.append("")
-
     return "\n".join(lines)
 
 
 # ──────────────────────────────────────────────
-# SES 이메일 발송
+# 알림 현황 S3 기록 (frontend 버킷 — 대시보드 조회용)
 # ──────────────────────────────────────────────
-def _send_email(
-    ses_client: Any,
-    sender: str,
-    recipient: str,
-    subject: str,
-    body_text: str,
-) -> bool:
-    """AWS SES로 이메일을 발송한다.
-
-    Args:
-        ses_client: boto3 SES 클라이언트
-        sender: 발신 이메일
-        recipient: 수신 이메일
-        subject: 이메일 제목
-        body_text: 이메일 본문
-
-    Returns:
-        발송 성공 여부
-    """
-    try:
-        ses_client.send_email(
-            Source=sender,
-            Destination={"ToAddresses": [recipient]},
-            Message={
-                "Subject": {"Data": subject, "Charset": "UTF-8"},
-                "Body": {"Text": {"Data": body_text, "Charset": "UTF-8"}},
-            },
-        )
-        return True
-    except Exception as e:
-        print(f"[batch] 이메일 발송 실패 ({recipient}): {e}")
-        return False
-
-
-# ──────────────────────────────────────────────
-# 배치 결과 S3 저장
-# ──────────────────────────────────────────────
-def _save_results_to_s3(
+def _record_alert(
     s3_client: Any,
-    bucket: str,
-    date_str: str,
-    results_data: dict,
+    guide_result: dict,
+    channel: str,
+    trigger_type: str,
 ) -> None:
-    """배치 결과를 S3에 저장한다.
+    """발송 결과를 frontend 버킷의 alerts/{date}/index.json에 기록한다."""
+    frontend_bucket = os.environ.get("FRONTEND_BUCKET", "")
+    if not frontend_bucket:
+        print("[batch] FRONTEND_BUCKET 미설정 → 기록 스킵")
+        return
 
-    저장 경로: daily/{date}/results.json
-    """
-    key = f"daily/{date_str}/results.json"
-    body = json.dumps(results_data, ensure_ascii=False, indent=2)
+    store_code = guide_result.get("store_code", "unknown")
+    date_str = guide_result.get("date", "unknown")
+    ts = int(time.time())
+    file_key = f"alerts/{date_str}/{store_code}_{ts}.json"
 
-    s3_client.put_object(
-        Bucket=bucket,
-        Key=key,
-        Body=body.encode("utf-8"),
-        ContentType="application/json; charset=utf-8",
-    )
-    print(f"[batch] 결과 저장 완료: s3://{bucket}/{key}")
+    cust = guide_result.get("results", {}).get("cust", {})
+    emp = guide_result.get("results", {}).get("emp", {})
+
+    summary_record = {
+        "store_code": store_code,
+        "store_name": guide_result.get("store_name", ""),
+        "region": guide_result.get("region", ""),
+        "date": date_str,
+        "timestamp": datetime.now(KST).isoformat(timespec="seconds"),
+        "trigger_type": trigger_type,   # "batch" 또는 "manual_send_mock" 등
+        "channel": channel,
+        "risk_cust": cust.get("risk", {}).get("grade", ""),
+        "risk_cust_score": cust.get("risk", {}).get("score", 0),
+        "risk_emp": emp.get("risk", {}).get("grade", ""),
+        "risk_emp_score": emp.get("risk", {}).get("score", 0),
+        "dominant_type_cust": cust.get("risk", {}).get("dominant_type", ""),
+        "dominant_type_emp": emp.get("risk", {}).get("dominant_type", ""),
+        "detail_key": file_key,
+    }
+
+    # 상세 파일 저장
+    try:
+        s3_client.put_object(
+            Bucket=frontend_bucket,
+            Key=file_key,
+            Body=json.dumps(guide_result, ensure_ascii=False, indent=2).encode("utf-8"),
+            ContentType="application/json; charset=utf-8",
+        )
+    except Exception as e:
+        print(f"[batch] 상세 파일 저장 실패 ({store_code}): {e}")
+
+    # index.json 업데이트
+    index_key = f"alerts/{date_str}/index.json"
+    try:
+        resp = s3_client.get_object(Bucket=frontend_bucket, Key=index_key)
+        index_data = json.loads(resp["Body"].read().decode("utf-8"))
+    except Exception:
+        index_data = []
+
+    index_data.append(summary_record)
+    try:
+        s3_client.put_object(
+            Bucket=frontend_bucket,
+            Key=index_key,
+            Body=json.dumps(index_data, ensure_ascii=False, indent=2).encode("utf-8"),
+            ContentType="application/json; charset=utf-8",
+        )
+        print(f"[batch] 현황 기록: {store_code} → {index_key}")
+    except Exception as e:
+        print(f"[batch] index.json 업데이트 실패 ({store_code}): {e}")
 
 
 # ──────────────────────────────────────────────
@@ -250,155 +256,108 @@ def lambda_handler(event: dict, context: Any) -> dict:
     """배치 오케스트레이터 Lambda 메인 핸들러.
 
     EventBridge 트리거: 매일 06:00 KST
-
-    1. S3에서 stores.json 로드 (로컬 Fallback)
-    2. 전체 매장 순회 → simulate Lambda 동기 호출
-    3. 결과 수집 → S3 저장: daily/{date}/results.json
-    4. 매장별 안전 가이드를 AWS SES로 이메일 발송
-    5. 발송 결과(성공/실패, 매장별 위험도 등) 반환
     """
     import boto3
 
     now = datetime.now(KST)
     date_str = now.strftime("%Y-%m-%d")
     timestamp = now.isoformat(timespec="seconds")
+    channel = os.environ.get("NOTIFY_CHANNEL", "mock")
 
     print(f"[batch] 배치 시작: {timestamp}")
 
-    # ── 환경변수 ──
-    daily_bucket = os.environ.get("DAILY_BUCKET", "")
-    simulate_function = os.environ.get("SIMULATE_FUNCTION", "")
-    ses_sender = os.environ.get("SES_SENDER", "")
-    ses_region = os.environ.get("SES_REGION", "ap-northeast-2")
-
-    # ── AWS 클라이언트 ──
-    lambda_client = boto3.client("lambda")
     s3_client = boto3.client("s3")
-    ses_client = boto3.client("ses", region_name=ses_region)
+    daily_bucket = os.environ.get("DAILY_BUCKET", "")
+    notifier = get_notifier(channel)
 
-    # ── 1. stores.json 로드 ──
+    # stores.json 로드
     try:
-        stores = _load_stores()
-    except FileNotFoundError as e:
+        all_stores = _load_stores()
+    except Exception as e:
         print(f"[batch] 치명적 오류: {e}")
-        return {
-            "date": date_str,
-            "timestamp": timestamp,
-            "error": str(e),
-            "summary": {
-                "total": 0,
-                "success": 0,
-                "failed": 0,
-                "email_sent": 0,
-                "email_failed": 0,
-            },
-            "stores": [],
-        }
+        return {"date": date_str, "timestamp": timestamp, "error": str(e)}
 
-    # 영업 중인 매장만 필터링
-    active_stores = [
-        s for s in stores if s.get("폐점여부") == "영업"
-    ]
+    # 영업 중인 매장만
+    active_stores = [s for s in all_stores if s.get("폐점여부") == "영업"]
     print(f"[batch] 대상 매장 수: {len(active_stores)}")
 
-    # ── 2~4. 매장 순회 ──
     store_results: list[dict] = []
     success_count = 0
     failed_count = 0
-    email_sent_count = 0
-    email_failed_count = 0
 
     for store in active_stores:
         store_code = store.get("매장")
         store_name = store.get("매장명", "")
-        store_email = store.get("이메일", "")
-
         if store_code is None:
             continue
 
-        store_code = int(store_code)
-        entry: dict[str, Any] = {
-            "store_code": store_code,
-            "store_name": store_name,
-            "status": "failed",
-            "risk_cust": "unknown",
-            "risk_emp": "unknown",
-            "email_sent": False,
-        }
-
-        # ── simulate Lambda 호출 ──
         try:
-            sim_result = _invoke_simulate(
-                lambda_client, simulate_function, store_code, date_str
-            )
-            entry["status"] = "success"
+            # 가이드 생성
+            guide_result = _generate_store_guide(store, date_str)
+            if "error" in guide_result:
+                raise Exception(guide_result["error"])
+
+            # 발송 (프로토타입: recipients=[], 카카오 연동 후 직원 연락처 전달)
+            recipients: list[str] = []  # TODO: 직원 연락처 DB 연동
+            subject = f"[다이소 안전가이드] {store_name} - {date_str}"
+            msg_body = _build_message_body(store_name, date_str, guide_result.get("results", {}))
+            notifier.send(recipients, subject, msg_body)
+
+            # frontend 버킷에 현황 기록 (trigger_type = "batch")
+            _record_alert(s3_client, guide_result, channel, trigger_type="batch")
+
+            cust = guide_result.get("results", {}).get("cust", {})
+            emp = guide_result.get("results", {}).get("emp", {})
+
+            store_results.append({
+                "store_code": str(store_code),
+                "store_name": store_name,
+                "status": "success",
+                "risk_cust": cust.get("risk", {}).get("grade", ""),
+                "risk_emp": emp.get("risk", {}).get("grade", ""),
+            })
             success_count += 1
-
-            # 위험도 추출
-            results = sim_result.get("results", {})
-            cust_risk = results.get("cust", {}).get("risk", {})
-            emp_risk = results.get("emp", {}).get("risk", {})
-            entry["risk_cust"] = cust_risk.get("grade", "unknown")
-            entry["risk_emp"] = emp_risk.get("grade", "unknown")
-
-            # ── SES 이메일 발송 ──
-            if ses_sender and store_email:
-                subject = f"[다이소 안전가이드] {store_name} - {date_str}"
-                body_text = _build_email_body(store_name, date_str, results)
-
-                sent = _send_email(
-                    ses_client, ses_sender, store_email, subject, body_text
-                )
-                entry["email_sent"] = sent
-                if sent:
-                    email_sent_count += 1
-                else:
-                    email_failed_count += 1
-            else:
-                # 이메일 주소 없음 → 발송 스킵
-                if ses_sender and not store_email:
-                    print(
-                        f"[batch] 이메일 주소 없음, 발송 스킵: "
-                        f"{store_code} {store_name}"
-                    )
+            print(f"[batch] 완료: {store_name} ({store_code})")
 
         except Exception as e:
-            entry["status"] = "failed"
-            entry["error"] = str(e)
+            store_results.append({
+                "store_code": str(store_code),
+                "store_name": store_name,
+                "status": "failed",
+                "error": str(e),
+            })
             failed_count += 1
-            print(f"[batch] 매장 처리 실패 ({store_code} {store_name}): {e}")
+            print(f"[batch] 실패: {store_code} {store_name} — {e}")
 
-        store_results.append(entry)
-
-    # ── 3. 결과 조립 ──
+    # 배치 전체 결과를 daily 버킷에 저장
     batch_result = {
         "date": date_str,
         "timestamp": timestamp,
+        "trigger_type": "batch",
+        "channel": channel,
         "summary": {
             "total": len(active_stores),
             "success": success_count,
             "failed": failed_count,
-            "email_sent": email_sent_count,
-            "email_failed": email_failed_count,
         },
         "stores": store_results,
     }
 
-    # ── S3 저장 ──
     if daily_bucket:
         try:
-            _save_results_to_s3(s3_client, daily_bucket, date_str, batch_result)
+            key = f"daily/{date_str}/results.json"
+            s3_client.put_object(
+                Bucket=daily_bucket,
+                Key=key,
+                Body=json.dumps(batch_result, ensure_ascii=False, indent=2).encode("utf-8"),
+                ContentType="application/json; charset=utf-8",
+            )
+            print(f"[batch] 전체 결과 저장: s3://{daily_bucket}/{key}")
         except Exception as e:
-            print(f"[batch] 결과 S3 저장 실패: {e}")
-            batch_result["s3_save_error"] = str(e)
-    else:
-        print("[batch] DAILY_BUCKET 미설정 → S3 저장 스킵")
+            print(f"[batch] 전체 결과 저장 실패: {e}")
 
     print(
-        f"[batch] 배치 완료: "
-        f"총 {len(active_stores)}개 매장, "
-        f"성공 {success_count}, 실패 {failed_count}, "
-        f"이메일 발송 {email_sent_count}, 이메일 실패 {email_failed_count}"
+        f"[batch] 완료 — 총 {len(active_stores)}개 매장, "
+        f"성공 {success_count}, 실패 {failed_count}"
     )
-
     return batch_result
