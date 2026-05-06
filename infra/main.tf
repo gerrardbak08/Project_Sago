@@ -244,6 +244,61 @@ resource "aws_lambda_function" "simulate" {
 }
 
 # ---------------------------------------------------------------------------
+# Lambda — notify (POST /api/notify)
+# ---------------------------------------------------------------------------
+
+resource "aws_lambda_function" "notify" {
+  function_name    = "${var.project}-notify"
+  role             = aws_iam_role.lambda_exec.arn
+  handler          = "handler.lambda_handler"
+  runtime          = "python3.12"
+  filename         = "${path.module}/../dist/notify.zip"
+  source_code_hash = filebase64sha256("${path.module}/../dist/notify.zip")
+
+  memory_size = 256
+  timeout     = 60
+
+  layers = [aws_lambda_layer_version.core.arn]
+
+  environment {
+    variables = {
+      FRONTEND_BUCKET   = aws_s3_bucket.frontend.id
+      SES_SENDER        = var.ses_sender_email
+      SES_REGION        = "ap-northeast-2"
+      SIMULATE_FUNCTION = aws_lambda_function.simulate.function_name
+      NOTIFY_CHANNEL    = "email"
+      BEDROCK_REGION    = "us-east-1"
+    }
+  }
+
+  tags = {
+    Project = var.project
+  }
+}
+
+resource "aws_apigatewayv2_integration" "notify" {
+  api_id                 = aws_apigatewayv2_api.api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.notify.invoke_arn
+  integration_method     = "POST"
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "notify" {
+  api_id    = aws_apigatewayv2_api.api.id
+  route_key = "POST /api/notify"
+  target    = "integrations/${aws_apigatewayv2_integration.notify.id}"
+}
+
+resource "aws_lambda_permission" "apigw_notify" {
+  statement_id  = "AllowAPIGatewayInvokeNotify"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.notify.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/*"
+}
+
+# ---------------------------------------------------------------------------
 # Lambda — batch-orchestrator (EventBridge 배치 + SES 발송)
 # ---------------------------------------------------------------------------
 

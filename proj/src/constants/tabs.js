@@ -1,4 +1,5 @@
-import { Activity, AlertCircle, MapPin, AlertTriangle, Banknote, BarChart3, Bell, Bone, Briefcase, Building, Building2, Calendar, CheckCircle2, Circle, ClipboardList, FileText, Flame, Folder, GitBranch, Info, Lightbulb, Lock, Map as MapIcon, Package, Pin, RefreshCw, Rocket, Ruler, Scale, Search, ShieldCheck, Siren, Smartphone, Store, Tag, Target, TrendingUp, Trophy, Unlock, UserCircle, Users, X, LayoutDashboard, Stethoscope, Download, ChevronRight, Sparkles, Eye } from 'lucide-react';
+import { Activity, AlertCircle, MapPin, AlertTriangle, Banknote, BarChart3, Bell, Bone, Briefcase, Building, Building2, Calendar, CheckCircle2, Circle, ClipboardList, FileText, Flame, Folder, GitBranch, Info, Lightbulb, Lock, Map as MapIcon, Package, Pin, RefreshCw, Rocket, Ruler, Scale, Search, ShieldCheck, Siren, Smartphone, Store, Tag, Target, TrendingUp, Trophy, Unlock, UserCircle, Users, X, LayoutDashboard, Stethoscope, Download, ChevronRight, Sparkles, Eye, Send } from 'lucide-react';
+
 import { DAISO_RED } from './colors.js';
 
 const TABS_VIEWER = [
@@ -25,6 +26,13 @@ const HUB_LABELS = {
   5: { name: "리스크 관리", color: DAISO_RED },
 };
 
+// ── 관리자 전용 알림 탭 ──
+const ALERT_TABS = [
+  { id: "alert_monitor",  l: "알림 현황",   short: "알림현황",  Icon: Bell },
+  { id: "alert_simulate", l: "알림 생성",   short: "알림생성",  Icon: Sparkles },
+  { id: "alert_send",     l: "알림 발송",   short: "알림발송",  Icon: Send },
+];
+
 // ── 고객사고 탭 정의 ──
 const CTABS = [
   { id: "cov",   l: "요약",     short: "요약",   Icon: LayoutDashboard },
@@ -35,4 +43,4 @@ const CTABS = [
   { id: "cvic",  l: "피해자",   short: "피해자", Icon: Users },
 ];
 
-export { TABS_VIEWER, HUB_LABELS, CTABS };
+export { TABS_VIEWER, HUB_LABELS, CTABS, ALERT_TABS };

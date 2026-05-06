@@ -21,7 +21,7 @@ SITE_PKG="/tmp/core-layer-build/python/lib/python3.12/site-packages"
 mkdir -p "$SITE_PKG/core"
 
 # core 모듈 복사
-cp core/__init__.py core/llm.py core/risk.py core/rule_matcher.py core/weather.py \
+cp core/__init__.py core/llm.py core/risk.py core/rule_matcher.py core/weather.py core/notifier.py \
   "$SITE_PKG/core/"
 
 # 외부 패키지 설치 (requests, python-dotenv)
@@ -48,6 +48,14 @@ mkdir -p /tmp/batch-build
 cp lambdas/batch/handler.py /tmp/batch-build/
 (cd /tmp/batch-build && zip -r9 - handler.py) > "$DIST_DIR/batch.zip"
 echo "  ✓ batch.zip ($(du -sh "$DIST_DIR/batch.zip" | cut -f1))"
+
+# notify.zip — lambdas/notify/handler.py
+echo "  notify.zip 생성 중..."
+rm -rf /tmp/notify-build
+mkdir -p /tmp/notify-build
+cp lambdas/notify/handler.py /tmp/notify-build/
+(cd /tmp/notify-build && zip -r9 - handler.py) > "$DIST_DIR/notify.zip"
+echo "  ✓ notify.zip ($(du -sh "$DIST_DIR/notify.zip" | cut -f1))"
 
 echo "=== [2/6] Terraform init (필요시) ==="
 terraform -chdir="$INFRA_DIR" init -input=false

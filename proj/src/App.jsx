@@ -10,7 +10,7 @@ import DAISO_LOGO   from './data/logo.js';
 import { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, DAISO_GRAY,
          BL, OR, NV, GR, RD, GN, CANVAS } from './constants/colors.js';
 import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN } from './constants/metrics.js';
-import { TABS_VIEWER, HUB_LABELS }   from './constants/tabs.js';
+import { TABS_VIEWER, HUB_LABELS, ALERT_TABS } from './constants/tabs.js';
 
 // ── 유틸 ──────────────────────────────────────────────
 import { pct, fmt, fmtKrw, TT, EmptyState } from './utils/uiHelpers.jsx';
@@ -26,6 +26,9 @@ import { Lock, Unlock, LayoutDashboard, Building, Building2, MapPin,
          TrendingUp, GitBranch, UserCircle, Users, Scale, Banknote,
          Stethoscope, Bell, ChevronRight, Sparkles, ShieldCheck, Store,
          X, AlertCircle } from 'lucide-react';
+import AlertMonitoring from './components/tabs/alert/AlertMonitoring.jsx';
+import AlertSimulate   from './components/tabs/alert/AlertSimulate.jsx';
+import AlertSend       from './components/tabs/alert/AlertSend.jsx';
 
 // ── 공유 컴포넌트 ──────────────────────────────────────
 import { Card }              from './components/shared/Card.jsx';
@@ -225,7 +228,7 @@ function App() {
   
   const handleLogout = () => {
     setIsAdmin(false);
-    if (tab === "admin") setTab("overview");
+    if (tab === "alert_monitor" || tab === "alert_simulate" || tab === "alert_send") setTab("overview");
   };
   
   // === 역할별 탭 필터링 (RBAC Phase 2) ===
@@ -249,9 +252,9 @@ function App() {
     ? TABS_VIEWER.filter(t => ROLE_TAB_VISIBILITY[currentRole].includes(t.id))
     : TABS_VIEWER;
   
-  // Visible tabs (admin sees extra admin tab)
-  const TABS = isAdmin 
-    ? [...visibleTabs, { id: "admin", l: "데이터 관리", short: "관리", Icon: Lock }]
+  // Visible tabs (admin sees extra alert tabs)
+  const TABS = isAdmin
+    ? [...visibleTabs, ...ALERT_TABS]
     : visibleTabs;
   
 
@@ -436,13 +439,9 @@ function App() {
           {tab === "parjang" && <ParjangDashboard D={dataFiltered} yearFilter={yearFilter} />}
           {tab === "cost" && <CostRisk D={dataFiltered} yearFilter={yearFilter} />}
           {tab === "legal" && <LegalReporting D={dataFiltered} yearFilter={yearFilter} />}
-          {tab === "admin" && isAdmin && <AdminUpload 
-            onAccidentFile={handleAccidentFile} onStoreFile={handleStoreFile} onWorkerFile={handleWorkerFile}
-            accidentFileName={accidentFileName} storeFileName={storeFileName} workerFileName={workerFileName}
-            loading={loading} resetData={resetData} isDefault={isDefault}
-            onLogout={handleLogout}
-            workerJoin={data.worker_join} workerKpis={data.worker_kpis} workerIrSummary={data.worker_ir_summary}
-          />}
+          {tab === "alert_monitor"  && isAdmin && <AlertMonitoring />}
+          {tab === "alert_simulate" && isAdmin && <AlertSimulate />}
+          {tab === "alert_send"     && isAdmin && <AlertSend />}
         </TabErrorBoundary>
       </div>
       

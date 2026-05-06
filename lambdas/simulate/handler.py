@@ -396,7 +396,4 @@ def lambda_handler(event: dict, context: Any) -> dict:
         "results": results,
     }
 
-    # ── 알림 결과 저장 ──
-    _save_alert(response_body, trigger_type="manual")
-
     return _response(200, response_body)
