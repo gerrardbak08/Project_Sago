@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback, Component } from 'react';
 import { DEEP_BLUE, CUSTOMER_BLUE, DAISO_RED, DAISO_GRAY, CANVAS } from '../../constants/colors.js';
 import DAISO_LOGO from '../../data/logo.js';
-import { Lock, Bell } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { pct, fmt, fmtKrw, TT } from '../../utils/uiHelpers.jsx';
 import { CTABS } from '../../constants/tabs.js';
 import CUSTOMER_DATA from '../../data/customerData.js';
@@ -12,7 +12,6 @@ import CTypePlace  from '../tabs/customer/CTypePlace.jsx';
 import CComp       from '../tabs/customer/CComp.jsx';
 import CWatch      from '../tabs/customer/CWatch.jsx';
 import CVictim     from '../tabs/customer/CVictim.jsx';
-import CustomerAdminPanel from '../admin/CustomerAdminPanel.jsx';
 
 function CustomerDashboard({ onBack, onAlertClick }) {
   const [ctab, setCtab] = useState("cov");
@@ -36,7 +35,7 @@ function CustomerDashboard({ onBack, onAlertClick }) {
                 ㈜아성다이소 · 매장CS팀
               </span>
             </div>
-            {/* isAdmin 배지 제거 */}            <div className="flex-1" />
+            <div className="flex-1" />
             <div className="flex items-center gap-1 flex-shrink-0">
               <button onClick={onBack} className="cursor-pointer whitespace-nowrap"
                 style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,
@@ -90,7 +89,7 @@ function CustomerDashboard({ onBack, onAlertClick }) {
         {/* ── 3행: 탭바 ── */}
         <div className="bg-white border-b border-stone-200">
           <div className="max-w-[1400px] mx-auto px-2 sm:px-4 flex gap-0 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-            {(isAdmin ? [...CTABS, { id:"admin", l:"데이터 관리", short:"관리", Icon: Lock }] : CTABS).map(t => (
+            {CTABS.map(t => (
               <button key={t.id} onClick={() => setCtab(t.id)}
                 className={`min-h-[42px] sm:min-h-[46px] px-3 sm:px-4 py-2.5 text-xs sm:text-[13px] font-medium whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 border-b-2 ${ctab === t.id ? "border-[#13245A] text-[#13245A] font-bold" : "border-transparent text-stone-400 hover:text-stone-700 hover:border-stone-300"}`}
                 style={{ minWidth: 48, flexShrink: 0 }}>
@@ -111,7 +110,6 @@ function CustomerDashboard({ onBack, onAlertClick }) {
           {ctab === "ccomp" && <CComp D={D}/>}
           {ctab === "cwatch"&& <CWatch D={D}/>}
           {ctab === "cvic"  && <CVictim D={D}/>}
-          {ctab === "admin" && isAdmin && <CustomerAdminPanel onLogout={onLogout}/>}
         </div>
       </main>
 
