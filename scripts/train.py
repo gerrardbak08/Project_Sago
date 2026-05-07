@@ -52,9 +52,9 @@ MODELS = ROOT / "models"
 # 하이퍼파라미터
 # ──────────────────────────────────────────────
 TREE_PARAMS = dict(
-    max_depth=7,
+    max_depth=12,
     min_samples_leaf=20,
-    min_impurity_decrease=0.005,
+    # min_impurity_decrease=0.005,
     class_weight="balanced",
     criterion="gini",
     random_state=42,
@@ -520,8 +520,8 @@ def train_source(source: str) -> None:
         f"incidents 크기 상한 초과: {max(incident_sizes)} (기대: 50 이하)"
     )
     # 리프 수 목표 범위 확인 (실패해도 경고만)
-    if not (8 <= n_leaves <= 20):
-        print(f"  ⚠️ 리프 수 {n_leaves} — 목표 범위(8~20) 밖. max_depth 재조정 고려.")
+    if not (10 <= n_leaves <= 60):
+        print(f"  ⚠️ 리프 수 {n_leaves} — 목표 범위(10~60) 밖. max_depth 재조정 고려.")
 
     print(f"\n  ✅ [{source.upper()}] 학습 + 산출물 생성 완료")
 

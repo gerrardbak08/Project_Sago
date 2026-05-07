@@ -20,14 +20,13 @@
     "형태"
   ],
   "total_incidents": 1481,
-  "n_leaves": 10,
-  "leaf_min_samples": 21,
-  "leaf_max_samples": 585,
-  "tree_depth": 6,
+  "n_leaves": 56,
+  "leaf_min_samples": 20,
+  "leaf_max_samples": 39,
+  "tree_depth": 11,
   "hyperparameters": {
-    "max_depth": 7,
+    "max_depth": 12,
     "min_samples_leaf": 20,
-    "min_impurity_decrease": 0.005,
     "class_weight": "balanced",
     "criterion": "gini",
     "random_state": 42
