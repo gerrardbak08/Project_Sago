@@ -23,7 +23,6 @@ from typing import Any
 
 from core.weather import get_weather
 from core.rule_matcher import match_with_fallback
-from core.risk import calculate_risk
 from core.llm import generate_guide
 from core.notifier import get_notifier
 
@@ -136,13 +135,11 @@ def _generate_store_guide(store: dict, date_str: str) -> dict:
             continue
 
         leaf_summary = leaf_data.get("summary", {})
-        risk_info = calculate_risk(leaf_summary, total_incidents, label_col)
-        guide = generate_guide(store, weather, leaf_data, risk_info)
+        guide = generate_guide(store, weather, leaf_data, label_col)
 
         results[source] = {
             "leaf_id": str(leaf_id) if leaf_id is not None else None,
             "fallback_level": fallback_level,
-            "risk": risk_info,
             "guide": guide,
             "matched_rule": leaf_data.get("rule", ""),
             "incident_count": leaf_summary.get("total", 0),
@@ -171,8 +168,14 @@ def _build_message_body(store_name: str, date_str: str, results: dict) -> str:
         else:
             guide = source_data.get("guide", {})
             lines.append(f"⚠️ {guide.get('위험_요약', '정보 없음')}")
-            for tip in guide.get("안전_수칙", []):
-                lines.append(f"  ☑️ {tip}")
+            if guide.get("오늘의_특별_주의사항"):
+                lines.append("  [오늘 특별 주의]")
+                for item in guide["오늘의_특별_주의사항"]:
+                    lines.append(f"  ☑️ {item.get('수칙', '')}")
+            if guide.get("상시_주의사항"):
+                lines.append("  [상시 주의]")
+                for item in guide["상시_주의사항"]:
+                    lines.append(f"  ☑️ {item.get('수칙', '')}")
         lines.append("")
     return "\n".join(lines)
 
@@ -208,12 +211,8 @@ def _record_alert(
         "timestamp": datetime.now(KST).isoformat(timespec="seconds"),
         "trigger_type": trigger_type,   # "batch" 또는 "manual_send_mock" 등
         "channel": channel,
-        "risk_cust": cust.get("risk", {}).get("grade", ""),
-        "risk_cust_score": cust.get("risk", {}).get("score", 0),
-        "risk_emp": emp.get("risk", {}).get("grade", ""),
-        "risk_emp_score": emp.get("risk", {}).get("score", 0),
-        "dominant_type_cust": cust.get("risk", {}).get("dominant_type", ""),
-        "dominant_type_emp": emp.get("risk", {}).get("dominant_type", ""),
+        "주요_위험유형_cust": cust.get("guide", {}).get("주요_위험유형", ""),
+        "주요_위험유형_emp": emp.get("guide", {}).get("주요_위험유형", ""),
         "detail_key": file_key,
     }
 
@@ -324,8 +323,8 @@ def lambda_handler(event: dict, context: Any) -> dict:
                 "store_code": str(store_code),
                 "store_name": store_name,
                 "status": "success",
-                "risk_cust": cust.get("risk", {}).get("grade", ""),
-                "risk_emp": emp.get("risk", {}).get("grade", ""),
+                "주요_위험유형_cust": cust.get("guide", {}).get("주요_위험유형", ""),
+                "주요_위험유형_emp": emp.get("guide", {}).get("주요_위험유형", ""),
             })
             success_count += 1
             print(f"[batch] 완료: {store_name} ({store_code})")
