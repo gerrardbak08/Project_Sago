@@ -1,8 +1,9 @@
 """
-alerts Lambda 핸들러 — 알림 현황 조회
+alerts Lambda 핸들러 — 알림 현황 조회 (Lambda Function URL)
 
-GET /api/alerts/{date}           → daily 버킷 alerts/{date}/index.json 반환
-GET /api/alerts/{date}/{filename} → daily 버킷 alerts/{date}/{filename} 반환
+호출 방식:
+  GET {alerts_url}/{date}           → alerts/{date}/index.json 반환
+  GET {alerts_url}/{date}/{filename} → alerts/{date}/{filename} 반환
 
 환경변수:
     DAILY_BUCKET : alerts/ 데이터가 저장된 S3 버킷 (읽기 전용)
@@ -16,7 +17,7 @@ from typing import Any
 
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type,Authorization",
+    "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "GET,OPTIONS",
 }
 
@@ -40,29 +41,27 @@ def _get_s3_json(key: str) -> Any:
 
 
 def lambda_handler(event: dict, context: Any) -> dict:
-    """alerts Lambda 메인 핸들러."""
+    """alerts Lambda 메인 핸들러 (Lambda Function URL)."""
     # CORS preflight
     method = (
         event.get("requestContext", {}).get("http", {}).get("method", "")
         or event.get("httpMethod", "")
-        or event.get("requestContext", {}).get("httpMethod", "")
     )
     if method == "OPTIONS":
         return _response(200, {"message": "OK"})
 
-    # 경로 파라미터 추출 (API Gateway v2 + v1 모두 지원)
-    path_params = event.get("pathParameters") or {}
-    date_str = path_params.get("date", "")
-    filename = path_params.get("filename", "")  # 없으면 index.json 조회
+    # Function URL: rawPath = "/{date}" 또는 "/{date}/{filename}"
+    raw_path = event.get("rawPath", "") or event.get("path", "")
+    # 앞의 "/" 제거 후 분리
+    parts = [p for p in raw_path.strip("/").split("/") if p]
 
-    if not date_str:
-        return _response(400, {"error": "date 경로 파라미터가 필요합니다."})
+    if not parts:
+        return _response(400, {"error": "날짜를 경로에 포함해주세요. 예: /{date}"})
 
-    # S3 키 결정
-    if filename:
-        s3_key = f"alerts/{date_str}/{filename}"
-    else:
-        s3_key = f"alerts/{date_str}/index.json"
+    date_str = parts[0]
+    filename = parts[1] if len(parts) >= 2 else ""
+
+    s3_key = f"alerts/{date_str}/{filename}" if filename else f"alerts/{date_str}/index.json"
 
     try:
         data = _get_s3_json(s3_key)

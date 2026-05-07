@@ -72,20 +72,34 @@ terraform -chdir="$INFRA_DIR" apply -input=false -auto-approve
 
 echo "=== [4/7] Terraform output 읽기 ==="
 BUCKET=$(terraform -chdir="$INFRA_DIR" output -raw frontend_bucket_name)
-API_URL=$(terraform -chdir="$INFRA_DIR" output -raw api_url)
+SIMULATE_URL=$(terraform -chdir="$INFRA_DIR" output -raw simulate_url)
+NOTIFY_URL=$(terraform -chdir="$INFRA_DIR" output -raw notify_url)
+ALERTS_URL=$(terraform -chdir="$INFRA_DIR" output -raw alerts_url)
 
-echo "  S3 버킷: $BUCKET"
-echo "  API URL: $API_URL"
+echo "  S3 버킷:      $BUCKET"
+echo "  simulate URL: $SIMULATE_URL"
+echo "  notify URL:   $NOTIFY_URL"
+echo "  alerts URL:   $ALERTS_URL"
 
 echo "=== [5/7] .env.production 업데이트 ==="
-# VITE_API_BASE 라인을 API_URL로 교체 (없으면 추가)
-if grep -q "^VITE_API_BASE=" "$ENV_PROD"; then
-  sed -i.bak "s|^VITE_API_BASE=.*|VITE_API_BASE=$API_URL|" "$ENV_PROD"
-  rm -f "$ENV_PROD.bak"
-else
-  echo "VITE_API_BASE=$API_URL" >> "$ENV_PROD"
-fi
-echo "  VITE_API_BASE=$API_URL 설정 완료"
+
+_upsert_env() {
+  local key="$1" val="$2" file="$3"
+  if grep -q "^${key}=" "$file"; then
+    sed -i.bak "s|^${key}=.*|${key}=${val}|" "$file"
+    rm -f "${file}.bak"
+  else
+    echo "${key}=${val}" >> "$file"
+  fi
+}
+
+_upsert_env "VITE_SIMULATE_URL" "$SIMULATE_URL" "$ENV_PROD"
+_upsert_env "VITE_NOTIFY_URL"   "$NOTIFY_URL"   "$ENV_PROD"
+_upsert_env "VITE_ALERTS_URL"   "$ALERTS_URL"   "$ENV_PROD"
+
+echo "  VITE_SIMULATE_URL=$SIMULATE_URL"
+echo "  VITE_NOTIFY_URL=$NOTIFY_URL"
+echo "  VITE_ALERTS_URL=$ALERTS_URL"
 
 echo "=== [6/7] 모델 파일 및 stores.json → S3 업로드 ==="
 MODELS_BUCKET=$(terraform -chdir="$INFRA_DIR" output -raw models_bucket)

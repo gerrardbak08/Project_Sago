@@ -1,6 +1,6 @@
 ###############################################################################
 # Daiso Safety AI — Terraform Infrastructure
-# AWS 리소스: S3, Lambda, Lambda Layer, API Gateway (HTTP), EventBridge, IAM
+# AWS 리소스: S3, Lambda, Lambda Layer, Lambda Function URL, EventBridge, IAM
 ###############################################################################
 
 terraform {
@@ -159,7 +159,7 @@ data "aws_iam_policy_document" "lambda_permissions" {
     resources = ["*"]
   }
 
-  # Lambda invoke (batch → simulate 호출 등)
+  # Lambda invoke
   statement {
     actions   = ["lambda:InvokeFunction"]
     resources = ["*"]
@@ -187,13 +187,11 @@ resource "aws_iam_role_policy" "lambda_permissions" {
 # ---------------------------------------------------------------------------
 
 data "aws_iam_policy_document" "alerts_permissions" {
-  # daily 버킷 alerts/ 경로 읽기만 허용
   statement {
     actions   = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.daily.arn}/alerts/*"]
   }
 
-  # CloudWatch Logs
   statement {
     actions = [
       "logs:CreateLogGroup",
@@ -229,11 +227,11 @@ resource "aws_lambda_layer_version" "core" {
   source_code_hash    = filebase64sha256("${path.module}/../dist/core-layer.zip")
   compatible_runtimes = ["python3.11", "python3.12"]
 
-  description = "core/ 공유 모듈 (risk, llm, rule_matcher, weather)"
+  description = "core/ 공유 모듈 (llm, rule_matcher, weather, notifier)"
 }
 
 # ---------------------------------------------------------------------------
-# Lambda — simulate (POST /api/simulate)
+# Lambda — simulate
 # ---------------------------------------------------------------------------
 
 resource "aws_lambda_function" "simulate" {
@@ -251,10 +249,9 @@ resource "aws_lambda_function" "simulate" {
 
   environment {
     variables = {
-      MODELS_BUCKET   = aws_s3_bucket.models.id
-      DAILY_BUCKET    = aws_s3_bucket.daily.id
-      FRONTEND_BUCKET = aws_s3_bucket.frontend.id
-      BEDROCK_REGION  = "us-east-1"
+      MODELS_BUCKET  = aws_s3_bucket.models.id
+      DAILY_BUCKET   = aws_s3_bucket.daily.id
+      BEDROCK_REGION = "us-east-1"
     }
   }
 
@@ -263,8 +260,21 @@ resource "aws_lambda_function" "simulate" {
   }
 }
 
+resource "aws_lambda_function_url" "simulate" {
+  function_name      = aws_lambda_function.simulate.function_name
+  authorization_type = "NONE"
+
+  cors {
+    allow_credentials = false
+    allow_origins     = ["*"]
+    allow_methods     = ["POST", "OPTIONS"]
+    allow_headers     = ["Content-Type"]
+    max_age           = 3600
+  }
+}
+
 # ---------------------------------------------------------------------------
-# Lambda — notify (POST /api/notify)
+# Lambda — notify
 # ---------------------------------------------------------------------------
 
 resource "aws_lambda_function" "notify" {
@@ -276,7 +286,7 @@ resource "aws_lambda_function" "notify" {
   source_code_hash = filebase64sha256("${path.module}/../dist/notify.zip")
 
   memory_size = 256
-  timeout     = 60
+  timeout     = 300
 
   layers = [aws_lambda_layer_version.core.arn]
 
@@ -294,30 +304,21 @@ resource "aws_lambda_function" "notify" {
   }
 }
 
-resource "aws_apigatewayv2_integration" "notify" {
-  api_id                 = aws_apigatewayv2_api.api.id
-  integration_type       = "AWS_PROXY"
-  integration_uri        = aws_lambda_function.notify.invoke_arn
-  integration_method     = "POST"
-  payload_format_version = "2.0"
-}
+resource "aws_lambda_function_url" "notify" {
+  function_name      = aws_lambda_function.notify.function_name
+  authorization_type = "NONE"
 
-resource "aws_apigatewayv2_route" "notify" {
-  api_id    = aws_apigatewayv2_api.api.id
-  route_key = "POST /api/notify"
-  target    = "integrations/${aws_apigatewayv2_integration.notify.id}"
-}
-
-resource "aws_lambda_permission" "apigw_notify" {
-  statement_id  = "AllowAPIGatewayInvokeNotify"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.notify.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/*"
+  cors {
+    allow_credentials = false
+    allow_origins     = ["*"]
+    allow_methods     = ["POST", "OPTIONS"]
+    allow_headers     = ["Content-Type"]
+    max_age           = 3600
+  }
 }
 
 # ---------------------------------------------------------------------------
-# Lambda — alerts (GET /api/alerts/{date}, GET /api/alerts/{date}/{filename})
+# Lambda — alerts (알림 현황 조회)
 # ---------------------------------------------------------------------------
 
 resource "aws_lambda_function" "alerts" {
@@ -342,32 +343,17 @@ resource "aws_lambda_function" "alerts" {
   }
 }
 
-resource "aws_apigatewayv2_integration" "alerts" {
-  api_id                 = aws_apigatewayv2_api.api.id
-  integration_type       = "AWS_PROXY"
-  integration_uri        = aws_lambda_function.alerts.invoke_arn
-  integration_method     = "POST"
-  payload_format_version = "2.0"
-}
+resource "aws_lambda_function_url" "alerts" {
+  function_name      = aws_lambda_function.alerts.function_name
+  authorization_type = "NONE"
 
-resource "aws_apigatewayv2_route" "alerts_index" {
-  api_id    = aws_apigatewayv2_api.api.id
-  route_key = "GET /api/alerts/{date}"
-  target    = "integrations/${aws_apigatewayv2_integration.alerts.id}"
-}
-
-resource "aws_apigatewayv2_route" "alerts_detail" {
-  api_id    = aws_apigatewayv2_api.api.id
-  route_key = "GET /api/alerts/{date}/{filename}"
-  target    = "integrations/${aws_apigatewayv2_integration.alerts.id}"
-}
-
-resource "aws_lambda_permission" "apigw_alerts" {
-  statement_id  = "AllowAPIGatewayInvokeAlerts"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.alerts.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/*"
+  cors {
+    allow_credentials = false
+    allow_origins     = ["*"]
+    allow_methods     = ["GET", "OPTIONS"]
+    allow_headers     = ["Content-Type"]
+    max_age           = 3600
+  }
 }
 
 # ---------------------------------------------------------------------------
@@ -403,54 +389,6 @@ resource "aws_lambda_function" "batch_orchestrator" {
 }
 
 # ---------------------------------------------------------------------------
-# API Gateway — HTTP API (v2)
-# ---------------------------------------------------------------------------
-
-resource "aws_apigatewayv2_api" "api" {
-  name          = "${var.project}-api"
-  protocol_type = "HTTP"
-
-  cors_configuration {
-    allow_origins = ["*"]
-    allow_methods = ["POST", "GET", "OPTIONS"]
-    allow_headers = ["Content-Type", "Authorization"]
-    max_age       = 3600
-  }
-
-  tags = {
-    Project = var.project
-  }
-}
-
-resource "aws_apigatewayv2_stage" "default" {
-  api_id      = aws_apigatewayv2_api.api.id
-  name        = "$default"
-  auto_deploy = true
-}
-
-resource "aws_apigatewayv2_integration" "simulate" {
-  api_id                 = aws_apigatewayv2_api.api.id
-  integration_type       = "AWS_PROXY"
-  integration_uri        = aws_lambda_function.simulate.invoke_arn
-  integration_method     = "POST"
-  payload_format_version = "2.0"
-}
-
-resource "aws_apigatewayv2_route" "simulate" {
-  api_id    = aws_apigatewayv2_api.api.id
-  route_key = "POST /api/simulate"
-  target    = "integrations/${aws_apigatewayv2_integration.simulate.id}"
-}
-
-resource "aws_lambda_permission" "apigw_simulate" {
-  statement_id  = "AllowAPIGatewayInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.simulate.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/*"
-}
-
-# ---------------------------------------------------------------------------
 # EventBridge — 매일 06:00 KST (21:00 UTC)
 # ---------------------------------------------------------------------------
 
@@ -481,9 +419,19 @@ resource "aws_lambda_permission" "eventbridge_batch" {
 # Outputs
 # ---------------------------------------------------------------------------
 
-output "api_url" {
-  description = "API Gateway 엔드포인트 URL"
-  value       = aws_apigatewayv2_api.api.api_endpoint
+output "simulate_url" {
+  description = "simulate Lambda Function URL"
+  value       = aws_lambda_function_url.simulate.function_url
+}
+
+output "notify_url" {
+  description = "notify Lambda Function URL"
+  value       = aws_lambda_function_url.notify.function_url
+}
+
+output "alerts_url" {
+  description = "alerts Lambda Function URL"
+  value       = aws_lambda_function_url.alerts.function_url
 }
 
 output "frontend_url" {

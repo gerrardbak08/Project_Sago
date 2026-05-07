@@ -61,8 +61,8 @@ function AlertSend() {
     setResult(null);
 
     try {
-      const base = import.meta.env.VITE_API_BASE ?? '';
-      const res = await fetch(`${base}/api/notify`, {
+      const url = import.meta.env.VITE_NOTIFY_URL ?? `${import.meta.env.VITE_API_BASE ?? ''}/api/notify`;
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
