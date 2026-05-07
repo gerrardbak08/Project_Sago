@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback, Component } from 'react';
 import { DEEP_BLUE, CUSTOMER_BLUE, DAISO_RED, DAISO_GRAY, CANVAS } from '../../constants/colors.js';
 import DAISO_LOGO from '../../data/logo.js';
-import { Lock, Unlock } from 'lucide-react';
+import { Lock, Bell } from 'lucide-react';
 import { pct, fmt, fmtKrw, TT } from '../../utils/uiHelpers.jsx';
 import { CTABS } from '../../constants/tabs.js';
 import CUSTOMER_DATA from '../../data/customerData.js';
@@ -14,7 +14,7 @@ import CWatch      from '../tabs/customer/CWatch.jsx';
 import CVictim     from '../tabs/customer/CVictim.jsx';
 import CustomerAdminPanel from '../admin/CustomerAdminPanel.jsx';
 
-function CustomerDashboard({ onBack, isAdmin, onAdminLoginClick, onLogout }) {
+function CustomerDashboard({ onBack, onAlertClick }) {
   const [ctab, setCtab] = useState("cov");
   const [yearFilter, setYearFilter] = useState("all");
   const D = useMemo(() => cFilter(CUSTOMER_DATA, yearFilter), [yearFilter]);
@@ -36,12 +36,7 @@ function CustomerDashboard({ onBack, isAdmin, onAdminLoginClick, onLogout }) {
                 ㈜아성다이소 · 매장CS팀
               </span>
             </div>
-            {isAdmin && (
-              <span className="flex-shrink-0 px-1.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[9px] font-bold hidden sm:flex items-center gap-0.5">
-                <Lock size={8} /> 관리자
-              </span>
-            )}
-            <div className="flex-1" />
+            {/* isAdmin 배지 제거 */}            <div className="flex-1" />
             <div className="flex items-center gap-1 flex-shrink-0">
               <button onClick={onBack} className="cursor-pointer whitespace-nowrap"
                 style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,
@@ -53,19 +48,11 @@ function CustomerDashboard({ onBack, isAdmin, onAdminLoginClick, onLogout }) {
                   background:DEEP_BLUE,color:"white",border:"none"}}>
                 고객 사고
               </button>
-            </div>
-            <div className="flex-shrink-0">
-              {!isAdmin ? (
-                <button onClick={onAdminLoginClick}
-                  className="h-8 w-8 sm:w-auto sm:px-3 rounded-md border border-stone-200 text-xs font-medium text-stone-600 bg-white hover:bg-stone-50 cursor-pointer flex items-center justify-center gap-1">
-                  <Lock size={13} /><span className="hidden sm:inline">관리자</span>
-                </button>
-              ) : (
-                <button onClick={onLogout}
-                  className="h-8 px-2 sm:px-3 rounded-md border border-red-200 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 cursor-pointer flex items-center gap-1">
-                  <Unlock size={13} /><span className="hidden sm:inline">로그아웃</span>
-                </button>
-              )}
+              <button onClick={onAlertClick} className="cursor-pointer whitespace-nowrap flex items-center gap-1"
+                style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,
+                  background:"#F5F5F4",color:"#78716C",border:"none"}}>
+                <Bell size={11} />알림 관리
+              </button>
             </div>
           </div>
         </div>

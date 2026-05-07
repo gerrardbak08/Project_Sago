@@ -312,9 +312,7 @@ function App() {
   if (dashMode === "customer") return (
     <CustomerDashboard
       onBack={() => setDashMode("worker")}
-      isAdmin={false}
-      onAdminLoginClick={() => {}}
-      onLogout={() => {}}
+      onAlertClick={() => setDashMode("alert")}
     />
   );
 
