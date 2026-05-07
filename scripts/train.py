@@ -204,6 +204,72 @@ def _build_siblings(tree: DecisionTreeClassifier) -> dict[int, list[int]]:
 # ──────────────────────────────────────────────
 # leaf_table 구축
 # ──────────────────────────────────────────────
+def _stratified_sample_incidents(
+    leaf_df: pd.DataFrame,
+    label_col: str,
+    incident_cols: list[str],
+    max_size: int = 50,
+) -> list[dict]:
+    """사고유형 분포를 유지하면서 최대 max_size건을 샘플링한다.
+
+    - 유형별 비례 할당. 각 유형 최소 1건 보장.
+    - 유형 내 샘플링은 index 오름차순(결정론적).
+    - 전체 건수가 max_size 이하면 전부 반환.
+    """
+    n = len(leaf_df)
+    if n <= max_size:
+        return [
+            {c: row[c] for c in incident_cols}
+            for _, row in leaf_df.iterrows()
+        ]
+
+    label_counts = leaf_df[label_col].value_counts()
+    n_types = len(label_counts)
+
+    # 각 유형 최소 1건, 나머지는 비례 할당
+    quotas: dict[str, int] = {}
+    remaining = max_size - n_types  # 유형당 1건씩 선할당 후 남는 slot
+    for lbl, cnt in label_counts.items():
+        quotas[lbl] = 1
+    # 비례 분배
+    for lbl, cnt in label_counts.items():
+        add = int(round(remaining * cnt / n))
+        quotas[lbl] += add
+
+    # 반올림으로 인한 오차 보정
+    total = sum(quotas.values())
+    diff = max_size - total
+    if diff != 0:
+        # 큰 유형부터 오차만큼 가감
+        sorted_lbls = list(label_counts.index)
+        i = 0
+        while diff != 0 and i < len(sorted_lbls) * 2:
+            lbl = sorted_lbls[i % len(sorted_lbls)]
+            if diff > 0:
+                quotas[lbl] += 1
+                diff -= 1
+            elif diff < 0 and quotas[lbl] > 1:
+                quotas[lbl] -= 1
+                diff += 1
+            i += 1
+
+    # 유형별 샘플링 (index 오름차순)
+    sampled_rows = []
+    for lbl in label_counts.index:
+        sub = leaf_df[leaf_df[label_col] == lbl].sort_index()
+        take = min(quotas.get(lbl, 0), len(sub))
+        sampled_rows.append(sub.head(take))
+
+    sampled = pd.concat(sampled_rows).sort_index()
+    return [
+        {c: row[c] for c in incident_cols}
+        for _, row in sampled.iterrows()
+    ]
+
+
+# ──────────────────────────────────────────────
+# leaf_table 구축
+# ──────────────────────────────────────────────
 def _build_leaf_table(
     tree: DecisionTreeClassifier,
     df: pd.DataFrame,
@@ -213,7 +279,7 @@ def _build_leaf_table(
     source: str,
     feature_names: list[str],
 ) -> dict:
-    """리프별 규칙 + 사고 통계 + 사례 리스트."""
+    """리프별 규칙 + 사고 통계 + 사례 리스트 (사고유형 stratified 샘플링, 최대 50건)."""
     rules = _extract_rules(tree, feature_names)
     leaf_ids = tree.apply(X)
 
@@ -248,13 +314,10 @@ def _build_leaf_table(
                         Counter(leaf_df[dist_col].dropna().tolist())
                     )
 
-        # 사례 리스트
-        incidents = []
-        for _, row in leaf_df.iterrows():
-            incident = {}
-            for c in incident_cols:
-                incident[c] = row[c]
-            incidents.append(incident)
+        # 사례 리스트 — 사고유형 stratified 샘플링, 최대 50건
+        incidents = _stratified_sample_incidents(
+            leaf_df, label_col, incident_cols, max_size=50
+        )
 
         leaf_table[str(leaf_id)] = {
             "leaf_id": int(leaf_id),
@@ -262,6 +325,7 @@ def _build_leaf_table(
             "rule": rules.get(leaf_id, ""),
             "summary": {
                 "total": int(mask.sum()),
+                "sampled": len(incidents),
                 label_col: dict(label_counts),
                 **distributions,
             },
@@ -269,6 +333,42 @@ def _build_leaf_table(
         }
 
     return leaf_table
+
+
+# ──────────────────────────────────────────────
+# leaf_type_counts 구축
+# ──────────────────────────────────────────────
+def _build_leaf_type_counts(
+    leaf_table: dict,
+    label_col: str,
+) -> dict:
+    """리프별 사고유형 카운트를 별도 JSON으로 요약.
+
+    구조:
+      {
+        "label_column": "사고유형",
+        "leaves": {
+          "<leaf_id>": {
+            "rule": "...",
+            "total": int,
+            "type_counts": {유형명: 건수, ...}
+          }, ...
+        }
+      }
+    """
+    leaves: dict[str, Any] = {}
+    for lid, data in leaf_table.items():
+        summary = data.get("summary", {})
+        leaves[lid] = {
+            "rule": data.get("rule", ""),
+            "total": summary.get("total", 0),
+            "type_counts": dict(summary.get(label_col, {})),
+        }
+
+    return {
+        "label_column": label_col,
+        "leaves": leaves,
+    }
 
 
 # ──────────────────────────────────────────────
@@ -384,12 +484,17 @@ def train_source(source: str) -> None:
     _dump_json(siblings, out_dir / "siblings.json")
     print(f"  → siblings.json ({len(siblings)} 내부 노드)")
 
-    # ── 5. tree.pkl ──
+    # ── 5. leaf_type_counts.json ──
+    leaf_type_counts = _build_leaf_type_counts(leaf_table, label_col)
+    _dump_json(leaf_type_counts, out_dir / "leaf_type_counts.json")
+    print(f"  → leaf_type_counts.json")
+
+    # ── 6. tree.pkl ──
     with open(out_dir / "tree.pkl", "wb") as f:
         pickle.dump(tree, f)
     print(f"  → tree.pkl")
 
-    # ── 6. encoder.pkl ──
+    # ── 7. encoder.pkl ──
     with open(out_dir / "encoder.pkl", "wb") as f:
         pickle.dump(encoder, f)
     print(f"  → encoder.pkl")
@@ -398,8 +503,11 @@ def train_source(source: str) -> None:
     print(f"\n  [검증]")
     print(f"    트리 깊이: {depth} (max_depth={TREE_PARAMS['max_depth']})")
     min_samples = min(v["summary"]["total"] for v in leaf_table.values())
-    print(f"    리프 최소 사례 수: {min_samples} (min_samples_leaf={TREE_PARAMS['min_samples_leaf']})")
-    has_incidents = all(len(v["incidents"]) > 0 for v in leaf_table.values())
+    max_samples = max(v["summary"]["total"] for v in leaf_table.values())
+    print(f"    리프 사례 수: 최소 {min_samples} / 최대 {max_samples}")
+    incident_sizes = [len(v["incidents"]) for v in leaf_table.values()]
+    print(f"    incidents 크기(샘플링 후): 최소 {min(incident_sizes)} / 최대 {max(incident_sizes)}")
+    has_incidents = all(s > 0 for s in incident_sizes)
     print(f"    모든 리프에 incidents 포함: {has_incidents}")
     assert depth <= TREE_PARAMS["max_depth"], f"트리 깊이 초과: {depth}"
     # EMP는 데이터량(약 448건) 제약으로 리프 최소 15건까지 허용
@@ -408,6 +516,9 @@ def train_source(source: str) -> None:
         f"최소 사례 수 미달: {min_samples} (기대: {min_required}, 소스: {source})"
     )
     assert has_incidents, "incidents 누락 리프 존재"
+    assert max(incident_sizes) <= 50, (
+        f"incidents 크기 상한 초과: {max(incident_sizes)} (기대: 50 이하)"
+    )
     # 리프 수 목표 범위 확인 (실패해도 경고만)
     if not (8 <= n_leaves <= 20):
         print(f"  ⚠️ 리프 수 {n_leaves} — 목표 범위(8~20) 밖. max_depth 재조정 고려.")
