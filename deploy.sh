@@ -9,10 +9,10 @@ ENV_PROD="$PROJ_DIR/.env.production"
 DIST_DIR="dist"
 
 # ---------------------------------------------------------------------------
-# AWS 자격증명 갱신 (SSO)
+# AWS 자격증명 갱신
 # ---------------------------------------------------------------------------
 echo "=== [0/7] AWS 자격증명 갱신 ==="
-aws sso login --no-browser 2>/dev/null || aws sso login
+aws login
 eval "$(aws configure export-credentials --format env)"
 echo "  ✓ 자격증명 갱신 완료"
 
