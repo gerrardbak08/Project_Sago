@@ -187,11 +187,18 @@ resource "aws_iam_role_policy" "lambda_permissions" {
 # ---------------------------------------------------------------------------
 
 data "aws_iam_policy_document" "alerts_permissions" {
+  # daily 버킷 alerts/ 경로 읽기 + ListBucket
   statement {
     actions   = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.daily.arn}/alerts/*"]
   }
 
+  statement {
+    actions   = ["s3:ListBucket"]
+    resources = [aws_s3_bucket.daily.arn]
+  }
+
+  # CloudWatch Logs
   statement {
     actions = [
       "logs:CreateLogGroup",
