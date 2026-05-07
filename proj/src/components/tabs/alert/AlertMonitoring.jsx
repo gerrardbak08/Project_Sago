@@ -331,7 +331,7 @@ function AlertMonitoring() {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-10 text-center text-stone-400 text-xs">해당 위험 등급의 매장이 없습니다.</td>
+                    <td colSpan={6} className="py-10 text-center text-stone-400 text-xs">조회된 매장이 없습니다.</td>
                   </tr>
                 )}
               </tbody>
