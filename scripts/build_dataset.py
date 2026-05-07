@@ -329,6 +329,10 @@ def step2_build_incidents(stores: pd.DataFrame) -> None:
         "%Y-%m-%d"
     )
 
+    # incident_id 부여 (0-padded, 4자리)
+    cust = cust.reset_index(drop=True)
+    cust["incident_id"] = [f"cust_{i+1:04d}" for i in range(len(cust))]
+
     cust.to_csv(OUT / "incidents_cust.csv", index=False)
     print(f"  → {OUT / 'incidents_cust.csv'} 저장 ({len(cust)}건)")
 
@@ -350,6 +354,9 @@ def step2_build_incidents(stores: pd.DataFrame) -> None:
     emp["발생일시"] = pd.to_datetime(emp["발생일시"], errors="coerce").dt.strftime(
         "%Y-%m-%d"
     )
+
+    emp = emp.reset_index(drop=True)
+    emp["incident_id"] = [f"emp_{i+1:04d}" for i in range(len(emp))]
 
     emp.to_csv(OUT / "incidents_emp.csv", index=False)
     print(f"  → {OUT / 'incidents_emp.csv'} 저장 ({len(emp)}건)")
@@ -515,7 +522,7 @@ def step4_cleanup() -> None:
     if cust_path.exists():
         df = pd.read_csv(cust_path)
         keep = []
-        for c in TREE_FEATURES + CUST_CASE_COLS + ["source", "위도", "경도"]:
+        for c in TREE_FEATURES + CUST_CASE_COLS + ["source", "위도", "경도", "incident_id"]:
             if c in df.columns and c not in keep:
                 keep.append(c)
         df_clean = df[keep].copy()
@@ -530,7 +537,7 @@ def step4_cleanup() -> None:
     if emp_path.exists():
         df = pd.read_csv(emp_path)
         keep = []
-        for c in TREE_FEATURES + EMP_CASE_COLS + ["source", "위도", "경도"]:
+        for c in TREE_FEATURES + EMP_CASE_COLS + ["source", "위도", "경도", "incident_id"]:
             if c in df.columns and c not in keep:
                 keep.append(c)
         df_clean = df[keep].copy()
