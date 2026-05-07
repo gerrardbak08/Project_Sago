@@ -1,35 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Bell, Calendar, CheckCircle2, AlertCircle, ChevronRight, RefreshCw, X, AlertTriangle, Building2, MapPin } from 'lucide-react';
-import { DAISO_RED, ALERT_RED, SAFE_GREEN } from '../../../constants/colors.js';
+import { Bell, Calendar, AlertCircle, ChevronRight, RefreshCw, X } from 'lucide-react';
 import { Card } from '../../shared/Card.jsx';
-
-const RISK_META = {
-  high:   { label: "고위험", bg: "bg-red-50",    border: "border-red-200",    text: "text-red-700",    dot: "#D70011" },
-  medium: { label: "중위험", bg: "bg-amber-50",  border: "border-amber-200",  text: "text-amber-700",  dot: "#B45309" },
-  low:    { label: "저위험", bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700", dot: "#15803D" },
-};
-
-function RiskBadge({ grade }) {
-  const m = RISK_META[grade] || RISK_META.low;
-  return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${m.bg} ${m.border} ${m.text} border`}>
-      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: m.dot }} />
-      {m.label}
-    </span>
-  );
-}
-
-function ScoreBar({ score }) {
-  const color = score >= 70 ? ALERT_RED : score >= 50 ? "#B45309" : SAFE_GREEN;
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className="w-16 h-1.5 rounded-full bg-stone-100 overflow-hidden">
-        <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, background: color }} />
-      </div>
-      <span className="text-xs tabular-nums font-bold" style={{ color }}>{score}</span>
-    </div>
-  );
-}
 
 function DetailModal({ item, onClose }) {
   const [detail, setDetail] = useState(null);
@@ -113,48 +84,123 @@ function GuideSection({ type, label, result }) {
   const isCust = type === "CUST";
   const accentColor = isCust ? "#0891B2" : "#4F46E5";
   const bgClass = isCust ? "bg-sky-50 border-sky-100" : "bg-indigo-50 border-indigo-100";
-  const grade = result.risk?.grade || "low";
-  const m = RISK_META[grade];
+  const guide = result?.guide || {};
+
+  const special = guide["오늘의_특별_주의사항"] || [];
+  const common = guide["상시_주의사항"] || [];
+  const picks = guide["오늘의_주의_사례"] || [];
+  const mainRisk = guide["주요_위험유형"] || "";
+  const summary = guide["위험_요약"] || "";
 
   return (
     <div className={`rounded-xl border p-4 ${bgClass}`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md flex items-center justify-center text-white text-[10px] font-bold" style={{ background: accentColor }}>
+          <div
+            className="w-6 h-6 rounded-md flex items-center justify-center text-white text-[10px] font-bold"
+            style={{ background: accentColor }}
+          >
             {type}
           </div>
           <span className="font-semibold text-stone-800 text-sm">{label}</span>
         </div>
-        <RiskBadge grade={grade} />
+        {mainRisk && (
+          <span className="text-[11px] font-semibold text-stone-700 bg-white rounded-full px-2 py-0.5 border border-stone-200">
+            {mainRisk}
+          </span>
+        )}
       </div>
 
-      {result.guide && (
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-stone-700 bg-white rounded-lg px-3 py-2 border border-stone-200">
-            {result.guide['위험_요약']}
+      {summary && (
+        <div className="text-xs font-semibold text-stone-700 bg-white rounded-lg px-3 py-2 border border-stone-200 mb-3">
+          {summary}
+        </div>
+      )}
+
+      {/* 오늘의 특별 주의사항 */}
+      {special.length > 0 && (
+        <div className="mb-3">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-red-700 mb-1.5">
+            오늘의 특별 주의사항
           </div>
-          {result.guide['안전_수칙'] && (
-            <ul className="space-y-1">
-              {result.guide['안전_수칙'].map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-xs text-stone-700">
-                  <span className="w-4 h-4 rounded-full text-white text-[9px] flex items-center justify-center flex-shrink-0 mt-0.5 font-bold" style={{ background: accentColor }}>
-                    {i + 1}
+          <ul className="space-y-1.5">
+            {special.map((item, i) => (
+              <li key={i} className="bg-white rounded-lg px-3 py-2 border border-red-100">
+                <div className="text-xs font-semibold text-stone-800">{item["수칙"]}</div>
+                {item["관련_피처"] && (
+                  <div className="text-[10px] text-red-600 mt-0.5 font-mono">
+                    📊 {item["관련_피처"]}
+                  </div>
+                )}
+                {item["근거_사례"] && (
+                  <div className="text-[10px] text-stone-500 italic mt-0.5">
+                    "{item["근거_사례"]}"
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* 상시 주의사항 */}
+      {common.length > 0 && (
+        <div className="mb-3">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-stone-600 mb-1.5">
+            상시 주의사항
+          </div>
+          <ul className="space-y-1">
+            {common.map((item, i) => (
+              <li key={i} className="flex items-start gap-2 text-xs text-stone-700">
+                <span
+                  className="w-4 h-4 rounded-full text-white text-[9px] flex items-center justify-center flex-shrink-0 mt-0.5 font-bold"
+                  style={{ background: accentColor }}
+                >
+                  {i + 1}
+                </span>
+                <span>
+                  {item["수칙"]}
+                  {item["근거_사례"] && (
+                    <span className="text-stone-400 italic ml-1">"{item["근거_사례"]}"</span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* 오늘의 주의 사례 (추후 이미지 자리) */}
+      {picks.length > 0 && (
+        <div>
+          <div className="text-[11px] font-bold uppercase tracking-wide text-amber-700 mb-1.5">
+            오늘의 주의 사례
+          </div>
+          <ul className="space-y-1.5">
+            {picks.map((pick, i) => (
+              <li key={i} className="bg-amber-50 rounded-lg px-3 py-2 border border-amber-100">
+                <div className="flex items-start gap-2">
+                  <span className="text-[10px] font-mono text-amber-700 bg-white rounded px-1.5 py-0.5 border border-amber-200 flex-shrink-0">
+                    {pick["incident_id"]}
                   </span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          )}
-          {result.guide['과거_사례_인용'] && (
-            <div className="text-[11px] text-stone-500 bg-white/70 rounded-lg px-3 py-2 border border-stone-100 italic">
-              "{result.guide['과거_사례_인용']}"
-            </div>
-          )}
-          {result.matched_rule && (
-            <div className="text-[10px] text-stone-400 font-mono bg-stone-50 px-2 py-1 rounded">
-              적용 규칙: {result.matched_rule}
-            </div>
-          )}
+                  <div className="flex-1">
+                    <div className="text-xs text-stone-800">{pick["사고내용"]}</div>
+                    {pick["선정_이유"] && (
+                      <div className="text-[10px] text-stone-500 italic mt-0.5">
+                        {pick["선정_이유"]}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {result?.matched_rule && (
+        <div className="text-[10px] text-stone-400 font-mono bg-stone-50 px-2 py-1 rounded mt-3">
+          적용 규칙: {result.matched_rule}
         </div>
       )}
     </div>
@@ -168,7 +214,6 @@ function AlertMonitoring() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [filter, setFilter] = useState("all");
 
   const load = async (d) => {
     setLoading(true); setError(null); setResult(null);
@@ -187,14 +232,7 @@ function AlertMonitoring() {
 
   const handleLoad = () => load(date);
 
-  const filtered = !result ? [] : filter === "all" ? result : result.filter(s => s.risk_cust === filter || s.risk_emp === filter);
-
-  const counts = result ? {
-    total: result.length,
-    high: result.filter(s => s.risk_cust === "high" || s.risk_emp === "high").length,
-    medium: result.filter(s => s.risk_cust === "medium" || s.risk_emp === "medium").length,
-    low: result.filter(s => s.risk_cust === "low" && s.risk_emp === "low").length,
-  } : null;
+  const filtered = result || [];
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -246,46 +284,9 @@ function AlertMonitoring() {
         </div>
       )}
 
-      {/* 요약 카드 */}
-      {counts && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: "총 매장", value: counts.total, color: "#1C1917", bg: "bg-stone-50", border: "border-stone-200" },
-            { label: "고위험", value: counts.high, color: ALERT_RED, bg: "bg-red-50", border: "border-red-200" },
-            { label: "중위험", value: counts.medium, color: "#B45309", bg: "bg-amber-50", border: "border-amber-200" },
-            { label: "저위험", value: counts.low, color: SAFE_GREEN, bg: "bg-emerald-50", border: "border-emerald-200" },
-          ].map(({ label, value, color, bg, border }) => (
-            <div key={label} className={`rounded-xl p-4 border ${bg} ${border}`}>
-              <div className="text-xs font-semibold text-stone-500 uppercase tracking-wide">{label}</div>
-              <div className="text-3xl font-extrabold tabular-nums mt-1" style={{ color }}>{value}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 필터 + 테이블 */}
+      {/* 테이블 */}
       {result && (
         <Card title="매장별 알림 결과" titleIcon={Bell}>
-          {/* 필터 탭 */}
-          <div className="flex gap-1 mb-3 border-b border-stone-100 pb-3">
-            {[
-              { id: "all", label: "전체", count: result.length },
-              { id: "high", label: "고위험", count: counts.high },
-              { id: "medium", label: "중위험", count: counts.medium },
-              { id: "low", label: "저위험", count: counts.low },
-            ].map(f => (
-              <button
-                key={f.id}
-                onClick={() => setFilter(f.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
-                  filter === f.id ? "bg-stone-900 text-white" : "text-stone-500 hover:bg-stone-100"
-                }`}
-              >
-                {f.label} <span className="opacity-60">{f.count}</span>
-              </button>
-            ))}
-          </div>
-
           <div className="overflow-x-auto -mx-5 px-5">
             <table className="w-full min-w-[600px] text-sm">
               <thead>
@@ -293,10 +294,8 @@ function AlertMonitoring() {
                   <th className="text-left py-2 px-2 font-semibold">매장</th>
                   <th className="text-left py-2 px-2 font-semibold">지역</th>
                   <th className="text-center py-2 px-2 font-semibold">발송 유형</th>
-                  <th className="text-center py-2 px-2 font-semibold">고객 위험도</th>
-                  <th className="text-center py-2 px-2 font-semibold">직원 위험도</th>
-                  <th className="text-left py-2 px-2 font-semibold">주 유형 (고객)</th>
-                  <th className="text-left py-2 px-2 font-semibold">주 유형 (직원)</th>
+                  <th className="text-left py-2 px-2 font-semibold">주요 위험유형 (고객)</th>
+                  <th className="text-left py-2 px-2 font-semibold">주요 위험유형 (직원)</th>
                   <th className="text-center py-2 px-2 font-semibold">상세</th>
                 </tr>
               </thead>
@@ -314,20 +313,12 @@ function AlertMonitoring() {
                         : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-stone-100 border border-stone-200 text-stone-600">✋ 수동</span>
                       }
                     </td>
-                    <td className="py-2.5 px-2 text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <RiskBadge grade={s.risk_cust} />
-                        <ScoreBar score={s.risk_cust_score} />
-                      </div>
+                    <td className="py-2.5 px-2 text-xs text-stone-700">
+                      {s["주요_위험유형_cust"] || s.dominant_type_cust || "—"}
                     </td>
-                    <td className="py-2.5 px-2 text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <RiskBadge grade={s.risk_emp} />
-                        <ScoreBar score={s.risk_emp_score} />
-                      </div>
+                    <td className="py-2.5 px-2 text-xs text-stone-700">
+                      {s["주요_위험유형_emp"] || s.dominant_type_emp || "—"}
                     </td>
-                    <td className="py-2.5 px-2 text-xs text-stone-600">{s.dominant_type_cust || "—"}</td>
-                    <td className="py-2.5 px-2 text-xs text-stone-600">{s.dominant_type_emp || "—"}</td>
                     <td className="py-2.5 px-2 text-center">
                       <button
                         onClick={() => setSelectedItem(s)}
@@ -340,7 +331,7 @@ function AlertMonitoring() {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="py-10 text-center text-stone-400 text-xs">해당 위험 등급의 매장이 없습니다.</td>
+                    <td colSpan={6} className="py-10 text-center text-stone-400 text-xs">해당 위험 등급의 매장이 없습니다.</td>
                   </tr>
                 )}
               </tbody>
