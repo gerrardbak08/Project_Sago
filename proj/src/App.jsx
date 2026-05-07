@@ -22,17 +22,16 @@ import { processStores }      from './utils/processStores.js';
 import { processWorkers }     from './utils/processData.js';
 
 // ── 아이콘 ─────────────────────────────────────────────
-import { Lock, Unlock, LayoutDashboard, Building, Building2, MapPin,
+import { LayoutDashboard, Building, Building2, MapPin,
          TrendingUp, GitBranch, UserCircle, Users, Scale, Banknote,
          Stethoscope, Bell, ChevronRight, Sparkles, ShieldCheck, Store,
-         X, AlertCircle } from 'lucide-react';
+         X, AlertCircle, Send } from 'lucide-react';
 import AlertMonitoring from './components/tabs/alert/AlertMonitoring.jsx';
 import AlertSimulate   from './components/tabs/alert/AlertSimulate.jsx';
 import AlertSend       from './components/tabs/alert/AlertSend.jsx';
 
 // ── 공유 컴포넌트 ──────────────────────────────────────
 import { Card }              from './components/shared/Card.jsx';
-import AdminLoginPanel       from './components/admin/AdminLoginPanel.jsx';
 import AdminUpload           from './components/admin/AdminUpload.jsx';
 import CustomerDashboard     from './components/layout/CustomerDashboard.jsx';
 
@@ -92,7 +91,7 @@ const _INIT_HASH_PARAMS = (() => {
 })();
 
 function App() {
-  const [dashMode, setDashMode] = useState("worker");
+  const [dashMode, setDashMode] = useState("worker"); // "worker" | "customer" | "alert"
   // === 역할 기반 랜딩 ===
   const initialRole = (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("role")) || null;
   const ROLE_LANDING = { ceo: "overview", manager: "dept", team: "parjang", part: "store", safety: "overview" };
@@ -101,6 +100,7 @@ function App() {
   const [tab, setTabState] = useState(
     _INIT_HASH_PARAMS.tab || (initialRole && ROLE_LANDING[initialRole] ? ROLE_LANDING[initialRole] : "overview")
   );
+  const [alertTab, setAlertTab] = useState("alert_simulate"); // 알림 모드 내 탭
   const [currentRole, setCurrentRole] = useState(_INIT_HASH_PARAMS.role || initialRole || null);
   const [yearFilter, setYearState] = useState(_INIT_HASH_PARAMS.year || "all");
 
@@ -140,10 +140,6 @@ function App() {
   const [workerFileName, setWorkerFileName] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
-  // Admin mode
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
   
   const isDefault = !accidentFileName && !storeFileName && !workerFileName;
   
@@ -227,7 +223,6 @@ function App() {
   };
   
   const handleLogout = () => {
-    setIsAdmin(false);
     if (tab === "alert_monitor" || tab === "alert_simulate" || tab === "alert_send") setTab("overview");
   };
   
@@ -252,28 +247,79 @@ function App() {
     ? TABS_VIEWER.filter(t => ROLE_TAB_VISIBILITY[currentRole].includes(t.id))
     : TABS_VIEWER;
   
-  // Visible tabs (admin sees extra alert tabs)
-  const TABS = isAdmin
-    ? [...visibleTabs, ...ALERT_TABS]
-    : visibleTabs;
-  
+  // Visible tabs
+  const TABS = visibleTabs;
+
+  // 알림 모드 — customer 대시보드와 동일하게 별도 렌더
+  if (dashMode === "alert") return (
+    <div className="min-h-screen" style={{background:"linear-gradient(135deg, #F5F5F4 0%, #FAFAF9 40%, #F0F4FF 100%)"}}>
+      {/* 헤더 */}
+      <div className="sticky top-0 z-40 shadow-sm">
+        <div className="bg-white border-b border-stone-200">
+          <div className="max-w-[1400px] mx-auto px-3 sm:px-5 flex items-center gap-2 sm:gap-4" style={{height:56}}>
+            <img src={DAISO_LOGO} alt="DAISO" className="flex-shrink-0" style={{height:32,width:"auto",objectFit:"contain"}} />
+            <div className="flex flex-col justify-center min-w-0">
+              <span className="text-stone-900 font-extrabold leading-none tracking-tight whitespace-nowrap text-base sm:text-xl">
+                안전 알림 관리
+              </span>
+              <span className="text-stone-400 text-[10px] sm:text-xs font-medium leading-none mt-0.5 whitespace-nowrap">
+                ㈜아성다이소 · 안전보건팀
+              </span>
+            </div>
+            <div className="flex-1" />
+            {/* 모드 토글 */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button onClick={() => setDashMode("worker")}
+                style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:"#F5F5F4",color:"#78716C",border:"none"}}
+                className="cursor-pointer whitespace-nowrap">근로자 사고</button>
+              <button onClick={() => setDashMode("customer")}
+                style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:"#F5F5F4",color:"#78716C",border:"none"}}
+                className="cursor-pointer whitespace-nowrap">고객 사고</button>
+              <button onClick={() => setDashMode("alert")}
+                style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:"#4F46E5",color:"white",border:"none"}}
+                className="cursor-pointer whitespace-nowrap">알림 관리</button>
+            </div>
+          </div>
+        </div>
+        {/* 알림 탭바 */}
+        <div className="bg-white border-b border-stone-200">
+          <div className="max-w-[1400px] mx-auto px-2 sm:px-4 flex gap-0">
+            {ALERT_TABS.map(t => (
+              <button key={t.id} onClick={() => setAlertTab(t.id)}
+                className={`min-h-[42px] sm:min-h-[46px] px-3 sm:px-4 py-2.5 text-xs sm:text-[13px] font-medium whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 border-b-2 ${alertTab === t.id ? "border-indigo-600 text-indigo-700 font-bold" : "border-transparent text-stone-400 hover:text-stone-700 hover:border-stone-300"}`}
+                style={{ minWidth: 48, flexShrink: 0 }}>
+                <t.Icon size={13} strokeWidth={2} className="flex-shrink-0" />
+                <span className="hidden sm:inline">{t.l}</span>
+                <span className="sm:hidden">{t.short}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="max-w-[1400px] mx-auto px-3 sm:px-4 py-3 sm:py-5">
+        <TabErrorBoundary key={alertTab}>
+          {alertTab === "alert_monitor"  && <AlertMonitoring />}
+          {alertTab === "alert_simulate" && <AlertSimulate />}
+          {alertTab === "alert_send"     && <AlertSend />}
+        </TabErrorBoundary>
+      </div>
+      <div className="max-w-[1400px] mx-auto px-4 py-4 text-xs text-stone-400 border-t border-stone-100 mt-6">
+        <div>© ㈜아성다이소 안전보건팀 · {new Date().getFullYear()}.{String(new Date().getMonth()+1).padStart(2,"0")}</div>
+      </div>
+    </div>
+  );
 
   if (dashMode === "customer") return (
-    <>
-      {showLogin && <AdminLoginPanel onLogin={() => { setIsAdmin(true); setShowLogin(false); }} onCancel={() => setShowLogin(false)} />}
-      <CustomerDashboard 
-        onBack={() => setDashMode("worker")}
-        isAdmin={isAdmin}
-        onAdminLoginClick={() => setShowLogin(true)}
-        onLogout={handleLogout}
-      />
-    </>
+    <CustomerDashboard
+      onBack={() => setDashMode("worker")}
+      isAdmin={false}
+      onAdminLoginClick={() => {}}
+      onLogout={() => {}}
+    />
   );
 
   return (
     <div className="min-h-screen" style={{background:"linear-gradient(135deg, #F5F5F4 0%, #FAFAF9 40%, #F0F4FF 100%)"}}>
-      {showLogin && <AdminLoginPanel onLogin={() => { setIsAdmin(true); setShowLogin(false); setTab("admin"); }} onCancel={() => setShowLogin(false)} />}
-      
       {/* ═══ 헤더 (모바일 최적화) ═══ */}
       <div className="sticky top-0 z-40 shadow-sm">
 
@@ -291,40 +337,24 @@ function App() {
                 ㈜아성다이소 · 안전보건팀
               </span>
             </div>
-            {isAdmin && (
-              <span className="flex-shrink-0 px-1.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[9px] font-bold hidden sm:flex items-center gap-0.5">
-                <Lock size={8} /> 관리자
-              </span>
-            )}
             <div className="flex-1" />
             {/* 모드 토글 */}
             <div className="flex items-center gap-1 flex-shrink-0">
               <button onClick={() => setDashMode("worker")} className="cursor-pointer whitespace-nowrap"
                 style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,
-                  background: dashMode==="worker" ? DAISO_RED : "#F5F5F4",
-                  color: dashMode==="worker" ? "white" : "#78716C", border:"none"}}>
+                  background: DAISO_RED, color:"white", border:"none"}}>
                 근로자 사고
               </button>
               <button onClick={() => setDashMode("customer")} className="cursor-pointer whitespace-nowrap"
                 style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,
-                  background: dashMode==="customer" ? DEEP_BLUE : "#F5F5F4",
-                  color: dashMode==="customer" ? "white" : "#78716C", border:"none"}}>
+                  background:"#F5F5F4", color:"#78716C", border:"none"}}>
                 고객 사고
               </button>
-            </div>
-            {/* 관리자 버튼 */}
-            <div className="flex-shrink-0">
-              {!isAdmin ? (
-                <button onClick={() => setShowLogin(true)}
-                  className="h-8 w-8 sm:w-auto sm:px-3 rounded-md border border-stone-200 text-xs font-medium text-stone-600 bg-white hover:bg-stone-50 cursor-pointer flex items-center justify-center gap-1">
-                  <Lock size={13} /><span className="hidden sm:inline">관리자</span>
-                </button>
-              ) : (
-                <button onClick={handleLogout}
-                  className="h-8 px-2 sm:px-3 rounded-md border border-red-200 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 cursor-pointer flex items-center gap-1">
-                  <Unlock size={13} /><span className="hidden sm:inline">로그아웃</span>
-                </button>
-              )}
+              <button onClick={() => setDashMode("alert")} className="cursor-pointer whitespace-nowrap flex items-center gap-1"
+                style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,
+                  background:"#F5F5F4", color:"#78716C", border:"none"}}>
+                <Bell size={11} />알림 관리
+              </button>
             </div>
           </div>
         </div>
@@ -439,15 +469,13 @@ function App() {
           {tab === "parjang" && <ParjangDashboard D={dataFiltered} yearFilter={yearFilter} />}
           {tab === "cost" && <CostRisk D={dataFiltered} yearFilter={yearFilter} />}
           {tab === "legal" && <LegalReporting D={dataFiltered} yearFilter={yearFilter} />}
-          {tab === "alert_monitor"  && isAdmin && <AlertMonitoring />}
-          {tab === "alert_simulate" && isAdmin && <AlertSimulate />}
-          {tab === "alert_send"     && isAdmin && <AlertSend />}
-        </TabErrorBoundary>
+          {tab === "alert_monitor"  && <AlertMonitoring />}
+          {tab === "alert_simulate" && <AlertSimulate />}
+          {tab === "alert_send"     && <AlertSend />}        </TabErrorBoundary>
       </div>
       
       <div className="max-w-[1400px] mx-auto px-4 py-4 text-xs text-stone-400 border-t border-stone-100 mt-6 flex justify-between flex-wrap gap-2">
         <div>© ㈜아성다이소 안전보건팀 · v9 · {new Date().getFullYear()}.{String(new Date().getMonth()+1).padStart(2,"0")}</div>
-        <div>13개 분석 탭 · 55+ 지표 · 역할별 권한 분리 · Gemini AI 분석 · 브라우저 기반 파싱</div>
       </div>
     </div>
   );
