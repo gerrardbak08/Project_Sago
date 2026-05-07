@@ -23,7 +23,6 @@ from typing import Any
 # ── core 모듈 ──
 from core.weather import get_weather
 from core.rule_matcher import match_with_fallback
-from core.risk import calculate_risk
 from core.llm import generate_guide
 
 # ──────────────────────────────────────────────
@@ -198,12 +197,8 @@ def _save_alert(response_body: dict, trigger_type: str = "manual") -> str | None
         "date": date_str,
         "timestamp": datetime.now(KST).isoformat(timespec="seconds"),
         "trigger_type": trigger_type,
-        "risk_cust": cust_result.get("risk", {}).get("grade", ""),
-        "risk_cust_score": cust_result.get("risk", {}).get("score", 0),
-        "risk_emp": emp_result.get("risk", {}).get("grade", ""),
-        "risk_emp_score": emp_result.get("risk", {}).get("score", 0),
-        "dominant_type_cust": cust_result.get("risk", {}).get("dominant_type", ""),
-        "dominant_type_emp": emp_result.get("risk", {}).get("dominant_type", ""),
+        "주요_위험유형_cust": cust_result.get("guide", {}).get("주요_위험유형", ""),
+        "주요_위험유형_emp": emp_result.get("guide", {}).get("주요_위험유형", ""),
         "detail_key": file_key,
     }
 
@@ -352,7 +347,6 @@ def lambda_handler(event: dict, context: Any) -> dict:
             continue
 
         label_col = LABEL_COLS.get(source, metadata.get("label_column", "사고유형"))
-        total_incidents = metadata.get("total_incidents", 0)
 
         # 피처 구성
         features = _build_features(weather, store, encoder_map)
@@ -366,12 +360,9 @@ def lambda_handler(event: dict, context: Any) -> dict:
             results[source] = {"error": "리프 매칭 실패"}
             continue
 
-        # 위험도 산출
+        # LLM 안전 가이드 생성 (신 시그니처: risk_info 제거, label_col 전달)
         leaf_summary = leaf_data.get("summary", {})
-        risk_info = calculate_risk(leaf_summary, total_incidents, label_col)
-
-        # LLM 안전 가이드 생성
-        guide = generate_guide(store, weather, leaf_data, risk_info)
+        guide = generate_guide(store, weather, leaf_data, label_col)
 
         # 결과 조립
         matched_rule = leaf_data.get("rule", "")
@@ -380,7 +371,6 @@ def lambda_handler(event: dict, context: Any) -> dict:
         results[source] = {
             "leaf_id": str(leaf_id) if leaf_id is not None else None,
             "fallback_level": fallback_level,
-            "risk": risk_info,
             "guide": guide,
             "matched_rule": matched_rule,
             "incident_count": incident_count,
