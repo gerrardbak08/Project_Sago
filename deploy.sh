@@ -9,6 +9,14 @@ ENV_PROD="$PROJ_DIR/.env.production"
 DIST_DIR="dist"
 
 # ---------------------------------------------------------------------------
+# AWS 자격증명 갱신 (SSO)
+# ---------------------------------------------------------------------------
+echo "=== [0/7] AWS 자격증명 갱신 ==="
+aws sso login --no-browser 2>/dev/null || aws sso login
+eval "$(aws configure export-credentials --format env)"
+echo "  ✓ 자격증명 갱신 완료"
+
+# ---------------------------------------------------------------------------
 # Lambda zip 패키징
 # ---------------------------------------------------------------------------
 echo "=== [1/6] Lambda zip 패키징 ==="
@@ -80,9 +88,14 @@ else
 fi
 echo "  VITE_API_BASE=$API_URL 설정 완료"
 
-echo "=== [6/7] 모델 파일 → S3 업로드 ==="
+echo "=== [6/7] 모델 파일 및 stores.json → S3 업로드 ==="
 MODELS_BUCKET=$(terraform -chdir="$INFRA_DIR" output -raw models_bucket)
 echo "  모델 버킷: $MODELS_BUCKET"
+
+# stores.json — Lambda가 매장 정보 조회에 사용 (위경도, 매장 메타데이터 포함)
+aws s3 cp "$PROJ_DIR/dist/stores.json" "s3://$MODELS_BUCKET/stores.json" \
+  --region ap-northeast-2
+echo "  ✓ stores.json 업로드"
 
 # models/cust/ — JSON + pkl 파일
 aws s3 sync models/cust/ "s3://$MODELS_BUCKET/models/cust/" \
