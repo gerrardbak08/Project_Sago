@@ -139,4 +139,6 @@ aws s3 sync "$PROJ_DIR/dist/assets/" "s3://$BUCKET/assets/" \
 echo ""
 echo "✅ 배포 완료!"
 echo "   프론트엔드 URL: $(terraform -chdir="$INFRA_DIR" output -raw frontend_url)"
-echo "   API URL:        $API_URL"
+echo "   simulate URL:   $SIMULATE_URL"
+echo "   notify URL:     $NOTIFY_URL"
+echo "   alerts URL:     $ALERTS_URL"
