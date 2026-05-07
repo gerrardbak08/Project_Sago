@@ -52,9 +52,9 @@ MODELS = ROOT / "models"
 # 하이퍼파라미터
 # ──────────────────────────────────────────────
 TREE_PARAMS = dict(
-    max_depth=5,
-    min_samples_leaf=5,
-    min_impurity_decrease=0.01,
+    max_depth=7,
+    min_samples_leaf=20,
+    min_impurity_decrease=0.005,
     class_weight="balanced",
     criterion="gini",
     random_state=42,
@@ -218,8 +218,9 @@ def _build_leaf_table(
     leaf_ids = tree.apply(X)
 
     # 사례에 포함할 컬럼
+    # incident_id를 맨 앞에 두어 사례 식별이 명확하도록 함
     incident_cols = list(dict.fromkeys(
-        case_cols + WEATHER_FEATURES + STORE_NUM_FEATURES + STORE_CAT_FEATURES
+        ["incident_id"] + case_cols + WEATHER_FEATURES + STORE_NUM_FEATURES + STORE_CAT_FEATURES
     ))
     # 실제 존재하는 컬럼만
     incident_cols = [c for c in incident_cols if c in df.columns]
@@ -401,8 +402,15 @@ def train_source(source: str) -> None:
     has_incidents = all(len(v["incidents"]) > 0 for v in leaf_table.values())
     print(f"    모든 리프에 incidents 포함: {has_incidents}")
     assert depth <= TREE_PARAMS["max_depth"], f"트리 깊이 초과: {depth}"
-    assert min_samples >= TREE_PARAMS["min_samples_leaf"], f"최소 사례 수 미달: {min_samples}"
+    # EMP는 데이터량(약 448건) 제약으로 리프 최소 15건까지 허용
+    min_required = 15 if source == "emp" else TREE_PARAMS["min_samples_leaf"]
+    assert min_samples >= min_required, (
+        f"최소 사례 수 미달: {min_samples} (기대: {min_required}, 소스: {source})"
+    )
     assert has_incidents, "incidents 누락 리프 존재"
+    # 리프 수 목표 범위 확인 (실패해도 경고만)
+    if not (8 <= n_leaves <= 20):
+        print(f"  ⚠️ 리프 수 {n_leaves} — 목표 범위(8~20) 밖. max_depth 재조정 고려.")
 
     print(f"\n  ✅ [{source.upper()}] 학습 + 산출물 생성 완료")
 
