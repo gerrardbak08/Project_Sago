@@ -280,6 +280,21 @@ resource "aws_lambda_function_url" "simulate" {
   }
 }
 
+resource "aws_lambda_permission" "simulate_url_public" {
+  statement_id           = "AllowPublicFunctionURL"
+  action                 = "lambda:InvokeFunctionUrl"
+  function_name          = aws_lambda_function.simulate.function_name
+  principal              = "*"
+  function_url_auth_type = "NONE"
+}
+
+resource "aws_lambda_permission" "simulate_invoke_public" {
+  statement_id  = "AllowPublicInvokeFunction"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.simulate.function_name
+  principal     = "*"
+}
+
 # ---------------------------------------------------------------------------
 # Lambda — notify
 # ---------------------------------------------------------------------------
@@ -324,6 +339,21 @@ resource "aws_lambda_function_url" "notify" {
   }
 }
 
+resource "aws_lambda_permission" "notify_url_public" {
+  statement_id           = "AllowPublicFunctionURL"
+  action                 = "lambda:InvokeFunctionUrl"
+  function_name          = aws_lambda_function.notify.function_name
+  principal              = "*"
+  function_url_auth_type = "NONE"
+}
+
+resource "aws_lambda_permission" "notify_invoke_public" {
+  statement_id  = "AllowPublicInvokeFunction"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.notify.function_name
+  principal     = "*"
+}
+
 # ---------------------------------------------------------------------------
 # Lambda — alerts (알림 현황 조회)
 # ---------------------------------------------------------------------------
@@ -361,6 +391,21 @@ resource "aws_lambda_function_url" "alerts" {
     allow_headers     = ["Content-Type"]
     max_age           = 3600
   }
+}
+
+resource "aws_lambda_permission" "alerts_url_public" {
+  statement_id           = "AllowPublicFunctionURL"
+  action                 = "lambda:InvokeFunctionUrl"
+  function_name          = aws_lambda_function.alerts.function_name
+  principal              = "*"
+  function_url_auth_type = "NONE"
+}
+
+resource "aws_lambda_permission" "alerts_invoke_public" {
+  statement_id  = "AllowPublicInvokeFunction"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.alerts.function_name
+  principal     = "*"
 }
 
 # ---------------------------------------------------------------------------
