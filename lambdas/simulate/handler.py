@@ -54,11 +54,7 @@ STORE_NUM_FEATURES = [
     "일평균물동량",
 ]
 
-CORS_HEADERS = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type,Authorization",
-    "Access-Control-Allow-Methods": "POST,OPTIONS",
-}
+CORS_HEADERS = {}  # Function URL CORS 설정이 처리하므로 handler에서는 불필요
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 

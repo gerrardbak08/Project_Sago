@@ -15,11 +15,7 @@ import json
 import os
 from typing import Any
 
-CORS_HEADERS = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "GET,OPTIONS",
-}
+CORS_HEADERS = {}  # Function URL CORS 설정이 처리하므로 handler에서는 불필요
 
 
 def _response(status_code: int, body: Any) -> dict:

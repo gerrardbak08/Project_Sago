@@ -39,11 +39,7 @@ from core.notifier import get_notifier
 # ──────────────────────────────────────────────
 KST = timezone(timedelta(hours=9))
 
-CORS_HEADERS = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type,Authorization",
-    "Access-Control-Allow-Methods": "POST,OPTIONS",
-}
+CORS_HEADERS = {}  # Function URL CORS 설정이 처리하므로 handler에서는 불필요
 
 SOURCES = ["cust", "emp"]
 LABEL_COLS = {"cust": "사고유형", "emp": "재해 유형"}
