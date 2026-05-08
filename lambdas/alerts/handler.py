@@ -23,6 +23,8 @@ CORS_HEADERS = {
 
 
 def _response(status_code: int, body: Any) -> dict:
+    # Lambda Function URL: statusCode와 body를 그대로 반환하면
+    # Function URL이 자동으로 HTTP 응답으로 변환해줌
     return {
         "statusCode": status_code,
         "headers": {"Content-Type": "application/json; charset=utf-8", **CORS_HEADERS},

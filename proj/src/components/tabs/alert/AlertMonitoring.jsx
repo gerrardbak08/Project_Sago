@@ -226,7 +226,13 @@ function AlertMonitoring() {
       const res = await fetch(`${base}/${d}`);
       if (!res.ok) throw new Error(`데이터 없음 (HTTP ${res.status})`);
       const data = await res.json();
-      setResult(Array.isArray(data) ? data : data.stores || []);
+      // Lambda Function URL 응답: 배열 직접 또는 {stores: [...]} 형태
+      // body가 문자열로 감싸진 경우도 처리
+      let parsed = data;
+      if (typeof data === 'object' && data !== null && typeof data.body === 'string') {
+        try { parsed = JSON.parse(data.body); } catch {}
+      }
+      setResult(Array.isArray(parsed) ? parsed : parsed?.stores || []);
     } catch (e) {
       setError(e.message);
     } finally {
