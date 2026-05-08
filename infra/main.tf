@@ -250,7 +250,7 @@ resource "aws_lambda_function" "simulate" {
   source_code_hash = filebase64sha256("${path.module}/../dist/simulate.zip")
 
   memory_size = 512
-  timeout     = 60
+  timeout     = 180
 
   layers = [aws_lambda_layer_version.core.arn]
 
@@ -367,7 +367,7 @@ resource "aws_lambda_function" "alerts" {
   source_code_hash = filebase64sha256("${path.module}/../dist/alerts.zip")
 
   memory_size = 128
-  timeout     = 10
+  timeout     = 180
 
   environment {
     variables = {
