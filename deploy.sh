@@ -64,6 +64,14 @@ cp lambdas/notify/handler.py /tmp/notify-build/
 (cd /tmp/notify-build && zip -r9 - handler.py) > "$DIST_DIR/notify.zip"
 echo "  ✓ notify.zip ($(du -sh "$DIST_DIR/notify.zip" | cut -f1))"
 
+# alerts.zip — lambdas/alerts/handler.py
+echo "  alerts.zip 생성 중..."
+rm -rf /tmp/alerts-build
+mkdir -p /tmp/alerts-build
+cp lambdas/alerts/handler.py /tmp/alerts-build/
+(cd /tmp/alerts-build && zip -r9 - handler.py) > "$DIST_DIR/alerts.zip"
+echo "  ✓ alerts.zip ($(du -sh "$DIST_DIR/alerts.zip" | cut -f1))"
+
 echo "=== [2/6] Terraform init (필요시) ==="
 terraform -chdir="$INFRA_DIR" init -input=false
 
@@ -101,14 +109,9 @@ echo "  VITE_SIMULATE_URL=$SIMULATE_URL"
 echo "  VITE_NOTIFY_URL=$NOTIFY_URL"
 echo "  VITE_ALERTS_URL=$ALERTS_URL"
 
-echo "=== [6/7] 모델 파일 및 stores.json → S3 업로드 ==="
+echo "=== [6/7] 모델 파일 → S3 업로드 ==="
 MODELS_BUCKET=$(terraform -chdir="$INFRA_DIR" output -raw models_bucket)
 echo "  모델 버킷: $MODELS_BUCKET"
-
-# stores.json — Lambda가 매장 정보 조회에 사용 (위경도, 매장 메타데이터 포함)
-aws s3 cp "$PROJ_DIR/dist/stores.json" "s3://$MODELS_BUCKET/stores.json" \
-  --region ap-northeast-2
-echo "  ✓ stores.json 업로드"
 
 # models/cust/ — JSON + pkl 파일
 aws s3 sync models/cust/ "s3://$MODELS_BUCKET/models/cust/" \
@@ -135,6 +138,11 @@ aws s3 sync "$PROJ_DIR/dist/" "s3://$BUCKET/" \
 # assets/ — 장기 캐시 (Vite 해시 파일명으로 캐시 무효화 보장)
 aws s3 sync "$PROJ_DIR/dist/assets/" "s3://$BUCKET/assets/" \
   --cache-control "max-age=31536000,immutable"
+
+# stores.json — npm build 이후 생성되므로 여기서 업로드
+aws s3 cp "$PROJ_DIR/dist/stores.json" "s3://$MODELS_BUCKET/stores.json" \
+  --region ap-northeast-2
+echo "  ✓ stores.json 업로드"
 
 echo ""
 echo "✅ 배포 완료!"
