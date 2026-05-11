@@ -105,6 +105,10 @@ _upsert_env "VITE_SIMULATE_URL" "$SIMULATE_URL" "$ENV_PROD"
 _upsert_env "VITE_NOTIFY_URL"   "$NOTIFY_URL"   "$ENV_PROD"
 _upsert_env "VITE_ALERTS_URL"   "$ALERTS_URL"   "$ENV_PROD"
 
+# 프론트엔드 URL (이미지 경로 해석용)
+FRONTEND_URL=$(terraform -chdir="$INFRA_DIR" output -raw frontend_url)
+_upsert_env "VITE_FRONTEND_URL" "http://$FRONTEND_URL" "$ENV_PROD"
+
 echo "  VITE_SIMULATE_URL=$SIMULATE_URL"
 echo "  VITE_NOTIFY_URL=$NOTIFY_URL"
 echo "  VITE_ALERTS_URL=$ALERTS_URL"
@@ -133,11 +137,18 @@ aws s3 sync "$PROJ_DIR/dist/" "s3://$BUCKET/" \
   --delete \
   --exclude "assets/*" \
   --exclude "stores.json" \
+  --exclude "images/*" \
   --cache-control "no-cache, no-store, must-revalidate"
 
 # assets/ — 장기 캐시 (Vite 해시 파일명으로 캐시 무효화 보장)
 aws s3 sync "$PROJ_DIR/dist/assets/" "s3://$BUCKET/assets/" \
   --cache-control "max-age=31536000,immutable"
+
+# images/ — 사고 사례 이미지 (1일 캐시)
+aws s3 sync images/ "s3://$BUCKET/images/" \
+  --cache-control "max-age=86400" \
+  --region ap-northeast-2
+echo "  ✓ images/ 업로드"
 
 # stores.json — npm build 이후 생성되므로 여기서 업로드
 aws s3 cp "$PROJ_DIR/dist/stores.json" "s3://$MODELS_BUCKET/stores.json" \
