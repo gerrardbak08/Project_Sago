@@ -125,45 +125,17 @@ function GuideSection({ type, label, result }) {
           <div className="text-[11px] font-bold uppercase tracking-wide text-red-700 mb-1.5">
             오늘의 특별 주의사항
           </div>
-          <ul className="space-y-2">
+          <ul className="space-y-1.5">
             {special.map((item, i) => (
-              <li key={i} className="bg-white rounded-lg px-3 py-2.5 border border-red-100 space-y-1.5">
-                <div className="text-xs font-semibold text-stone-800">
-                  {item["수칙"]}
-                </div>
-                {item["오늘의_트리거"] && (
-                  <div className="text-[10px] text-red-700 font-mono bg-red-50 rounded px-2 py-1 border border-red-100">
-                    🎯 오늘 트리거: {item["오늘의_트리거"]}
-                  </div>
-                )}
-                {item["매장환경_상호작용"] && (
-                  <div className="text-[10px] text-indigo-700 bg-indigo-50 rounded px-2 py-1 border border-indigo-100">
-                    🏪 매장 결합: {item["매장환경_상호작용"]}
-                  </div>
-                )}
-                {item["인과_추론"] && (
-                  <div className="text-[10px] text-stone-600 bg-stone-50 rounded px-2 py-1 border border-stone-100">
-                    💡 인과: {item["인과_추론"]}
-                  </div>
-                )}
-                {Array.isArray(item["참조_사례"]) && item["참조_사례"].length > 0 && (
-                  <div className="flex flex-wrap gap-1 items-center">
-                    <span className="text-[10px] text-stone-500">참조:</span>
-                    {item["참조_사례"].map((id, j) => (
-                      <span key={j} className="text-[10px] font-mono text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 border border-amber-200">
-                        {id}
-                      </span>
-                    ))}
-                  </div>
-                )}
+              <li key={i} className="bg-white rounded-lg px-3 py-2 border border-red-100">
+                <div className="text-xs font-semibold text-stone-800">{item["수칙"]}</div>
                 {item["관련_피처"] && (
-                  <div className="text-[10px] text-stone-500 font-mono italic">
+                  <div className="text-[10px] text-red-600 mt-0.5 font-mono">
                     📊 {item["관련_피처"]}
                   </div>
                 )}
-                {/* 구 스키마 하위 호환 */}
-                {item["근거_사례"] && !item["인과_추론"] && (
-                  <div className="text-[10px] text-stone-500 italic">
+                {item["근거_사례"] && (
+                  <div className="text-[10px] text-stone-500 italic mt-0.5">
                     "{item["근거_사례"]}"
                   </div>
                 )}
@@ -213,20 +185,11 @@ function GuideSection({ type, label, result }) {
                   <span className="text-[10px] font-mono text-amber-700 bg-white rounded px-1.5 py-0.5 border border-amber-200 flex-shrink-0">
                     {pick["incident_id"]}
                   </span>
-                  <div className="flex-1 space-y-1">
+                  <div className="flex-1">
                     <div className="text-xs text-stone-800">{pick["사고내용"]}</div>
                     {pick["선정_이유"] && (
-                      <div className="text-[10px] text-stone-600 italic">
+                      <div className="text-[10px] text-stone-500 italic mt-0.5">
                         {pick["선정_이유"]}
-                      </div>
-                    )}
-                    {Array.isArray(pick["일치_신호"]) && pick["일치_신호"].length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {pick["일치_신호"].map((sig, j) => (
-                          <span key={j} className="text-[9px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5">
-                            ✓ {sig}
-                          </span>
-                        ))}
                       </div>
                     )}
                   </div>
