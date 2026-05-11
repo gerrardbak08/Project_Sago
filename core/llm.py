@@ -632,6 +632,7 @@ def generate_guide(
     """안전 가이드 생성.
 
     Bedrock 호출을 시도하고, 실패 시 Mock 모드로 전환한다.
+    생성 후 오늘의_주의사항의 각 항목에 image_url을 후처리로 추가한다.
 
     Args:
         store: 매장 정보
@@ -644,16 +645,38 @@ def generate_guide(
     """
     if _is_mock_mode():
         print("[llm] Mock 모드로 안전 가이드를 생성합니다.")
-        return generate_guide_mock(store, weather, leaf_data, label_col)
+        guide = generate_guide_mock(store, weather, leaf_data, label_col)
+    else:
+        user_prompt = build_user_prompt(store, weather, leaf_data, label_col)
+        try:
+            print("[llm] Bedrock 호출 중 (Tool Use)...")
+            guide = _call_bedrock(user_prompt)
+            print("[llm] Bedrock 응답 수신 완료.")
+            print(guide)
+        except Exception as e:
+            print(f"[llm] Bedrock 호출 실패: {e}")
+            print("[llm] Mock 모드로 전환합니다.")
+            guide = generate_guide_mock(store, weather, leaf_data, label_col)
 
-    user_prompt = build_user_prompt(store, weather, leaf_data, label_col)
-    try:
-        print("[llm] Bedrock 호출 중 (Tool Use)...")
-        result = _call_bedrock(user_prompt)
-        print("[llm] Bedrock 응답 수신 완료.")
-        print(result)
-        return result
-    except Exception as e:
-        print(f"[llm] Bedrock 호출 실패: {e}")
-        print("[llm] Mock 모드로 전환합니다.")
-        return generate_guide_mock(store, weather, leaf_data, label_col)
+    # 후처리: incident_id → image_url 매핑
+    guide = _attach_image_urls(guide, leaf_data)
+    return guide
+
+
+def _attach_image_urls(guide: dict, leaf_data: dict) -> dict:
+    """오늘의_주의사항의 각 항목에 image_url을 leaf_data incidents에서 찾아 추가한다."""
+    incidents = leaf_data.get("incidents", [])
+    # incident_id → image_url 매핑 구축
+    url_map = {}
+    for inc in incidents:
+        iid = inc.get("incident_id", "")
+        url = inc.get("image_url", "")
+        if iid and url:
+            url_map[iid] = url
+
+    # 오늘의_주의사항에 image_url 추가
+    for item in guide.get("오늘의_주의사항", []):
+        iid = item.get("incident_id", "")
+        item["image_url"] = url_map.get(iid, "")
+
+    return guide
