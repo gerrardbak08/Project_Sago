@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Bell, Calendar, AlertCircle, ChevronRight, ChevronLeft, RefreshCw, X, AlertTriangle, Info } from 'lucide-react';
+import { Bell, Calendar, AlertCircle, ChevronRight, ChevronLeft, RefreshCw, X, AlertTriangle } from 'lucide-react';
 import { Card } from '../../shared/Card.jsx';
 
-// 이미지 URL 변환: "images/xxx.png" → frontend S3 기준 절대 경로
+// 카카오톡 컬러
+const KAKAO_YELLOW = '#FEE500';
+const KAKAO_BROWN = '#3C1E1E';
+
+// 이미지 URL 변환
 const FRONTEND_BASE = import.meta.env.VITE_FRONTEND_URL
   ? import.meta.env.VITE_FRONTEND_URL.replace(/\/$/, '')
   : '';
@@ -10,8 +14,203 @@ const FRONTEND_BASE = import.meta.env.VITE_FRONTEND_URL
 function resolveImageUrl(url) {
   if (!url) return null;
   if (url.startsWith('http')) return url;
-  // 상대경로 → frontend S3 URL
   return FRONTEND_BASE ? `${FRONTEND_BASE}/${url}` : `/${url}`;
+}
+
+// ─── 카카오 알림톡 스타일 말풍선 ──────────────────────────
+function KakaoCard({ title, storeName, date, weather, summary, mainRisk, cases, carelessNotes, additionalNote, accentEmoji }) {
+  const [idx, setIdx] = useState(0);
+  const hasCases = cases && cases.length > 0;
+  const current = hasCases ? cases[idx] : null;
+  const imgUrl = current ? resolveImageUrl(current.image_url) : null;
+  const canPrev = idx > 0;
+  const canNext = hasCases && idx < cases.length - 1;
+
+  return (
+    <div className="max-w-sm mx-auto">
+      {/* 카카오톡 말풍선 컨테이너 */}
+      <div className="rounded-[20px] overflow-hidden shadow-lg" style={{ background: '#FAFAF9' }}>
+
+        {/* 노란 헤더 */}
+        <div className="px-4 py-3" style={{ background: KAKAO_YELLOW }}>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-md bg-white/40 flex items-center justify-center text-base">
+              {accentEmoji}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-extrabold truncate" style={{ color: KAKAO_BROWN }}>
+                {title}
+              </div>
+              <div className="text-[10px] opacity-70" style={{ color: KAKAO_BROWN }}>
+                알림톡 도착
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 본문 */}
+        <div className="bg-white px-4 py-4 space-y-3">
+          {/* 인사 */}
+          <div className="text-[13px] text-stone-800 leading-relaxed">
+            <span className="font-bold">[{storeName}]</span> 안전 알림톡<br/>
+            <span className="text-stone-500 text-xs">{date} 오늘의 안전 가이드를 안내드립니다.</span>
+          </div>
+
+          {/* 기상 요약 */}
+          {weather && (
+            <div className="rounded-lg bg-stone-50 border border-stone-100 px-3 py-2">
+              <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wide mb-1">오늘의 기상</div>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-stone-700">
+                <div>🌡 {weather.temperature_2m_min}~{weather.temperature_2m_max}°C</div>
+                <div>💧 강수 {weather.precipitation_sum}mm</div>
+                <div>💨 풍속 {weather.wind_speed_10m_max}m/s</div>
+                <div>💦 습도 {weather.relative_humidity_2m_mean}%</div>
+              </div>
+            </div>
+          )}
+
+          {/* 위험 요약 */}
+          {summary && (
+            <div className="rounded-lg border-l-4 border-red-400 bg-red-50/50 px-3 py-2">
+              <div className="text-[10px] font-bold text-red-700 mb-1">⚠️ 오늘의 위험 요약</div>
+              <div className="text-[11px] text-stone-700 leading-relaxed">{summary}</div>
+              {mainRisk && (
+                <div className="text-[10px] text-red-700 font-semibold mt-1">
+                  주요 위험: {mainRisk}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 사고 사례 캐러셀 (고정 높이) */}
+          {hasCases && (
+            <div>
+              <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wide mb-1.5">
+                오늘의 주의 사례 ({idx + 1}/{cases.length})
+              </div>
+
+              <div className="relative rounded-lg border border-stone-200 overflow-hidden bg-white">
+                {/* 이미지 */}
+                <div className="relative w-full aspect-[4/3] bg-stone-100 flex items-center justify-center">
+                  {imgUrl ? (
+                    <img
+                      src={imgUrl}
+                      alt={current.incident_id}
+                      className="w-full h-full object-contain"
+                      onError={e => { e.target.style.visibility = 'hidden'; }}
+                    />
+                  ) : (
+                    <div className="text-stone-300 text-[11px] flex flex-col items-center gap-1">
+                      <AlertTriangle size={20} />
+                      <span>이미지 준비 중</span>
+                    </div>
+                  )}
+
+                  {canPrev && (
+                    <button onClick={() => setIdx(i => i - 1)}
+                      className="absolute left-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/90 shadow flex items-center justify-center cursor-pointer hover:bg-white">
+                      <ChevronLeft size={14} className="text-stone-700" />
+                    </button>
+                  )}
+                  {canNext && (
+                    <button onClick={() => setIdx(i => i + 1)}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/90 shadow flex items-center justify-center cursor-pointer hover:bg-white">
+                      <ChevronRight size={14} className="text-stone-700" />
+                    </button>
+                  )}
+
+                  <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1">
+                    {cases.map((_, i) => (
+                      <span key={i} className={`h-1 rounded-full transition-all ${i === idx ? 'w-3 bg-stone-800' : 'w-1 bg-stone-400/50'}`} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* 텍스트 */}
+                <div className="px-3 py-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[9px] font-mono text-amber-700 bg-amber-50 rounded px-1 py-0.5 border border-amber-200">
+                      {current.incident_id}
+                    </span>
+                    {current["오늘_재현_가능성"] && (
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${
+                        current["오늘_재현_가능성"] === '높음' ? 'bg-red-50 border-red-200 text-red-700'
+                          : current["오늘_재현_가능성"] === '중간' ? 'bg-amber-50 border-amber-200 text-amber-700'
+                          : 'bg-stone-50 border-stone-200 text-stone-600'
+                      }`}>
+                        재현 {current["오늘_재현_가능성"]}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="text-[11px] font-semibold text-stone-800 leading-snug">
+                    {current["사고내용"]}
+                  </div>
+
+                  {current["수칙"] && (
+                    <div className="text-[11px] text-stone-800 bg-yellow-50 border border-yellow-200 rounded-md px-2 py-1.5 leading-relaxed">
+                      ☑️ {current["수칙"]}
+                    </div>
+                  )}
+
+                  {current["사고_원인_분석"] && (
+                    <details className="text-[10px] text-stone-500">
+                      <summary className="cursor-pointer hover:text-stone-700">💡 원인 분석 보기</summary>
+                      <div className="mt-1 pl-3 border-l-2 border-stone-200 text-stone-600 leading-relaxed">
+                        {current["사고_원인_분석"]}
+                      </div>
+                    </details>
+                  )}
+
+                  {current["관련_피처"] && (
+                    <div className="text-[9px] text-stone-400 font-mono">
+                      📊 {current["관련_피처"]}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ─── 부주의 주의사항 (하단 고정) ─── */}
+          {carelessNotes && carelessNotes.length > 0 && (
+            <div className="rounded-lg bg-stone-50 border border-stone-200 px-3 py-2.5">
+              <div className="text-[10px] font-bold text-stone-600 uppercase tracking-wide mb-2">
+                📌 상시 부주의 주의사항
+              </div>
+              <ul className="space-y-1.5">
+                {carelessNotes.map((note, i) => (
+                  <li key={i} className="flex items-start gap-1.5 text-[11px] text-stone-700 leading-relaxed">
+                    <span className="text-stone-400 font-bold flex-shrink-0">{i + 1}.</span>
+                    <span>{note}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* 추가 참고 */}
+          {additionalNote && (
+            <div className="text-[10px] text-stone-500 bg-stone-50/50 rounded-md px-3 py-2 border border-stone-100 italic leading-relaxed">
+              ℹ️ {additionalNote}
+            </div>
+          )}
+
+          {/* 푸터 */}
+          <div className="text-center text-[9px] text-stone-300 pt-2 border-t border-stone-100">
+            ㈜아성다이소 · 안전보건팀
+          </div>
+        </div>
+
+        {/* 알림톡 하단 버튼 영역 (장식) */}
+        <div className="bg-white px-4 py-2 border-t border-stone-100">
+          <div className="text-center text-[11px] font-semibold text-stone-400">
+            자세히 보기
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ─── 상세보기 모달 ───────────────────────────────────────
@@ -40,9 +239,10 @@ function DetailModal({ item, onClose }) {
   }, [item]);
 
   return (
-    <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="sticky top-0 bg-white border-b border-stone-100 px-5 py-4 flex items-center justify-between rounded-t-2xl z-10">
+    <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-stone-100 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        {/* 모달 헤더 */}
+        <div className="sticky top-0 bg-white border-b border-stone-200 px-5 py-4 flex items-center justify-between rounded-t-2xl z-10">
           <div>
             <div className="font-bold text-stone-900 text-base">{item.store_name}</div>
             <div className="text-xs text-stone-500 mt-0.5">{item.region} · {item.date}</div>
@@ -52,7 +252,8 @@ function DetailModal({ item, onClose }) {
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
+        {/* 본문 */}
+        <div className="p-5">
           {loading && (
             <div className="flex items-center justify-center py-10 text-stone-400">
               <RefreshCw size={16} className="animate-spin mr-2" /> 상세 데이터 로딩 중...
@@ -64,270 +265,42 @@ function DetailModal({ item, onClose }) {
             </div>
           )}
           {detail && (
-            <>
-              {/* 기상 */}
-              {detail.weather && (
-                <div className="rounded-xl bg-sky-50 border border-sky-100 p-4">
-                  <div className="text-xs font-bold text-sky-700 uppercase tracking-wide mb-3">기상 정보</div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {[
-                      { k: "최고기온", v: `${detail.weather.temperature_2m_max}°C` },
-                      { k: "최저기온", v: `${detail.weather.temperature_2m_min}°C` },
-                      { k: "강수량", v: `${detail.weather.precipitation_sum}mm` },
-                      { k: "최대풍속", v: `${detail.weather.wind_speed_10m_max}m/s` },
-                    ].map(({ k, v }) => (
-                      <div key={k} className="bg-white rounded-lg p-2.5 text-center border border-sky-100">
-                        <div className="text-[10px] text-sky-600 font-medium">{k}</div>
-                        <div className="text-sm font-bold text-stone-800 mt-0.5">{v}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* 고객 안전 */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* 고객 안전 알림톡 */}
               {detail.results?.cust && (
-                <GuideSection type="CUST" label="고객 안전" result={detail.results.cust} />
+                <KakaoCard
+                  title="고객 안전 알림"
+                  accentEmoji="👥"
+                  storeName={detail.store_name}
+                  date={detail.date}
+                  weather={detail.weather}
+                  summary={detail.results.cust.guide?.["위험_요약"]}
+                  mainRisk={detail.results.cust.guide?.["주요_위험유형"]}
+                  cases={detail.results.cust.guide?.["오늘의_주의사항"] || []}
+                  carelessNotes={detail.results.cust.guide?.["부주의_주의사항"] || []}
+                  additionalNote={detail.results.cust.guide?.["추가_참고"] || ""}
+                />
               )}
 
-              {/* 직원 안전 */}
+              {/* 직원 안전 알림톡 */}
               {detail.results?.emp && (
-                <GuideSection type="EMP" label="직원 안전" result={detail.results.emp} />
+                <KakaoCard
+                  title="직원 안전 알림"
+                  accentEmoji="👷"
+                  storeName={detail.store_name}
+                  date={detail.date}
+                  weather={detail.weather}
+                  summary={detail.results.emp.guide?.["위험_요약"]}
+                  mainRisk={detail.results.emp.guide?.["주요_위험유형"]}
+                  cases={detail.results.emp.guide?.["오늘의_주의사항"] || []}
+                  carelessNotes={detail.results.emp.guide?.["부주의_주의사항"] || []}
+                  additionalNote={detail.results.emp.guide?.["추가_참고"] || ""}
+                />
               )}
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── 캐러셀 (좌우 화살표 슬라이더) ─────────────────────────
-function CaseCarousel({ cases, accentColor }) {
-  const [idx, setIdx] = useState(0);
-  if (!cases || cases.length === 0) return null;
-
-  const current = cases[idx];
-  const imgUrl = resolveImageUrl(current.image_url);
-  const canPrev = idx > 0;
-  const canNext = idx < cases.length - 1;
-
-  return (
-    <div className="space-y-3">
-      <div className="text-[11px] font-bold uppercase tracking-wide text-red-700">
-        오늘의 주의사항 ({idx + 1}/{cases.length})
-      </div>
-
-      {/* 카드 */}
-      <div className="relative bg-white rounded-xl border border-stone-200 overflow-hidden">
-        {/* 이미지 */}
-        <div className="relative w-full aspect-[16/10] bg-stone-100 flex items-center justify-center overflow-hidden">
-          {imgUrl ? (
-            <img
-              src={imgUrl}
-              alt={current.incident_id}
-              className="w-full h-full object-contain"
-              onError={e => { e.target.style.display = 'none'; }}
-            />
-          ) : (
-            <div className="text-stone-300 text-xs flex flex-col items-center gap-1">
-              <AlertTriangle size={24} />
-              <span>이미지 없음</span>
-            </div>
-          )}
-
-          {/* 좌우 화살표 */}
-          {canPrev && (
-            <button
-              onClick={() => setIdx(i => i - 1)}
-              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow flex items-center justify-center cursor-pointer hover:bg-white"
-            >
-              <ChevronLeft size={16} className="text-stone-700" />
-            </button>
-          )}
-          {canNext && (
-            <button
-              onClick={() => setIdx(i => i + 1)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow flex items-center justify-center cursor-pointer hover:bg-white"
-            >
-              <ChevronRight size={16} className="text-stone-700" />
-            </button>
-          )}
-
-          {/* 인디케이터 */}
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-            {cases.map((_, i) => (
-              <span
-                key={i}
-                className={`w-1.5 h-1.5 rounded-full transition-all ${i === idx ? 'bg-stone-800 w-3' : 'bg-stone-400/50'}`}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* 텍스트 내용 */}
-        <div className="p-4 space-y-2">
-          {/* 사고 ID + 재현 가능성 */}
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 border border-amber-200">
-              {current.incident_id}
-            </span>
-            {current["오늘_재현_가능성"] && (
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                current["오늘_재현_가능성"] === '높음'
-                  ? 'bg-red-50 border-red-200 text-red-700'
-                  : current["오늘_재현_가능성"] === '중간'
-                  ? 'bg-amber-50 border-amber-200 text-amber-700'
-                  : 'bg-stone-50 border-stone-200 text-stone-600'
-              }`}>
-                재현 가능성: {current["오늘_재현_가능성"]}
-              </span>
-            )}
-          </div>
-
-          {/* 사고 내용 */}
-          <div className="text-xs font-semibold text-stone-800">
-            {current["사고내용"]}
-          </div>
-
-          {/* 원인 분석 */}
-          {current["사고_원인_분석"] && (
-            <div className="text-[11px] text-stone-600 bg-stone-50 rounded-lg px-3 py-2 border border-stone-100 leading-relaxed">
-              💡 {current["사고_원인_분석"]}
-            </div>
-          )}
-
-          {/* 안전 수칙 */}
-          {current["수칙"] && (
-            <div className="text-[11px] text-white rounded-lg px-3 py-2 leading-relaxed" style={{ background: accentColor }}>
-              ☑️ {current["수칙"]}
-            </div>
-          )}
-
-          {/* 관련 피처 */}
-          {current["관련_피처"] && (
-            <div className="text-[10px] text-stone-500 font-mono">
-              📊 {current["관련_피처"]}
             </div>
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-// ─── 가이드 섹션 ─────────────────────────────────────────
-function GuideSection({ type, label, result }) {
-  const isCust = type === "CUST";
-  const accentColor = isCust ? "#0891B2" : "#4F46E5";
-  const bgClass = isCust ? "bg-sky-50 border-sky-100" : "bg-indigo-50 border-indigo-100";
-  const guide = result?.guide || {};
-
-  // 새 포맷: 오늘의_주의사항 (캐러셀), 부주의_주의사항, 추가_참고
-  const todayCases = guide["오늘의_주의사항"] || [];
-  const carelessNotes = guide["부주의_주의사항"] || [];
-  const additionalNote = guide["추가_참고"] || "";
-  const mainRisk = guide["주요_위험유형"] || "";
-  const summary = guide["위험_요약"] || "";
-
-  // 구 포맷 하위 호환
-  const oldSpecial = guide["오늘의_특별_주의사항"] || [];
-  const oldCommon = guide["상시_주의사항"] || [];
-  const oldPicks = guide["오늘의_주의_사례"] || [];
-
-  return (
-    <div className={`rounded-xl border p-4 ${bgClass}`}>
-      {/* 헤더 */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md flex items-center justify-center text-white text-[10px] font-bold" style={{ background: accentColor }}>
-            {type}
-          </div>
-          <span className="font-semibold text-stone-800 text-sm">{label}</span>
-        </div>
-        {mainRisk && (
-          <span className="text-[11px] font-semibold text-stone-700 bg-white rounded-full px-2 py-0.5 border border-stone-200">
-            {mainRisk}
-          </span>
-        )}
-      </div>
-
-      {/* 위험 요약 */}
-      {summary && (
-        <div className="text-xs font-semibold text-stone-700 bg-white rounded-lg px-3 py-2 border border-stone-200 mb-3">
-          {summary}
-        </div>
-      )}
-
-      {/* ─── 새 포맷: 오늘의_주의사항 캐러셀 ─── */}
-      {todayCases.length > 0 && (
-        <CaseCarousel cases={todayCases} accentColor={accentColor} />
-      )}
-
-      {/* ─── 구 포맷 하위 호환: 오늘의_특별_주의사항 ─── */}
-      {todayCases.length === 0 && oldSpecial.length > 0 && (
-        <div className="mb-3">
-          <div className="text-[11px] font-bold uppercase tracking-wide text-red-700 mb-1.5">오늘의 특별 주의사항</div>
-          <ul className="space-y-1.5">
-            {oldSpecial.map((item, i) => (
-              <li key={i} className="bg-white rounded-lg px-3 py-2 border border-red-100">
-                <div className="text-xs font-semibold text-stone-800">{item["수칙"]}</div>
-                {item["관련_피처"] && <div className="text-[10px] text-red-600 mt-0.5 font-mono">📊 {item["관련_피처"]}</div>}
-                {item["근거_사례"] && <div className="text-[10px] text-stone-500 italic mt-0.5">"{item["근거_사례"]}"</div>}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* ─── 부주의 주의사항 ─── */}
-      {carelessNotes.length > 0 && (
-        <div className="mt-4">
-          <div className="text-[11px] font-bold uppercase tracking-wide text-stone-600 mb-1.5">
-            부주의 주의사항
-          </div>
-          <ul className="space-y-1.5">
-            {carelessNotes.map((note, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs text-stone-700 bg-white rounded-lg px-3 py-2 border border-stone-200">
-                <span className="w-4 h-4 rounded-full text-white text-[9px] flex items-center justify-center flex-shrink-0 mt-0.5 font-bold bg-stone-500">
-                  {i + 1}
-                </span>
-                <span>{note}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* ─── 구 포맷 하위 호환: 상시_주의사항 ─── */}
-      {carelessNotes.length === 0 && oldCommon.length > 0 && (
-        <div className="mt-4">
-          <div className="text-[11px] font-bold uppercase tracking-wide text-stone-600 mb-1.5">상시 주의사항</div>
-          <ul className="space-y-1">
-            {oldCommon.map((item, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs text-stone-700">
-                <span className="w-4 h-4 rounded-full text-white text-[9px] flex items-center justify-center flex-shrink-0 mt-0.5 font-bold" style={{ background: accentColor }}>{i + 1}</span>
-                <span>{item["수칙"]}{item["근거_사례"] && <span className="text-stone-400 italic ml-1">"{item["근거_사례"]}"</span>}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* ─── 추가 참고 ─── */}
-      {additionalNote && (
-        <div className="mt-4 flex items-start gap-2 text-[11px] text-stone-600 bg-white rounded-lg px-3 py-2.5 border border-stone-200">
-          <Info size={13} className="text-stone-400 flex-shrink-0 mt-0.5" />
-          <span>{additionalNote}</span>
-        </div>
-      )}
-
-      {/* 적용 규칙 */}
-      {result?.matched_rule && (
-        <div className="text-[10px] text-stone-400 font-mono bg-stone-50 px-2 py-1 rounded mt-3">
-          적용 규칙: {result.matched_rule}
-        </div>
-      )}
     </div>
   );
 }
@@ -367,7 +340,6 @@ function AlertMonitoring() {
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      {/* 헤더 */}
       <div className="rounded-xl bg-gradient-to-r from-stone-900 to-stone-800 p-5 text-white">
         <div className="flex items-center gap-3 mb-1">
           <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
@@ -380,7 +352,6 @@ function AlertMonitoring() {
         </div>
       </div>
 
-      {/* 날짜 선택 + 조회 */}
       <Card>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
@@ -397,14 +368,12 @@ function AlertMonitoring() {
         </div>
       </Card>
 
-      {/* 에러 */}
       {error && (
         <div className="flex items-center gap-2 text-red-700 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3">
           <AlertCircle size={15} /> {date} 날짜의 배치 결과가 없습니다.
         </div>
       )}
 
-      {/* 테이블 */}
       {result && (
         <Card title="매장별 알림 결과" titleIcon={Bell}>
           <div className="overflow-x-auto -mx-5 px-5">
@@ -452,7 +421,6 @@ function AlertMonitoring() {
         </Card>
       )}
 
-      {/* 빈 상태 */}
       {!result && !loading && !error && (
         <div className="flex flex-col items-center justify-center py-16 text-stone-400">
           <div className="w-14 h-14 rounded-2xl bg-stone-100 flex items-center justify-center mb-3">
@@ -463,7 +431,6 @@ function AlertMonitoring() {
         </div>
       )}
 
-      {/* 상세 모달 */}
       {selectedItem && <DetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />}
     </div>
   );
