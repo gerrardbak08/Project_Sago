@@ -1,10 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Bell, Calendar, AlertCircle, ChevronRight, ChevronLeft, RefreshCw, X, AlertTriangle } from 'lucide-react';
+import { Bell, Calendar, AlertCircle, ChevronRight, ChevronLeft, RefreshCw, X, AlertTriangle, Search, Menu, ArrowLeft } from 'lucide-react';
 import { Card } from '../../shared/Card.jsx';
-
-// 카카오톡 컬러
-const KAKAO_YELLOW = '#FEE500';
-const KAKAO_BROWN = '#3C1E1E';
 
 // 이미지 URL 변환
 const FRONTEND_BASE = import.meta.env.VITE_FRONTEND_URL
@@ -17,8 +13,8 @@ function resolveImageUrl(url) {
   return FRONTEND_BASE ? `${FRONTEND_BASE}/${url}` : `/${url}`;
 }
 
-// ─── 카카오 알림톡 스타일 말풍선 ──────────────────────────
-function KakaoCard({ title, storeName, date, weather, summary, mainRisk, cases, carelessNotes, additionalNote, accentEmoji }) {
+// ─── 카카오톡 채팅창 스타일 ──────────────────────────────
+function KakaoChat({ channelName, profileEmoji, storeName, date, summary, mainRisk, cases, carelessNotes, additionalNote }) {
   const [idx, setIdx] = useState(0);
   const hasCases = cases && cases.length > 0;
   const current = hasCases ? cases[idx] : null;
@@ -26,114 +22,113 @@ function KakaoCard({ title, storeName, date, weather, summary, mainRisk, cases, 
   const canPrev = idx > 0;
   const canNext = hasCases && idx < cases.length - 1;
 
+  // 날짜 한글 포맷
+  const dateObj = date ? new Date(date) : new Date();
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  const dateLabel = `${dateObj.getFullYear()}년 ${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일 ${days[dateObj.getDay()]}요일`;
+
   return (
-    <div className="max-w-sm mx-auto">
-      {/* 카카오톡 말풍선 컨테이너 */}
-      <div className="rounded-[20px] overflow-hidden shadow-lg" style={{ background: '#FAFAF9' }}>
-
-        {/* 노란 헤더 */}
-        <div className="px-4 py-3" style={{ background: KAKAO_YELLOW }}>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-white/40 flex items-center justify-center text-base">
-              {accentEmoji}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-extrabold truncate" style={{ color: KAKAO_BROWN }}>
-                {title}
-              </div>
-              <div className="text-[10px] opacity-70" style={{ color: KAKAO_BROWN }}>
-                알림톡 도착
-              </div>
-            </div>
+    <div className="w-full max-w-[380px] mx-auto rounded-[24px] overflow-hidden shadow-xl" style={{ background: '#9DC6C2' }}>
+      {/* 카카오톡 헤더 */}
+      <div className="bg-[#9DC6C2] px-3 pt-3 pb-2">
+        <div className="flex items-center gap-2">
+          <ArrowLeft size={20} className="text-stone-800" />
+          <div className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-lg flex-shrink-0">
+            {profileEmoji}
           </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[13px] font-bold text-stone-900 truncate flex items-center gap-1">
+              {channelName}
+              <span className="inline-block w-3 h-3 rounded-full bg-yellow-400 text-[8px] flex items-center justify-center">✓</span>
+            </div>
+            <div className="text-[10px] text-stone-700 truncate">안전보건팀 (safety@daiso.co.kr) ⌄</div>
+          </div>
+          <Search size={18} className="text-stone-700" />
+          <Menu size={18} className="text-stone-700" />
         </div>
+      </div>
 
-        {/* 본문 */}
-        <div className="bg-white px-4 py-4 space-y-3">
-          {/* 인사 */}
-          <div className="text-[13px] text-stone-800 leading-relaxed">
-            <span className="font-bold">[{storeName}]</span> 안전 알림톡<br/>
-            <span className="text-stone-500 text-xs">{date} 오늘의 안전 가이드를 안내드립니다.</span>
+      {/* 날짜 구분선 */}
+      <div className="px-4 py-2 bg-[#9DC6C2] text-center">
+        <span className="inline-block text-[10px] text-white font-semibold bg-stone-700/30 rounded-full px-2.5 py-0.5">
+          {dateLabel} &gt;
+        </span>
+      </div>
+
+      {/* 채팅 메시지 영역 */}
+      <div className="bg-[#9DC6C2] px-3 pb-3">
+        <div className="flex items-start gap-2">
+          {/* 봉투 아이콘 */}
+          <div className="w-9 h-9 rounded-full bg-amber-300 flex-shrink-0 flex items-center justify-center text-lg shadow-sm mt-1">
+            📮
           </div>
 
-          {/* 기상 요약 */}
-          {weather && (
-            <div className="rounded-lg bg-stone-50 border border-stone-100 px-3 py-2">
-              <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wide mb-1">오늘의 기상</div>
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-stone-700">
-                <div>🌡 {weather.temperature_2m_min}~{weather.temperature_2m_max}°C</div>
-                <div>💧 강수 {weather.precipitation_sum}mm</div>
-                <div>💨 풍속 {weather.wind_speed_10m_max}m/s</div>
-                <div>💦 습도 {weather.relative_humidity_2m_mean}%</div>
-              </div>
-            </div>
-          )}
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] text-stone-700 mb-1">(광고) 오늘의 안전 가이드</div>
 
-          {/* 위험 요약 */}
-          {summary && (
-            <div className="rounded-lg border-l-4 border-red-400 bg-red-50/50 px-3 py-2">
-              <div className="text-[10px] font-bold text-red-700 mb-1">⚠️ 오늘의 위험 요약</div>
-              <div className="text-[11px] text-stone-700 leading-relaxed">{summary}</div>
-              {mainRisk && (
-                <div className="text-[10px] text-red-700 font-semibold mt-1">
-                  주요 위험: {mainRisk}
+            {/* 카드 말풍선 */}
+            <div className="bg-white rounded-2xl overflow-hidden shadow-md">
+              {/* 제목 */}
+              <div className="px-4 pt-4 pb-2">
+                <div className="text-[15px] font-extrabold text-stone-900">
+                  오늘 주의! 🚨 매장 안전 가이드
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* 사고 사례 캐러셀 (고정 높이) */}
-          {hasCases && (
-            <div>
-              <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wide mb-1.5">
-                오늘의 주의 사례 ({idx + 1}/{cases.length})
               </div>
 
-              <div className="relative rounded-lg border border-stone-200 overflow-hidden bg-white">
-                {/* 이미지 */}
-                <div className="relative w-full aspect-[4/3] bg-stone-100 flex items-center justify-center">
+              {/* 메인 이미지 캐러셀 */}
+              {hasCases && (
+                <div className="relative w-full bg-stone-100 aspect-[4/3]">
                   {imgUrl ? (
                     <img
                       src={imgUrl}
                       alt={current.incident_id}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-cover"
                       onError={e => { e.target.style.visibility = 'hidden'; }}
                     />
                   ) : (
-                    <div className="text-stone-300 text-[11px] flex flex-col items-center gap-1">
-                      <AlertTriangle size={20} />
+                    <div className="w-full h-full flex items-center justify-center text-stone-300 text-xs flex-col gap-1">
+                      <AlertTriangle size={24} />
                       <span>이미지 준비 중</span>
                     </div>
                   )}
 
+                  {/* 좌우 화살표 */}
                   {canPrev && (
                     <button onClick={() => setIdx(i => i - 1)}
-                      className="absolute left-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/90 shadow flex items-center justify-center cursor-pointer hover:bg-white">
-                      <ChevronLeft size={14} className="text-stone-700" />
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow flex items-center justify-center cursor-pointer hover:bg-white">
+                      <ChevronLeft size={16} className="text-stone-700" />
                     </button>
                   )}
                   {canNext && (
                     <button onClick={() => setIdx(i => i + 1)}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/90 shadow flex items-center justify-center cursor-pointer hover:bg-white">
-                      <ChevronRight size={14} className="text-stone-700" />
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow flex items-center justify-center cursor-pointer hover:bg-white">
+                      <ChevronRight size={16} className="text-stone-700" />
                     </button>
                   )}
 
-                  <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1">
-                    {cases.map((_, i) => (
-                      <span key={i} className={`h-1 rounded-full transition-all ${i === idx ? 'w-3 bg-stone-800' : 'w-1 bg-stone-400/50'}`} />
-                    ))}
+                  {/* 하단 오버레이: 사고 내용 */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent pt-8 pb-3 px-4">
+                    <div className="text-white text-[13px] font-bold leading-tight drop-shadow-lg">
+                      {current["사고내용"]}
+                    </div>
+                  </div>
+
+                  {/* 인디케이터 */}
+                  <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] font-bold rounded-full px-2 py-0.5">
+                    {idx + 1} / {cases.length}
                   </div>
                 </div>
+              )}
 
-                {/* 텍스트 */}
-                <div className="px-3 py-2.5 space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[9px] font-mono text-amber-700 bg-amber-50 rounded px-1 py-0.5 border border-amber-200">
+              {/* 사례 상세 */}
+              {hasCases && (
+                <div className="px-4 py-3 border-b border-stone-100">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-[10px] font-mono text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 border border-amber-200">
                       {current.incident_id}
                     </span>
                     {current["오늘_재현_가능성"] && (
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
                         current["오늘_재현_가능성"] === '높음' ? 'bg-red-50 border-red-200 text-red-700'
                           : current["오늘_재현_가능성"] === '중간' ? 'bg-amber-50 border-amber-200 text-amber-700'
                           : 'bg-stone-50 border-stone-200 text-stone-600'
@@ -143,70 +138,126 @@ function KakaoCard({ title, storeName, date, weather, summary, mainRisk, cases, 
                     )}
                   </div>
 
-                  <div className="text-[11px] font-semibold text-stone-800 leading-snug">
-                    {current["사고내용"]}
-                  </div>
-
                   {current["수칙"] && (
-                    <div className="text-[11px] text-stone-800 bg-yellow-50 border border-yellow-200 rounded-md px-2 py-1.5 leading-relaxed">
-                      ☑️ {current["수칙"]}
-                    </div>
-                  )}
-
-                  {current["사고_원인_분석"] && (
-                    <details className="text-[10px] text-stone-500">
-                      <summary className="cursor-pointer hover:text-stone-700">💡 원인 분석 보기</summary>
-                      <div className="mt-1 pl-3 border-l-2 border-stone-200 text-stone-600 leading-relaxed">
-                        {current["사고_원인_분석"]}
-                      </div>
-                    </details>
-                  )}
-
-                  {current["관련_피처"] && (
-                    <div className="text-[9px] text-stone-400 font-mono">
-                      📊 {current["관련_피처"]}
+                    <div className="text-[12px] text-stone-800 leading-relaxed">
+                      <span className="font-bold">✅ </span>
+                      {current["수칙"]}
                     </div>
                   )}
                 </div>
-              </div>
-            </div>
-          )}
+              )}
 
-          {/* ─── 부주의 주의사항 (하단 고정) ─── */}
-          {carelessNotes && carelessNotes.length > 0 && (
-            <div className="rounded-lg bg-stone-50 border border-stone-200 px-3 py-2.5">
-              <div className="text-[10px] font-bold text-stone-600 uppercase tracking-wide mb-2">
-                📌 상시 부주의 주의사항
-              </div>
-              <ul className="space-y-1.5">
-                {carelessNotes.map((note, i) => (
-                  <li key={i} className="flex items-start gap-1.5 text-[11px] text-stone-700 leading-relaxed">
-                    <span className="text-stone-400 font-bold flex-shrink-0">{i + 1}.</span>
-                    <span>{note}</span>
-                  </li>
+              {/* 매장 정보 + 기상 */}
+              <div className="px-4 py-3 space-y-2.5">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-10 h-10 rounded-lg bg-stone-100 flex items-center justify-center text-lg flex-shrink-0">
+                    🏪
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[12px] font-bold text-stone-900">{storeName}</div>
+                    <div className="text-[11px] text-stone-500">{date} · 오늘의 안전 알림</div>
+                  </div>
+                </div>
+
+                {summary && (
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-lg flex-shrink-0">
+                      ⚠️
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[11px] font-bold text-red-700 mb-0.5">오늘의 위험</div>
+                      <div className="text-[11px] text-stone-700 leading-snug">
+                        {mainRisk || summary}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 부주의 주의사항 (최대 2개 미리보기) */}
+                {carelessNotes && carelessNotes.slice(0, 2).map((note, i) => (
+                  <div key={i} className="flex items-start gap-2.5">
+                    <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center text-lg flex-shrink-0">
+                      📌
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[11px] font-bold text-stone-900 mb-0.5">상시 주의 {i + 1}</div>
+                      <div className="text-[11px] text-stone-700 leading-snug line-clamp-2">
+                        {note}
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </ul>
-            </div>
-          )}
+              </div>
 
-          {/* 추가 참고 */}
-          {additionalNote && (
-            <div className="text-[10px] text-stone-500 bg-stone-50/50 rounded-md px-3 py-2 border border-stone-100 italic leading-relaxed">
-              ℹ️ {additionalNote}
+              {/* 자세히 보기 버튼 */}
+              <div className="border-t border-stone-100">
+                <button className="w-full py-3 text-[13px] font-semibold text-stone-700 hover:bg-stone-50">
+                  자세히 보기
+                </button>
+              </div>
             </div>
-          )}
 
-          {/* 푸터 */}
-          <div className="text-center text-[9px] text-stone-300 pt-2 border-t border-stone-100">
-            ㈜아성다이소 · 안전보건팀
+            {/* 말풍선 아래 시간 */}
+            <div className="text-[10px] text-stone-600 mt-1 ml-1">오전 9:00</div>
           </div>
         </div>
 
-        {/* 알림톡 하단 버튼 영역 (장식) */}
-        <div className="bg-white px-4 py-2 border-t border-stone-100">
-          <div className="text-center text-[11px] font-semibold text-stone-400">
-            자세히 보기
+        {/* 부주의 주의사항 전체 (확장) */}
+        {carelessNotes && carelessNotes.length > 0 && (
+          <div className="mt-4 ml-11">
+            <details className="bg-white/70 rounded-xl overflow-hidden">
+              <summary className="px-3 py-2 text-[11px] font-semibold text-stone-700 cursor-pointer hover:bg-white">
+                📌 상시 부주의 주의사항 전체 ({carelessNotes.length}건)
+              </summary>
+              <div className="px-3 py-2 bg-white border-t border-stone-100">
+                <ul className="space-y-1.5">
+                  {carelessNotes.map((note, i) => (
+                    <li key={i} className="text-[11px] text-stone-700 leading-relaxed flex items-start gap-1.5">
+                      <span className="text-stone-400 font-bold flex-shrink-0">{i + 1}.</span>
+                      <span>{note}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </details>
           </div>
+        )}
+
+        {/* 원인 분석 */}
+        {current && current["사고_원인_분석"] && (
+          <div className="mt-2 ml-11">
+            <details className="bg-white/70 rounded-xl overflow-hidden">
+              <summary className="px-3 py-2 text-[11px] font-semibold text-stone-700 cursor-pointer hover:bg-white">
+                💡 현재 사례의 원인 분석
+              </summary>
+              <div className="px-3 py-2 bg-white border-t border-stone-100 text-[11px] text-stone-700 leading-relaxed">
+                {current["사고_원인_분석"]}
+                {current["관련_피처"] && (
+                  <div className="mt-1 text-[10px] text-stone-400 font-mono">
+                    📊 {current["관련_피처"]}
+                  </div>
+                )}
+              </div>
+            </details>
+          </div>
+        )}
+
+        {/* 추가 참고 */}
+        {additionalNote && (
+          <div className="mt-2 ml-11 text-[10px] text-stone-600 bg-white/70 rounded-xl px-3 py-2 leading-relaxed">
+            ℹ️ {additionalNote}
+          </div>
+        )}
+      </div>
+
+      {/* 하단 입력창 (장식) */}
+      <div className="bg-white border-t border-stone-200">
+        <div className="px-3 py-2 text-center text-[11px] font-semibold text-stone-400 border-b border-stone-100">
+          채널 메뉴 ⌃
+        </div>
+        <div className="flex items-center gap-2 px-3 py-2.5">
+          <div className="w-6 h-6 rounded-full bg-stone-200 flex items-center justify-center text-stone-400 text-xs">+</div>
+          <div className="flex-1 text-[11px] text-stone-300">챗봇에게 메시지 입력</div>
         </div>
       </div>
     </div>
@@ -240,8 +291,7 @@ function DetailModal({ item, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-stone-100 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        {/* 모달 헤더 */}
+      <div className="bg-stone-50 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="sticky top-0 bg-white border-b border-stone-200 px-5 py-4 flex items-center justify-between rounded-t-2xl z-10">
           <div>
             <div className="font-bold text-stone-900 text-base">{item.store_name}</div>
@@ -252,7 +302,6 @@ function DetailModal({ item, onClose }) {
           </button>
         </div>
 
-        {/* 본문 */}
         <div className="p-5">
           {loading && (
             <div className="flex items-center justify-center py-10 text-stone-400">
@@ -261,19 +310,17 @@ function DetailModal({ item, onClose }) {
           )}
           {error && (
             <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-lg p-3">
-              <AlertCircle size={14} /> 상세 정보를 불러올 수 없습니다: {error}
+              <AlertCircle size={14} /> {error}
             </div>
           )}
           {detail && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* 고객 안전 알림톡 */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 justify-items-center">
               {detail.results?.cust && (
-                <KakaoCard
-                  title="고객 안전 알림"
-                  accentEmoji="👥"
+                <KakaoChat
+                  channelName="다이소 안전 알림"
+                  profileEmoji="🛡️"
                   storeName={detail.store_name}
                   date={detail.date}
-                  weather={detail.weather}
                   summary={detail.results.cust.guide?.["위험_요약"]}
                   mainRisk={detail.results.cust.guide?.["주요_위험유형"]}
                   cases={detail.results.cust.guide?.["오늘의_주의사항"] || []}
@@ -282,14 +329,12 @@ function DetailModal({ item, onClose }) {
                 />
               )}
 
-              {/* 직원 안전 알림톡 */}
               {detail.results?.emp && (
-                <KakaoCard
-                  title="직원 안전 알림"
-                  accentEmoji="👷"
+                <KakaoChat
+                  channelName="다이소 안전 알림"
+                  profileEmoji="👷"
                   storeName={detail.store_name}
                   date={detail.date}
-                  weather={detail.weather}
                   summary={detail.results.emp.guide?.["위험_요약"]}
                   mainRisk={detail.results.emp.guide?.["주요_위험유형"]}
                   cases={detail.results.emp.guide?.["오늘의_주의사항"] || []}
