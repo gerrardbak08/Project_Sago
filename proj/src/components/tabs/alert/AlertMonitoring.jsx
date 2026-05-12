@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, Calendar, AlertCircle, ChevronRight, ChevronLeft, RefreshCw, X, AlertTriangle, Search, Menu, ArrowLeft } from 'lucide-react';
+import { Bell, Calendar, AlertCircle, ChevronRight, ChevronLeft, RefreshCw, X, AlertTriangle, Search, Menu, ArrowLeft, Home, ChevronDown } from 'lucide-react';
 import { Card } from '../../shared/Card.jsx';
 
 // 이미지 URL 변환
@@ -13,8 +13,17 @@ function resolveImageUrl(url) {
   return FRONTEND_BASE ? `${FRONTEND_BASE}/${url}` : `/${url}`;
 }
 
+// "사고 5건 발생했습니다" 같은 문구 제거 (부주의 가이드 정리)
+function cleanCarelessNote(text) {
+  if (!text) return text;
+  return text
+    .replace(/사고가?\s*\d+건\s*발생했습니다\.?\s*/g, '')
+    .replace(/\d+건\s*발생했습니다\.?\s*/g, '')
+    .trim();
+}
+
 // ─── 카카오톡 채팅창 스타일 ──────────────────────────────
-function KakaoChat({ channelName, profileEmoji, storeName, date, summary, mainRisk, cases, carelessNotes, additionalNote }) {
+function KakaoChat({ channelName, channelEmail, storeName, date, cases, carelessNotes }) {
   const [idx, setIdx] = useState(0);
   const hasCases = cases && cases.length > 0;
   const current = hasCases ? cases[idx] : null;
@@ -27,61 +36,70 @@ function KakaoChat({ channelName, profileEmoji, storeName, date, summary, mainRi
   const days = ['일', '월', '화', '수', '목', '금', '토'];
   const dateLabel = `${dateObj.getFullYear()}년 ${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일 ${days[dateObj.getDay()]}요일`;
 
+  // 부주의 주의사항: 최대 3개 + "사고 N건 발생" 문구 제거
+  const cleanedNotes = (carelessNotes || [])
+    .map(cleanCarelessNote)
+    .filter(Boolean)
+    .slice(0, 3);
+
   return (
-    <div className="w-full max-w-[380px] mx-auto rounded-[24px] overflow-hidden shadow-xl" style={{ background: '#9DC6C2' }}>
+    <div className="w-full max-w-[380px] mx-auto rounded-[28px] overflow-hidden shadow-xl" style={{ background: '#9DC6C2' }}>
       {/* 카카오톡 헤더 */}
-      <div className="bg-[#9DC6C2] px-3 pt-3 pb-2">
+      <div className="px-3 pt-4 pb-2 bg-[#9DC6C2]">
         <div className="flex items-center gap-2">
-          <ArrowLeft size={20} className="text-stone-800" />
-          <div className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-lg flex-shrink-0">
-            {profileEmoji}
-          </div>
+          <ArrowLeft size={22} className="text-stone-800" strokeWidth={2.5} />
           <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-bold text-stone-900 truncate flex items-center gap-1">
+            <div className="text-[14px] font-extrabold text-stone-900 truncate flex items-center gap-1">
               {channelName}
-              <span className="inline-block w-3 h-3 rounded-full bg-yellow-400 text-[8px] flex items-center justify-center">✓</span>
+              <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-yellow-400 text-[9px] font-bold text-white">✓</span>
             </div>
-            <div className="text-[10px] text-stone-700 truncate">안전보건팀 (safety@daiso.co.kr) ⌄</div>
+            <div className="text-[11px] text-stone-700 truncate flex items-center gap-0.5">
+              {channelEmail}
+              <ChevronDown size={12} />
+            </div>
           </div>
-          <Search size={18} className="text-stone-700" />
-          <Menu size={18} className="text-stone-700" />
+          <Search size={20} className="text-stone-700" strokeWidth={2.2} />
+          <Menu size={20} className="text-stone-700" strokeWidth={2.2} />
         </div>
       </div>
 
       {/* 날짜 구분선 */}
-      <div className="px-4 py-2 bg-[#9DC6C2] text-center">
-        <span className="inline-block text-[10px] text-white font-semibold bg-stone-700/30 rounded-full px-2.5 py-0.5">
-          {dateLabel} &gt;
+      <div className="py-2.5 bg-[#9DC6C2] text-center">
+        <span className="inline-flex items-center gap-1 text-[11px] text-white font-semibold bg-stone-800/20 rounded-full px-3 py-1">
+          {dateLabel}
+          <ChevronRight size={10} />
         </span>
       </div>
 
       {/* 채팅 메시지 영역 */}
-      <div className="bg-[#9DC6C2] px-3 pb-3">
+      <div className="bg-[#9DC6C2] px-3 pb-4">
         <div className="flex items-start gap-2">
           {/* 봉투 아이콘 */}
-          <div className="w-9 h-9 rounded-full bg-amber-300 flex-shrink-0 flex items-center justify-center text-lg shadow-sm mt-1">
+          <div className="w-10 h-10 rounded-2xl bg-amber-300 flex-shrink-0 flex items-center justify-center text-xl shadow-sm">
             📮
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="text-[10px] text-stone-700 mb-1">(광고) 오늘의 안전 가이드</div>
+            <div className="text-[11px] text-stone-700 mb-1 ml-0.5">(광고) 오늘의 안전 가이드</div>
 
-            {/* 카드 말풍선 */}
+            {/* 하나의 카드 말풍선 */}
             <div className="bg-white rounded-2xl overflow-hidden shadow-md">
               {/* 제목 */}
-              <div className="px-4 pt-4 pb-2">
-                <div className="text-[15px] font-extrabold text-stone-900">
-                  오늘 주의! 🚨 매장 안전 가이드
+              <div className="px-4 pt-4 pb-3">
+                <div className="text-[16px] font-extrabold text-stone-900 flex items-center gap-1.5">
+                  <span>오늘 주의!</span>
+                  <span className="text-lg">🚨</span>
+                  <span>매장 안전 가이드</span>
                 </div>
               </div>
 
-              {/* 메인 이미지 캐러셀 */}
+              {/* 이미지 캐러셀 (원본 그대로, 오버레이 텍스트 없음) */}
               {hasCases && (
                 <div className="relative w-full bg-stone-100 aspect-[4/3]">
                   {imgUrl ? (
                     <img
                       src={imgUrl}
-                      alt={current.incident_id}
+                      alt=""
                       className="w-full h-full object-cover"
                       onError={e => { e.target.style.visibility = 'hidden'; }}
                     />
@@ -95,49 +113,30 @@ function KakaoChat({ channelName, profileEmoji, storeName, date, summary, mainRi
                   {/* 좌우 화살표 */}
                   {canPrev && (
                     <button onClick={() => setIdx(i => i - 1)}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow flex items-center justify-center cursor-pointer hover:bg-white">
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 shadow flex items-center justify-center cursor-pointer hover:bg-white">
                       <ChevronLeft size={16} className="text-stone-700" />
                     </button>
                   )}
                   {canNext && (
                     <button onClick={() => setIdx(i => i + 1)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow flex items-center justify-center cursor-pointer hover:bg-white">
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 shadow flex items-center justify-center cursor-pointer hover:bg-white">
                       <ChevronRight size={16} className="text-stone-700" />
                     </button>
                   )}
 
-                  {/* 하단 오버레이: 사고 내용 */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent pt-8 pb-3 px-4">
-                    <div className="text-white text-[13px] font-bold leading-tight drop-shadow-lg">
-                      {current["사고내용"]}
-                    </div>
-                  </div>
-
-                  {/* 인디케이터 */}
-                  <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] font-bold rounded-full px-2 py-0.5">
+                  {/* 페이지 인디케이터 */}
+                  <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] font-bold rounded-full px-2 py-0.5">
                     {idx + 1} / {cases.length}
                   </div>
                 </div>
               )}
 
-              {/* 사례 상세 */}
+              {/* 사고 내용 + 안전 수칙 (이미지 아래) */}
               {hasCases && (
-                <div className="px-4 py-3 border-b border-stone-100">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <span className="text-[10px] font-mono text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 border border-amber-200">
-                      {current.incident_id}
-                    </span>
-                    {current["오늘_재현_가능성"] && (
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
-                        current["오늘_재현_가능성"] === '높음' ? 'bg-red-50 border-red-200 text-red-700'
-                          : current["오늘_재현_가능성"] === '중간' ? 'bg-amber-50 border-amber-200 text-amber-700'
-                          : 'bg-stone-50 border-stone-200 text-stone-600'
-                      }`}>
-                        재현 {current["오늘_재현_가능성"]}
-                      </span>
-                    )}
+                <div className="px-4 py-3 space-y-2">
+                  <div className="text-[13px] font-bold text-stone-900 leading-snug">
+                    {current["사고내용"]}
                   </div>
-
                   {current["수칙"] && (
                     <div className="text-[12px] text-stone-800 leading-relaxed">
                       <span className="font-bold">✅ </span>
@@ -147,49 +146,39 @@ function KakaoChat({ channelName, profileEmoji, storeName, date, summary, mainRi
                 </div>
               )}
 
-              {/* 매장 정보 + 기상 */}
-              <div className="px-4 py-3 space-y-2.5">
-                <div className="flex items-start gap-2.5">
-                  <div className="w-10 h-10 rounded-lg bg-stone-100 flex items-center justify-center text-lg flex-shrink-0">
+              {/* 매장 + 오늘 정보 */}
+              <div className="px-4 py-3 border-t border-stone-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-lg bg-stone-100 flex items-center justify-center text-base flex-shrink-0">
                     🏪
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[12px] font-bold text-stone-900">{storeName}</div>
-                    <div className="text-[11px] text-stone-500">{date} · 오늘의 안전 알림</div>
+                    <div className="text-[10px] text-stone-500">{date} · 오늘의 안전 알림</div>
                   </div>
                 </div>
+              </div>
 
-                {summary && (
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-lg flex-shrink-0">
-                      ⚠️
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[11px] font-bold text-red-700 mb-0.5">오늘의 위험</div>
-                      <div className="text-[11px] text-stone-700 leading-snug">
-                        {mainRisk || summary}
-                      </div>
-                    </div>
+              {/* 부주의 주의사항 (최대 3개) */}
+              {cleanedNotes.length > 0 && (
+                <div className="px-4 py-3 border-t border-stone-100 space-y-2.5">
+                  <div className="text-[11px] font-bold text-stone-800 flex items-center gap-1">
+                    📌 상시 주의사항
                   </div>
-                )}
-
-                {/* 부주의 주의사항 (최대 2개 미리보기) */}
-                {carelessNotes && carelessNotes.slice(0, 2).map((note, i) => (
-                  <div key={i} className="flex items-start gap-2.5">
-                    <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center text-lg flex-shrink-0">
-                      📌
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[11px] font-bold text-stone-900 mb-0.5">상시 주의 {i + 1}</div>
-                      <div className="text-[11px] text-stone-700 leading-snug line-clamp-2">
+                  {cleanedNotes.map((note, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <div className="w-5 h-5 rounded-full bg-stone-700 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                        {i + 1}
+                      </div>
+                      <div className="flex-1 text-[11px] text-stone-700 leading-relaxed">
                         {note}
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
 
-              {/* 자세히 보기 버튼 */}
+              {/* 하단 버튼 */}
               <div className="border-t border-stone-100">
                 <button className="w-full py-3 text-[13px] font-semibold text-stone-700 hover:bg-stone-50">
                   자세히 보기
@@ -198,66 +187,27 @@ function KakaoChat({ channelName, profileEmoji, storeName, date, summary, mainRi
             </div>
 
             {/* 말풍선 아래 시간 */}
-            <div className="text-[10px] text-stone-600 mt-1 ml-1">오전 9:00</div>
+            <div className="text-[10px] text-stone-600 mt-1 ml-1">
+              수신거부 | 홈 &gt; 채널 차단
+            </div>
+            <div className="text-[10px] text-stone-600 ml-1">오전 9:00</div>
+          </div>
+
+          {/* 홈 버튼 */}
+          <div className="w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center flex-shrink-0 self-end mb-8">
+            <Home size={16} className="text-stone-600" />
           </div>
         </div>
-
-        {/* 부주의 주의사항 전체 (확장) */}
-        {carelessNotes && carelessNotes.length > 0 && (
-          <div className="mt-4 ml-11">
-            <details className="bg-white/70 rounded-xl overflow-hidden">
-              <summary className="px-3 py-2 text-[11px] font-semibold text-stone-700 cursor-pointer hover:bg-white">
-                📌 상시 부주의 주의사항 전체 ({carelessNotes.length}건)
-              </summary>
-              <div className="px-3 py-2 bg-white border-t border-stone-100">
-                <ul className="space-y-1.5">
-                  {carelessNotes.map((note, i) => (
-                    <li key={i} className="text-[11px] text-stone-700 leading-relaxed flex items-start gap-1.5">
-                      <span className="text-stone-400 font-bold flex-shrink-0">{i + 1}.</span>
-                      <span>{note}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </details>
-          </div>
-        )}
-
-        {/* 원인 분석 */}
-        {current && current["사고_원인_분석"] && (
-          <div className="mt-2 ml-11">
-            <details className="bg-white/70 rounded-xl overflow-hidden">
-              <summary className="px-3 py-2 text-[11px] font-semibold text-stone-700 cursor-pointer hover:bg-white">
-                💡 현재 사례의 원인 분석
-              </summary>
-              <div className="px-3 py-2 bg-white border-t border-stone-100 text-[11px] text-stone-700 leading-relaxed">
-                {current["사고_원인_분석"]}
-                {current["관련_피처"] && (
-                  <div className="mt-1 text-[10px] text-stone-400 font-mono">
-                    📊 {current["관련_피처"]}
-                  </div>
-                )}
-              </div>
-            </details>
-          </div>
-        )}
-
-        {/* 추가 참고 */}
-        {additionalNote && (
-          <div className="mt-2 ml-11 text-[10px] text-stone-600 bg-white/70 rounded-xl px-3 py-2 leading-relaxed">
-            ℹ️ {additionalNote}
-          </div>
-        )}
       </div>
 
       {/* 하단 입력창 (장식) */}
-      <div className="bg-white border-t border-stone-200">
-        <div className="px-3 py-2 text-center text-[11px] font-semibold text-stone-400 border-b border-stone-100">
+      <div className="bg-[#9DC6C2]">
+        <div className="bg-yellow-400 text-center py-2.5 text-[13px] font-bold text-stone-900">
           채널 메뉴 ⌃
         </div>
-        <div className="flex items-center gap-2 px-3 py-2.5">
-          <div className="w-6 h-6 rounded-full bg-stone-200 flex items-center justify-center text-stone-400 text-xs">+</div>
-          <div className="flex-1 text-[11px] text-stone-300">챗봇에게 메시지 입력</div>
+        <div className="flex items-center gap-2 px-3 py-2.5 bg-white">
+          <div className="w-7 h-7 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 text-sm">+</div>
+          <div className="flex-1 text-[12px] text-stone-400">챗봇에게 메시지 입력</div>
         </div>
       </div>
     </div>
@@ -317,29 +267,23 @@ function DetailModal({ item, onClose }) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 justify-items-center">
               {detail.results?.cust && (
                 <KakaoChat
-                  channelName="다이소 안전 알림"
-                  profileEmoji="🛡️"
+                  channelName="다이소 고객 안전 알림"
+                  channelEmail="safety@daiso.co.kr"
                   storeName={detail.store_name}
                   date={detail.date}
-                  summary={detail.results.cust.guide?.["위험_요약"]}
-                  mainRisk={detail.results.cust.guide?.["주요_위험유형"]}
                   cases={detail.results.cust.guide?.["오늘의_주의사항"] || []}
                   carelessNotes={detail.results.cust.guide?.["부주의_주의사항"] || []}
-                  additionalNote={detail.results.cust.guide?.["추가_참고"] || ""}
                 />
               )}
 
               {detail.results?.emp && (
                 <KakaoChat
-                  channelName="다이소 안전 알림"
-                  profileEmoji="👷"
+                  channelName="다이소 직원 안전 알림"
+                  channelEmail="safety@daiso.co.kr"
                   storeName={detail.store_name}
                   date={detail.date}
-                  summary={detail.results.emp.guide?.["위험_요약"]}
-                  mainRisk={detail.results.emp.guide?.["주요_위험유형"]}
                   cases={detail.results.emp.guide?.["오늘의_주의사항"] || []}
                   carelessNotes={detail.results.emp.guide?.["부주의_주의사항"] || []}
-                  additionalNote={detail.results.emp.guide?.["추가_참고"] || ""}
                 />
               )}
             </div>
