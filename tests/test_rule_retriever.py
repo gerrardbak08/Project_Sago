@@ -2,50 +2,7 @@ import unittest
 
 
 class RuleRetrieverTests(unittest.TestCase):
-    def test_build_feature_rules_uses_tree_split_thresholds(self):
-        from scripts.build_rule_incidents import build_feature_risk_thresholds_from_tree
-
-        leaf_table = {
-            "1": {
-                "rule": "평수 <= 299.75 & wind_speed_10m_max <= 1.995",
-            },
-            "2": {
-                "rule": "평수 > 299.75 & 평수 <= 405.0 & wind_speed_10m_max > 1.995",
-            },
-        }
-        incidents = [
-            {
-                "incident_id": "cust_1",
-                "사고유형": "낙상",
-                "사고내용요약": "고객이 통로 박스에 걸려 넘어짐",
-                "평수": 180,
-                "wind_speed_10m_max": 1.0,
-            },
-            {
-                "incident_id": "cust_2",
-                "사고유형": "충돌",
-                "사고내용요약": "고객이 넓은 매장 코너에서 진열대와 충돌",
-                "평수": 360,
-                "wind_speed_10m_max": 4.0,
-            },
-        ]
-
-        rules = build_feature_risk_thresholds_from_tree(
-            "cust", leaf_table, incidents, "사고유형"
-        )
-
-        self.assertEqual(
-            [rule["val"] for rule in rules["평수"].values()],
-            [299.75, 405.0, 405.0],
-        )
-        self.assertIn("<= 299.75", rules["평수"])
-        self.assertIn("> 299.75~<= 405", rules["평수"])
-        self.assertIn("> 405", rules["평수"])
-        self.assertNotIn("소형", rules["평수"])
-        self.assertIn("고객", rules["평수"]["<= 299.75"]["risk"])
-        self.assertIn("통로 박스", rules["평수"]["<= 299.75"]["risk"])
-
-    def test_source_thresholds_have_different_risk_language(self):
+    def test_common_thresholds_classify_feature_bucket(self):
         from core.rule_enrichment import classify_feature_bucket, get_feature_thresholds
 
         cust = get_feature_thresholds("cust")
@@ -53,12 +10,11 @@ class RuleRetrieverTests(unittest.TestCase):
 
         self.assertIn("precipitation_sum", cust)
         self.assertIn("precipitation_sum", emp)
-        self.assertIn("고객", cust["precipitation_sum"]["많은비"]["risk"])
-        self.assertIn("직원", emp["precipitation_sum"]["많은비"]["risk"])
+        self.assertEqual(cust, emp)
 
         bucket = classify_feature_bucket("cust", "precipitation_sum", 12.0)
         self.assertEqual(bucket["label"], "많은비")
-        self.assertIn("고객", bucket["risk"])
+        self.assertEqual(bucket["threshold"], 10.0)
 
     def test_match_incidents_by_rules_prefers_shared_buckets(self):
         from core.rule_retriever import match_incidents_by_rules

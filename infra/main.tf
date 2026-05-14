@@ -234,7 +234,7 @@ resource "aws_lambda_layer_version" "core" {
   source_code_hash    = filebase64sha256("${path.module}/../dist/core-layer.zip")
   compatible_runtimes = ["python3.11", "python3.12"]
 
-  description = "core/ 공유 모듈 (llm, rule_matcher, weather, notifier)"
+  description = "core/ 공유 모듈 (llm, rule_enrichment, rule_retriever, weather, notifier)"
 }
 
 # ---------------------------------------------------------------------------

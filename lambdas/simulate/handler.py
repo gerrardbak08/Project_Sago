@@ -6,9 +6,8 @@ Body: { "store_code": 1234, "date": "2026-04-28" }
 
 CUST(고객사고) + EMP(직원사고) 두 소스에 대해:
   1. 기상 데이터 조회 (Open-Meteo)
-  2. 리프 매칭 (rule_matcher)
-  3. 위험도 산출 (risk)
-  4. LLM 안전 가이드 생성 (llm)
+  2. 룰 기반 유사 사례 검색
+  3. LLM 안전 가이드 생성 (llm)
 """
 
 from __future__ import annotations
@@ -106,51 +105,12 @@ def _load_stores() -> list[dict]:
     return _load_json("stores.json", Path("stores.json"))
 
 
-def _load_model_files(source: str) -> tuple[dict, dict]:
-    """룰 기반 사고 인덱스와 메타데이터를 로드한다."""
+def _load_model_files(source: str) -> dict:
+    """룰 기반 사고 인덱스를 로드한다."""
     prefix = f"models/{source}"
-    rule_incidents = _load_json(
+    return _load_json(
         f"{prefix}/rule_incidents.json", Path(f"models/{source}/rule_incidents.json")
     )
-    metadata = _load_json(
-        f"{prefix}/metadata.json", Path(f"models/{source}/metadata.json")
-    )
-    return rule_incidents, metadata
-
-
-# ──────────────────────────────────────────────
-# 피처 구성
-# ──────────────────────────────────────────────
-def _build_features(
-    weather: dict,
-    store: dict,
-    encoder_map: dict,
-) -> dict[str, float]:
-    """기상 + 매장 연속형 + 매장 범주형 → 피처 dict 구성.
-
-    - 기상 8개: weather dict에서 직접 추출, None → 0.0
-    - 매장 연속형 9개: store dict에서 추출, None → 0.0
-    - 매장 범주형 1개: encoder_map의 매핑으로 인코딩 (기본값: 직영점=2)
-    """
-    features: dict[str, float] = {}
-
-    # 기상 피처
-    for feat in WEATHER_FEATURES:
-        val = weather.get(feat)
-        features[feat] = float(val) if val is not None else 0.0
-
-    # 매장 연속형 피처
-    for feat in STORE_NUM_FEATURES:
-        val = store.get(feat)
-        features[feat] = float(val) if val is not None else 0.0
-
-    # 매장 범주형 피처 (형태)
-    store_type = store.get("형태", "직영점")
-    type_mapping = encoder_map.get("형태", {})
-    default_code = type_mapping.get("직영점", 2)
-    features["형태"] = float(type_mapping.get(store_type, default_code))
-
-    return features
 
 
 # ──────────────────────────────────────────────
@@ -331,12 +291,12 @@ def lambda_handler(event: dict, context: Any) -> dict:
 
     for source in SOURCES:
         try:
-            rule_incidents, metadata = _load_model_files(source)
+            rule_incidents = _load_model_files(source)
         except FileNotFoundError as e:
             results[source] = {"error": str(e)}
             continue
 
-        label_col = LABEL_COLS.get(source, metadata.get("label_column", "사고유형"))
+        label_col = LABEL_COLS.get(source, rule_incidents.get("label_column", "사고유형"))
         limit = int(os.environ.get("RULE_INCIDENT_LIMIT", "50"))
         strategy = os.environ.get("RULE_INCIDENT_STRATEGY", "recent")
         leaf_data = match_incidents_by_rules(
@@ -346,10 +306,7 @@ def lambda_handler(event: dict, context: Any) -> dict:
             rule_incidents.get("incidents", []),
             limit=limit,
             strategy=strategy,
-            feature_risk_thresholds=rule_incidents.get("feature_risk_thresholds"),
         )
-        leaf_id = None
-        fallback_level = None
 
         if leaf_data is None:
             results[source] = {"error": "룰 기반 사례 매칭 실패"}
@@ -359,15 +316,12 @@ def lambda_handler(event: dict, context: Any) -> dict:
         guide = generate_guide(store, weather, leaf_data, label_col, source)
 
         # 결과 조립
-        matched_rule = leaf_data.get("rule", "")
         incident_count = leaf_summary.get("total", 0)
 
         results[source] = {
-            "leaf_id": str(leaf_id) if leaf_id is not None else None,
-            "fallback_level": fallback_level,
             "guide": guide,
-            "matched_rule": matched_rule,
             "incident_count": incident_count,
+            "matched_incident_count": leaf_summary.get("matched_total", 0),
         }
 
     # ── 응답 조립 ──

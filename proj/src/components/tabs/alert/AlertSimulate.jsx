@@ -26,11 +26,6 @@ function GuideSection({ type, label, result }) {
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border bg-white/70 border-stone-200 text-stone-600">
             {guide["주요_위험유형"] || "위험유형 분석 중"}
           </span>
-          {result.fallback_level > 0 && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-500 border border-stone-200">
-              Fallback L{result.fallback_level}
-            </span>
-          )}
         </div>
       </div>
 
@@ -104,10 +99,10 @@ function GuideSection({ type, label, result }) {
             </div>
           )}
 
-          {/* 적용 규칙 */}
-          {result.matched_rule && (
+          {/* 사례 수 */}
+          {result.incident_count != null && (
             <div className="text-[10px] text-stone-400 font-mono bg-stone-50/80 px-2.5 py-1.5 rounded-lg border border-stone-100">
-              적용 규칙: {result.matched_rule} ({result.incident_count}건 기반)
+              유사 사례: {result.incident_count}건
             </div>
           )}
         </div>
