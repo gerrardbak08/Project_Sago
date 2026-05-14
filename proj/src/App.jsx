@@ -24,10 +24,9 @@ import { processWorkers }     from './utils/processData.js';
 // ── 아이콘 ─────────────────────────────────────────────
 import { LayoutDashboard, Building, Building2, MapPin,
          TrendingUp, GitBranch, UserCircle, Users, Scale, Banknote,
-         Stethoscope, Bell, ChevronRight, Sparkles, ShieldCheck, Store,
+         Stethoscope, Bell, ChevronRight, ShieldCheck, Store,
          X, AlertCircle, Send } from 'lucide-react';
 import AlertMonitoring from './components/tabs/alert/AlertMonitoring.jsx';
-import AlertSimulate   from './components/tabs/alert/AlertSimulate.jsx';
 import AlertSend       from './components/tabs/alert/AlertSend.jsx';
 
 // ── 공유 컴포넌트 ──────────────────────────────────────
@@ -100,7 +99,7 @@ function App() {
   const [tab, setTabState] = useState(
     _INIT_HASH_PARAMS.tab || (initialRole && ROLE_LANDING[initialRole] ? ROLE_LANDING[initialRole] : "overview")
   );
-  const [alertTab, setAlertTab] = useState("alert_simulate"); // 알림 모드 내 탭
+  const [alertTab, setAlertTab] = useState("alert_monitor"); // 알림 모드 내 탭
   const [currentRole, setCurrentRole] = useState(_INIT_HASH_PARAMS.role || initialRole || null);
   const [yearFilter, setYearState] = useState(_INIT_HASH_PARAMS.year || "all");
 
@@ -223,7 +222,7 @@ function App() {
   };
   
   const handleLogout = () => {
-    if (tab === "alert_monitor" || tab === "alert_simulate" || tab === "alert_send") setTab("overview");
+    if (tab === "alert_monitor" || tab === "alert_send") setTab("overview");
   };
   
   // === 역할별 탭 필터링 (RBAC Phase 2) ===
@@ -299,7 +298,6 @@ function App() {
       <div className="max-w-[1400px] mx-auto px-3 sm:px-4 py-3 sm:py-5">
         <TabErrorBoundary key={alertTab}>
           {alertTab === "alert_monitor"  && <AlertMonitoring />}
-          {alertTab === "alert_simulate" && <AlertSimulate />}
           {alertTab === "alert_send"     && <AlertSend />}
         </TabErrorBoundary>
       </div>
@@ -468,7 +466,6 @@ function App() {
           {tab === "cost" && <CostRisk D={dataFiltered} yearFilter={yearFilter} />}
           {tab === "legal" && <LegalReporting D={dataFiltered} yearFilter={yearFilter} />}
           {tab === "alert_monitor"  && <AlertMonitoring />}
-          {tab === "alert_simulate" && <AlertSimulate />}
           {tab === "alert_send"     && <AlertSend />}        </TabErrorBoundary>
       </div>
       

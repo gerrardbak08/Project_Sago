@@ -4,7 +4,6 @@ local_server.py — 로컬 개발 서버
 프로덕션(API Gateway → Lambda)과 동일한 라우팅을 순수 Python http.server로 제공한다.
 
 라우팅:
-  POST /api/simulate       → lambdas.simulate.handler.lambda_handler
   GET  /api/daily/{date}   → daily/{date}/results.json 파일 서빙
   GET  /stores.json        → 프로젝트 루트 stores.json
   GET  /*                  → frontend/ 정적 파일 서빙
@@ -17,12 +16,11 @@ local_server.py — 로컬 개발 서버
 from __future__ import annotations
 
 import json
-import os
 import re
 import sys
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse
 
 # 프로젝트 루트를 sys.path에 추가하여 lambdas 패키지 import 가능하게
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -98,20 +96,6 @@ class LocalHandler(SimpleHTTPRequestHandler):
         except Exception as e:
             self._send_error_json(500, str(e))
 
-    # ── Lambda event 구성 ──
-
-    def _build_lambda_event(self, method: str, path: str, body: str | None = None) -> dict:
-        """Lambda 핸들러에 전달할 event dict를 구성한다."""
-        parsed = urlparse(self.path)
-        query = parse_qs(parsed.query)
-        return {
-            "httpMethod": method,
-            "path": path,
-            "queryStringParameters": {k: v[0] for k, v in query.items()},
-            "body": body,
-            "headers": dict(self.headers),
-        }
-
     # ── 라우팅 ──
 
     def _route(self, method: str):
@@ -124,11 +108,6 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.send_response(204)
             self._send_cors_headers()
             self.end_headers()
-            return
-
-        # POST /api/simulate → Lambda 핸들러
-        if method == "POST" and path == "/api/simulate":
-            self._handle_simulate()
             return
 
         # GET /api/daily/{date} → daily/{date}/results.json
@@ -169,30 +148,6 @@ class LocalHandler(SimpleHTTPRequestHandler):
         # 지원하지 않는 메서드/경로
         self._send_error_json(404, f"Not Found: {method} {path}")
 
-    def _handle_simulate(self):
-        """POST /api/simulate → Lambda 핸들러 호출."""
-        try:
-            # Body 읽기
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length).decode("utf-8") if content_length > 0 else "{}"
-
-            # Lambda event 구성
-            event = self._build_lambda_event("POST", "/api/simulate", body)
-
-            # Lambda 핸들러 호출
-            from lambdas.simulate.handler import lambda_handler
-
-            result = lambda_handler(event, None)
-
-            # Lambda 응답 → HTTP 응답
-            status_code = result.get("statusCode", 200)
-            response_body = result.get("body", "{}")
-            self._send_json(status_code, response_body)
-
-        except Exception as e:
-            print(f"[error] /api/simulate 처리 실패: {e}")
-            self._send_error_json(500, f"서버 내부 오류: {e}")
-
     # ── HTTP 메서드 핸들러 ──
 
     def do_GET(self):
@@ -225,7 +180,6 @@ def main():
 
     server = ReusableHTTPServer(("", PORT), LocalHandler)
     print(f"로컬 개발 서버 시작: http://localhost:{PORT}")
-    print(f"  POST /api/simulate       → Lambda 핸들러")
     print(f"  GET  /api/daily/{{date}}   → daily/{{date}}/results.json")
     print(f"  GET  /stores.json        → stores.json")
     print(f"  GET  /*                  → frontend/ 정적 파일")

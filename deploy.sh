@@ -40,14 +40,6 @@ pip install requests python-dotenv \
 (cd /tmp/core-layer-build && zip -r9 - python) > "$DIST_DIR/core-layer.zip"
 echo "  ✓ core-layer.zip ($(du -sh "$DIST_DIR/core-layer.zip" | cut -f1))"
 
-# simulate.zip — lambdas/simulate/handler.py
-echo "  simulate.zip 생성 중..."
-rm -rf /tmp/simulate-build
-mkdir -p /tmp/simulate-build
-cp lambdas/simulate/handler.py /tmp/simulate-build/
-(cd /tmp/simulate-build && zip -r9 - handler.py) > "$DIST_DIR/simulate.zip"
-echo "  ✓ simulate.zip ($(du -sh "$DIST_DIR/simulate.zip" | cut -f1))"
-
 # batch.zip — lambdas/batch/handler.py
 echo "  batch.zip 생성 중..."
 rm -rf /tmp/batch-build
@@ -80,12 +72,10 @@ terraform -chdir="$INFRA_DIR" apply -input=false -auto-approve
 
 echo "=== [4/7] Terraform output 읽기 ==="
 BUCKET=$(terraform -chdir="$INFRA_DIR" output -raw frontend_bucket_name)
-SIMULATE_URL=$(terraform -chdir="$INFRA_DIR" output -raw simulate_url)
 NOTIFY_URL=$(terraform -chdir="$INFRA_DIR" output -raw notify_url)
 ALERTS_URL=$(terraform -chdir="$INFRA_DIR" output -raw alerts_url)
 
 echo "  S3 버킷:      $BUCKET"
-echo "  simulate URL: $SIMULATE_URL"
 echo "  notify URL:   $NOTIFY_URL"
 echo "  alerts URL:   $ALERTS_URL"
 
@@ -101,7 +91,6 @@ _upsert_env() {
   fi
 }
 
-_upsert_env "VITE_SIMULATE_URL" "$SIMULATE_URL" "$ENV_PROD"
 _upsert_env "VITE_NOTIFY_URL"   "$NOTIFY_URL"   "$ENV_PROD"
 _upsert_env "VITE_ALERTS_URL"   "$ALERTS_URL"   "$ENV_PROD"
 
@@ -109,7 +98,6 @@ _upsert_env "VITE_ALERTS_URL"   "$ALERTS_URL"   "$ENV_PROD"
 FRONTEND_URL=$(terraform -chdir="$INFRA_DIR" output -raw frontend_url)
 _upsert_env "VITE_FRONTEND_URL" "http://$FRONTEND_URL" "$ENV_PROD"
 
-echo "  VITE_SIMULATE_URL=$SIMULATE_URL"
 echo "  VITE_NOTIFY_URL=$NOTIFY_URL"
 echo "  VITE_ALERTS_URL=$ALERTS_URL"
 
@@ -152,14 +140,13 @@ aws s3 sync images/ "s3://$BUCKET/images/" \
   --region ap-northeast-2
 echo "  ✓ images/ 업로드"
 
-# stores.json — npm build 이후 생성되므로 여기서 업로드
-aws s3 cp "$PROJ_DIR/dist/stores.json" "s3://$MODELS_BUCKET/stores.json" \
+# stores.json — Lambda가 매장 정보를 로드하는 모델 버킷 산출물
+aws s3 cp stores.json "s3://$MODELS_BUCKET/stores.json" \
   --region ap-northeast-2
 echo "  ✓ stores.json 업로드"
 
 echo ""
 echo "✅ 배포 완료!"
 echo "   프론트엔드 URL: $(terraform -chdir="$INFRA_DIR" output -raw frontend_url)"
-echo "   simulate URL:   $SIMULATE_URL"
 echo "   notify URL:     $NOTIFY_URL"
 echo "   alerts URL:     $ALERTS_URL"

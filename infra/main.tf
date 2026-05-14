@@ -159,12 +159,6 @@ data "aws_iam_policy_document" "lambda_permissions" {
     resources = ["*"]
   }
 
-  # Lambda invoke
-  statement {
-    actions   = ["lambda:InvokeFunction"]
-    resources = ["*"]
-  }
-
   # CloudWatch Logs
   statement {
     actions = [
@@ -235,64 +229,6 @@ resource "aws_lambda_layer_version" "core" {
   compatible_runtimes = ["python3.11", "python3.12"]
 
   description = "core/ 공유 모듈 (llm, rule_matcher, weather, notifier)"
-}
-
-# ---------------------------------------------------------------------------
-# Lambda — simulate
-# ---------------------------------------------------------------------------
-
-resource "aws_lambda_function" "simulate" {
-  function_name    = "${var.project}-simulate"
-  role             = aws_iam_role.lambda_exec.arn
-  handler          = "handler.lambda_handler"
-  runtime          = "python3.12"
-  filename         = "${path.module}/../dist/simulate.zip"
-  source_code_hash = filebase64sha256("${path.module}/../dist/simulate.zip")
-
-  memory_size = 512
-  timeout     = 180
-
-  layers = [aws_lambda_layer_version.core.arn]
-
-  environment {
-    variables = {
-      MODELS_BUCKET  = aws_s3_bucket.models.id
-      DAILY_BUCKET   = aws_s3_bucket.daily.id
-      BEDROCK_REGION = "us-east-1"
-    }
-  }
-
-  tags = {
-    Project = var.project
-  }
-}
-
-resource "aws_lambda_function_url" "simulate" {
-  function_name      = aws_lambda_function.simulate.function_name
-  authorization_type = "NONE"
-
-  cors {
-    allow_credentials = false
-    allow_origins     = ["*"]
-    allow_methods     = ["*"]
-    allow_headers     = ["Content-Type"]
-    max_age           = 3600
-  }
-}
-
-resource "aws_lambda_permission" "simulate_url_public" {
-  statement_id           = "AllowPublicFunctionURL"
-  action                 = "lambda:InvokeFunctionUrl"
-  function_name          = aws_lambda_function.simulate.function_name
-  principal              = "*"
-  function_url_auth_type = "NONE"
-}
-
-resource "aws_lambda_permission" "simulate_invoke_public" {
-  statement_id  = "AllowPublicInvokeFunction"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.simulate.function_name
-  principal     = "*"
 }
 
 # ---------------------------------------------------------------------------
@@ -470,11 +406,6 @@ resource "aws_lambda_permission" "eventbridge_batch" {
 # ---------------------------------------------------------------------------
 # Outputs
 # ---------------------------------------------------------------------------
-
-output "simulate_url" {
-  description = "simulate Lambda Function URL"
-  value       = aws_lambda_function_url.simulate.function_url
-}
 
 output "notify_url" {
   description = "notify Lambda Function URL"
