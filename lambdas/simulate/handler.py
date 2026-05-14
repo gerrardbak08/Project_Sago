@@ -346,7 +346,7 @@ def lambda_handler(event: dict, context: Any) -> dict:
             rule_incidents.get("incidents", []),
             limit=limit,
             strategy=strategy,
-            feature_rules=rule_incidents.get("feature_rules"),
+            feature_risk_thresholds=rule_incidents.get("feature_risk_thresholds"),
         )
         leaf_id = None
         fallback_level = None

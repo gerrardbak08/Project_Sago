@@ -124,13 +124,13 @@ def _build_bucket_risk(
     return f"{source_label} {feature} {label} 구간에서 {dominant} 사례가 확인됩니다."
 
 
-def build_feature_rules_from_tree(
+def build_feature_risk_thresholds_from_tree(
     source: str,
     leaf_table: dict,
     incidents: list[dict],
     label_col: str,
 ) -> dict:
-    """Decision Tree 리프 규칙에 등장한 split threshold로 source별 기준표를 만든다."""
+    """Decision Tree 리프 규칙에 등장한 split threshold로 FEATURE_RISK_THRESHOLDS 형태의 기준표를 만든다."""
     result: dict[str, dict] = {}
     for feature, thresholds in _collect_tree_thresholds(leaf_table).items():
         if not thresholds:
@@ -195,15 +195,24 @@ def _build_source(source: str) -> None:
     if leaf_table_path.exists():
         with open(leaf_table_path, "r", encoding="utf-8") as f:
             leaf_table = json.load(f)
-        payload["feature_rules"] = build_feature_rules_from_tree(
+        feature_risk_thresholds = build_feature_risk_thresholds_from_tree(
             source,
             leaf_table,
             payload["incidents"],
             label_col,
         )
+        payload["feature_risk_thresholds"] = feature_risk_thresholds
+        # 이전 커밋 호환용 alias. Lambda는 feature_risk_thresholds를 우선 사용한다.
+        payload["feature_rules"] = feature_risk_thresholds
 
     out_dir = MODELS / source
     out_dir.mkdir(parents=True, exist_ok=True)
+    if "feature_risk_thresholds" in payload:
+        thresholds_path = out_dir / "feature_risk_thresholds.json"
+        with open(thresholds_path, "w", encoding="utf-8") as f:
+            json.dump(payload["feature_risk_thresholds"], f, ensure_ascii=False, indent=2)
+        print(f"[OK] {thresholds_path} 생성")
+
     out_path = out_dir / "rule_incidents.json"
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)

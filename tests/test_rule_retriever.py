@@ -3,7 +3,7 @@ import unittest
 
 class RuleRetrieverTests(unittest.TestCase):
     def test_build_feature_rules_uses_tree_split_thresholds(self):
-        from scripts.build_rule_incidents import build_feature_rules_from_tree
+        from scripts.build_rule_incidents import build_feature_risk_thresholds_from_tree
 
         leaf_table = {
             "1": {
@@ -30,7 +30,9 @@ class RuleRetrieverTests(unittest.TestCase):
             },
         ]
 
-        rules = build_feature_rules_from_tree("cust", leaf_table, incidents, "사고유형")
+        rules = build_feature_risk_thresholds_from_tree(
+            "cust", leaf_table, incidents, "사고유형"
+        )
 
         self.assertEqual(
             [rule["val"] for rule in rules["평수"].values()],
