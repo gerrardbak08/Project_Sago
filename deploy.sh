@@ -28,7 +28,7 @@ SITE_PKG="/tmp/core-layer-build/python/lib/python3.12/site-packages"
 mkdir -p "$SITE_PKG/core"
 
 # core 모듈 복사
-cp core/__init__.py core/llm.py core/rule_enrichment.py core/rule_retriever.py core/weather.py core/notifier.py \
+cp core/__init__.py core/llm.py core/rule_matcher.py core/weather.py core/notifier.py \
   "$SITE_PKG/core/"
 
 # 외부 패키지 설치 (requests, python-dotenv)
@@ -150,8 +150,8 @@ aws s3 sync images/ "s3://$BUCKET/images/" \
   --region ap-northeast-2
 echo "  ✓ images/ 업로드"
 
-# stores.json — Lambda 모델 버킷에서 로드
-aws s3 cp "stores.json" "s3://$MODELS_BUCKET/stores.json" \
+# stores.json — npm build 이후 생성되므로 여기서 업로드
+aws s3 cp "$PROJ_DIR/dist/stores.json" "s3://$MODELS_BUCKET/stores.json" \
   --region ap-northeast-2
 echo "  ✓ stores.json 업로드"
 

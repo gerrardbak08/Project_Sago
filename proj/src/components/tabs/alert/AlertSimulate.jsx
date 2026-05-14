@@ -1,17 +1,37 @@
 import { useState, useEffect, useRef } from 'react';
-import { Sparkles, Search, AlertCircle, RefreshCw, X, CheckCircle2, MapPin, Building2 } from 'lucide-react';
+import { Sparkles, Search, Calendar, AlertCircle, RefreshCw, X, CheckCircle2, ChevronDown, MapPin, Building2 } from 'lucide-react';
+import { DAISO_RED, ALERT_RED, SAFE_GREEN } from '../../../constants/colors.js';
 import { Card } from '../../shared/Card.jsx';
 import rawStores from '../../../data/raw/stores.json';
 
 const STORES_LIST = rawStores.data.filter(s => s['폐점여부'] === '영업');
 
+const RISK_META = {
+  high:   { label: "고위험", bg: "bg-red-50",     border: "border-red-200",     text: "text-red-700",     bar: ALERT_RED,   score_text: "text-red-700"   },
+  medium: { label: "중위험", bg: "bg-amber-50",   border: "border-amber-200",   text: "text-amber-700",   bar: "#B45309",   score_text: "text-amber-700" },
+  low:    { label: "저위험", bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700", bar: SAFE_GREEN,  score_text: "text-emerald-700" },
+};
+
+function RiskGauge({ grade, score }) {
+  const m = RISK_META[grade] || RISK_META.low;
+  return (
+    <div className={`rounded-xl p-4 border ${m.bg} ${m.border}`}>
+      <div className={`text-xs font-bold uppercase tracking-wide mb-2 ${m.text}`}>{m.label}</div>
+      <div className={`text-4xl font-extrabold tabular-nums ${m.score_text}`}>{score}</div>
+      <div className="text-xs text-stone-500 mt-1">/ 100점</div>
+      <div className="mt-2 h-1.5 rounded-full bg-stone-100 overflow-hidden">
+        <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, background: m.bar }} />
+      </div>
+    </div>
+  );
+}
+
 function GuideSection({ type, label, result }) {
   const isCust = type === "CUST";
   const accentColor = isCust ? "#0891B2" : "#4F46E5";
   const bgClass = isCust ? "bg-sky-50/60 border-sky-100" : "bg-indigo-50/60 border-indigo-100";
-  const guide = result.guide || {};
-  const todayItems = Array.isArray(guide["오늘의_주의사항"]) ? guide["오늘의_주의사항"] : [];
-  const negligenceItems = Array.isArray(guide["부주의_주의사항"]) ? guide["부주의_주의사항"] : [];
+  const grade = result.risk?.grade || "low";
+  const m = RISK_META[grade];
 
   return (
     <div className={`rounded-xl border p-4 ${bgClass}`}>
@@ -23,9 +43,15 @@ function GuideSection({ type, label, result }) {
           <span className="font-bold text-stone-800">{label}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border bg-white/70 border-stone-200 text-stone-600">
-            {guide["주요_위험유형"] || "위험유형 분석 중"}
+          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${m.bg} ${m.border} ${m.text}`}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: m.bar }} />
+            {m.label} · {result.risk?.score}점
           </span>
+          {result.fallback_level > 0 && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-500 border border-stone-200">
+              Fallback L{result.fallback_level}
+            </span>
+          )}
         </div>
       </div>
 
@@ -33,58 +59,19 @@ function GuideSection({ type, label, result }) {
         <div className="space-y-2.5">
           {/* 위험 요약 */}
           <div className="bg-white rounded-lg px-3 py-2.5 border border-stone-200/80 text-xs font-semibold text-stone-700">
-            {guide["위험_요약"]}
+            {result.guide['위험_요약']}
           </div>
 
-          {/* 오늘의 주의사항 */}
-          {todayItems.length > 0 && (
+          {/* 안전 수칙 */}
+          {result.guide['안전_수칙'] && result.guide['안전_수칙'].length > 0 && (
             <div>
-              <div className="text-[10px] font-bold text-stone-400 uppercase tracking-wide mb-1.5">오늘의 주의사항</div>
-              <ul className="space-y-2">
-                {todayItems.map((item, i) => (
-                  <li key={item.incident_id || i} className="text-xs text-stone-700 bg-white/70 rounded-lg px-2.5 py-2 border border-white/70">
-                    <div className="flex items-start gap-2">
-                      <span className="w-4 h-4 rounded-full text-white text-[9px] flex items-center justify-center flex-shrink-0 mt-0.5 font-bold" style={{ background: accentColor }}>
-                        {i + 1}
-                      </span>
-                      <div className="min-w-0 space-y-1">
-                        <div className="font-semibold text-stone-800">{item["수칙"]}</div>
-                        {item["사고내용"] && (
-                          <div className="text-[11px] text-stone-500 leading-relaxed">{item["사고내용"]}</div>
-                        )}
-                        <div className="flex flex-wrap gap-1">
-                          {item["오늘_재현_가능성"] && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-stone-100 text-stone-500">
-                              재현 {item["오늘_재현_가능성"]}
-                            </span>
-                          )}
-                          {item["관련_피처"] && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-stone-100 text-stone-500">
-                              {item["관련_피처"]}
-                            </span>
-                          )}
-                          {item.incident_id && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-stone-100 text-stone-400 font-mono">
-                              {item.incident_id}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* 부주의 주의사항 */}
-          {negligenceItems.length > 0 && (
-            <div>
-              <div className="text-[10px] font-bold text-stone-400 uppercase tracking-wide mb-1.5">상시 주의사항</div>
+              <div className="text-[10px] font-bold text-stone-400 uppercase tracking-wide mb-1.5">안전 수칙</div>
               <ul className="space-y-1.5">
-                {negligenceItems.map((item, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-stone-700 bg-white/60 rounded-lg px-2.5 py-1.5">
-                    <span className="text-stone-400 font-bold">{i + 1}.</span>
+                {result.guide['안전_수칙'].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-stone-700 bg-white/70 rounded-lg px-2.5 py-1.5">
+                    <span className="w-4 h-4 rounded-full text-white text-[9px] flex items-center justify-center flex-shrink-0 mt-0.5 font-bold" style={{ background: accentColor }}>
+                      {i + 1}
+                    </span>
                     {item}
                   </li>
                 ))}
@@ -92,17 +79,24 @@ function GuideSection({ type, label, result }) {
             </div>
           )}
 
-          {/* 추가 참고 */}
-          {guide["추가_참고"] && (
-            <div className="text-[11px] text-stone-600 bg-white/60 rounded-lg px-3 py-2 border border-stone-100 leading-relaxed">
-              ℹ️ {guide["추가_참고"]}
+          {/* 과거 사례 */}
+          {result.guide['과거_사례_인용'] && (
+            <div className="text-[11px] text-stone-500 bg-white/60 rounded-lg px-3 py-2 border border-stone-100 italic leading-relaxed">
+              "{result.guide['과거_사례_인용']}"
             </div>
           )}
 
-          {/* 사례 수 */}
-          {result.incident_count != null && (
+          {/* 추가 참고 */}
+          {result.guide['추가_참고'] && (
+            <div className="text-[11px] text-stone-600 bg-white/60 rounded-lg px-3 py-2 border border-stone-100 leading-relaxed">
+              ℹ️ {result.guide['추가_참고']}
+            </div>
+          )}
+
+          {/* 적용 규칙 */}
+          {result.matched_rule && (
             <div className="text-[10px] text-stone-400 font-mono bg-stone-50/80 px-2.5 py-1.5 rounded-lg border border-stone-100">
-              유사 사례: {result.incident_count}건
+              적용 규칙: {result.matched_rule} ({result.incident_count}건 기반)
             </div>
           )}
         </div>
@@ -309,6 +303,18 @@ function AlertSimulate() {
               <CheckCircle2 size={12} /> 생성 완료
             </span>
           </div>
+
+          {/* 위험도 요약 */}
+          {result.results && (
+            <div className="grid grid-cols-2 gap-3">
+              {result.results.cust && (
+                <RiskGauge grade={result.results.cust.risk?.grade} score={result.results.cust.risk?.score} />
+              )}
+              {result.results.emp && (
+                <RiskGauge grade={result.results.emp.risk?.grade} score={result.results.emp.risk?.score} />
+              )}
+            </div>
+          )}
 
           {/* 고객 / 직원 안전 가이드 */}
           {result.results?.cust && (

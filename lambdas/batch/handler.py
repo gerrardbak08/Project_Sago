@@ -22,7 +22,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Any
 
 from core.weather import get_weather
-from core.rule_retriever import match_incidents_by_rules
+from core.rule_matcher import match_with_fallback
 from core.llm import generate_guide
 from core.notifier import get_notifier
 
@@ -72,9 +72,31 @@ def _load_stores() -> list[dict]:
     return _load_json_s3("stores.json")
 
 
-def _load_model_files(source: str) -> dict:
+def _load_model_files(source: str) -> tuple[dict, dict, dict, dict]:
     prefix = f"models/{source}"
-    return _load_json_s3(f"{prefix}/rule_incidents.json")
+    return (
+        _load_json_s3(f"{prefix}/leaf_table.json"),
+        _load_json_s3(f"{prefix}/metadata.json"),
+        _load_json_s3(f"{prefix}/encoder_map.json"),
+        _load_json_s3(f"{prefix}/siblings.json"),
+    )
+
+
+# ──────────────────────────────────────────────
+# 피처 구성
+# ──────────────────────────────────────────────
+def _build_features(weather: dict, store: dict, encoder_map: dict) -> dict[str, float]:
+    features: dict[str, float] = {}
+    for feat in WEATHER_FEATURES:
+        val = weather.get(feat)
+        features[feat] = float(val) if val is not None else 0.0
+    for feat in STORE_NUM_FEATURES:
+        val = store.get(feat)
+        features[feat] = float(val) if val is not None else 0.0
+    store_type = store.get("형태", "직영점")
+    type_mapping = encoder_map.get("형태", {})
+    features["형태"] = float(type_mapping.get(store_type, type_mapping.get("직영점", 2)))
+    return features
 
 
 # ──────────────────────────────────────────────
@@ -97,33 +119,30 @@ def _generate_store_guide(store: dict, date_str: str) -> dict:
     results: dict[str, Any] = {}
     for source in SOURCES:
         try:
-            rule_incidents = _load_model_files(source)
+            leaf_table, metadata, encoder_map, siblings = _load_model_files(source)
         except Exception as e:
             results[source] = {"error": str(e)}
             continue
 
-        label_col = LABEL_COLS.get(source, rule_incidents.get("label_column", "사고유형"))
-        limit = int(os.environ.get("RULE_INCIDENT_LIMIT", "50"))
-        strategy = os.environ.get("RULE_INCIDENT_STRATEGY", "recent")
-        leaf_data = match_incidents_by_rules(
-            source,
-            store,
-            weather,
-            rule_incidents.get("incidents", []),
-            limit=limit,
-            strategy=strategy,
+        label_col = LABEL_COLS.get(source, metadata.get("label_column", "사고유형"))
+        total_incidents = metadata.get("total_incidents", 0)
+        features = _build_features(weather, store, encoder_map)
+        leaf_id, leaf_data, fallback_level = match_with_fallback(
+            features, leaf_table, siblings, metadata
         )
         if leaf_data is None:
-            results[source] = {"error": "룰 기반 사례 매칭 실패"}
+            results[source] = {"error": "리프 매칭 실패"}
             continue
 
         leaf_summary = leaf_data.get("summary", {})
-        guide = generate_guide(store, weather, leaf_data, label_col, source)
+        guide = generate_guide(store, weather, leaf_data, label_col)
 
         results[source] = {
+            "leaf_id": str(leaf_id) if leaf_id is not None else None,
+            "fallback_level": fallback_level,
             "guide": guide,
+            "matched_rule": leaf_data.get("rule", ""),
             "incident_count": leaf_summary.get("total", 0),
-            "matched_incident_count": leaf_summary.get("matched_total", 0),
         }
 
     return {
@@ -149,20 +168,20 @@ def _build_message_body(store_name: str, date_str: str, results: dict) -> str:
         else:
             guide = source_data.get("guide", {})
             lines.append(f"⚠️ {guide.get('위험_요약', '정보 없음')}")
-            if guide.get("오늘의_주의사항"):
-                lines.append("  [오늘 주의]")
-                for item in guide["오늘의_주의사항"]:
+            if guide.get("오늘의_특별_주의사항"):
+                lines.append("  [오늘 특별 주의]")
+                for item in guide["오늘의_특별_주의사항"]:
                     lines.append(f"  ☑️ {item.get('수칙', '')}")
-            if guide.get("부주의_주의사항"):
+            if guide.get("상시_주의사항"):
                 lines.append("  [상시 주의]")
-                for item in guide["부주의_주의사항"]:
-                    lines.append(f"  ☑️ {item}")
+                for item in guide["상시_주의사항"]:
+                    lines.append(f"  ☑️ {item.get('수칙', '')}")
         lines.append("")
     return "\n".join(lines)
 
 
 # ──────────────────────────────────────────────
-# 알림 현황 S3 기록 (alerts 조회 버킷 — 대시보드 조회용)
+# 알림 현황 S3 기록 (frontend 버킷 — 대시보드 조회용)
 # ──────────────────────────────────────────────
 def _record_alert(
     s3_client: Any,
@@ -170,10 +189,10 @@ def _record_alert(
     channel: str,
     trigger_type: str,
 ) -> None:
-    """발송 결과를 alerts/{date}/index.json에 기록한다."""
-    alerts_bucket = os.environ.get("FRONTEND_BUCKET") or os.environ.get("DAILY_BUCKET", "")
-    if not alerts_bucket:
-        print("[batch] FRONTEND_BUCKET/DAILY_BUCKET 미설정 → 기록 스킵")
+    """발송 결과를 frontend 버킷의 alerts/{date}/index.json에 기록한다."""
+    frontend_bucket = os.environ.get("FRONTEND_BUCKET", "")
+    if not frontend_bucket:
+        print("[batch] FRONTEND_BUCKET 미설정 → 기록 스킵")
         return
 
     store_code = guide_result.get("store_code", "unknown")
@@ -200,7 +219,7 @@ def _record_alert(
     # 상세 파일 저장
     try:
         s3_client.put_object(
-            Bucket=alerts_bucket,
+            Bucket=frontend_bucket,
             Key=file_key,
             Body=json.dumps(guide_result, ensure_ascii=False, indent=2).encode("utf-8"),
             ContentType="application/json; charset=utf-8",
@@ -211,7 +230,7 @@ def _record_alert(
     # index.json 업데이트
     index_key = f"alerts/{date_str}/index.json"
     try:
-        resp = s3_client.get_object(Bucket=alerts_bucket, Key=index_key)
+        resp = s3_client.get_object(Bucket=frontend_bucket, Key=index_key)
         index_data = json.loads(resp["Body"].read().decode("utf-8"))
     except Exception:
         index_data = []
@@ -219,7 +238,7 @@ def _record_alert(
     index_data.append(summary_record)
     try:
         s3_client.put_object(
-            Bucket=alerts_bucket,
+            Bucket=frontend_bucket,
             Key=index_key,
             Body=json.dumps(index_data, ensure_ascii=False, indent=2).encode("utf-8"),
             ContentType="application/json; charset=utf-8",

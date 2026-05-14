@@ -1,0 +1,42 @@
+{
+  "feature_names": [
+    "temperature_2m_min",
+    "temperature_2m_max",
+    "precipitation_sum",
+    "snowfall_sum",
+    "rain_sum",
+    "wind_speed_10m_max",
+    "relative_humidity_2m_mean",
+    "soil_temperature_0_to_7cm_mean",
+    "평수",
+    "실평수",
+    "진열평수",
+    "창고",
+    "계약면적(㎡)",
+    "매장인원",
+    "입고도우미PO",
+    "일평균매출",
+    "일평균물동량",
+    "형태"
+  ],
+  "total_incidents": 1481,
+  "n_leaves": 56,
+  "leaf_min_samples": 20,
+  "leaf_max_samples": 39,
+  "tree_depth": 11,
+  "hyperparameters": {
+    "max_depth": 12,
+    "min_samples_leaf": 20,
+    "class_weight": "balanced",
+    "criterion": "gini",
+    "random_state": 42
+  },
+  "label_column": "사고유형",
+  "label_distribution": {
+    "낙상": 657,
+    "재물": 406,
+    "충돌": 253,
+    "자상": 140,
+    "클레임": 25
+  }
+}
