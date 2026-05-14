@@ -132,6 +132,7 @@ def _generate_store_guide(store: dict, date_str: str) -> dict:
             rule_incidents.get("incidents", []),
             limit=limit,
             strategy=strategy,
+            feature_rules=rule_incidents.get("feature_rules"),
         )
         leaf_id = None
         fallback_level = None

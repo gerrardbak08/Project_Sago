@@ -51,12 +51,60 @@ def _context_features(store: dict, weather: dict) -> dict[str, Any]:
     return features
 
 
-def _bucket_map(source: str, features: dict[str, Any]) -> dict[str, dict]:
+def _classify_from_rules(feature_rules: dict, feature: str, value: Any) -> dict | None:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+
+    thresholds = feature_rules.get(feature)
+    if not thresholds:
+        return None
+
+    for label, info in thresholds.items():
+        op = info["op"]
+        threshold = float(info["val"])
+        if (
+            (op == "<=" and numeric <= threshold)
+            or (op == "<" and numeric < threshold)
+            or (op == ">" and numeric > threshold)
+            or (op == ">=" and numeric >= threshold)
+        ):
+            return {
+                "feature": feature,
+                "label": label,
+                "value": numeric,
+                "op": op,
+                "threshold": threshold,
+                "risk": info["risk"],
+            }
+    return None
+
+
+def _classify_bucket(
+    source: str,
+    feature: str,
+    value: Any,
+    feature_rules: dict | None,
+) -> dict | None:
+    if feature_rules:
+        bucket = _classify_from_rules(feature_rules, feature, value)
+        if bucket:
+            return bucket
+    return classify_feature_bucket(source, feature, value)
+
+
+def _bucket_map(
+    source: str,
+    features: dict[str, Any],
+    feature_rules: dict | None = None,
+) -> dict[str, dict]:
     result: dict[str, dict] = {}
-    for feature in get_feature_thresholds(source):
+    rule_features = feature_rules.keys() if feature_rules else get_feature_thresholds(source)
+    for feature in rule_features:
         if feature not in features:
             continue
-        bucket = classify_feature_bucket(source, feature, features.get(feature))
+        bucket = _classify_bucket(source, feature, features.get(feature), feature_rules)
         if bucket:
             result[feature] = bucket
     return result
@@ -78,11 +126,14 @@ def _matched_incident(
     source: str,
     incident: dict,
     today_buckets: dict[str, dict],
+    feature_rules: dict | None,
 ) -> dict | None:
     matched = []
     compared = 0
     for feature, today_bucket in today_buckets.items():
-        inc_bucket = classify_feature_bucket(source, feature, incident.get(feature))
+        inc_bucket = _classify_bucket(
+            source, feature, incident.get(feature), feature_rules
+        )
         if not inc_bucket:
             continue
         compared += 1
@@ -140,14 +191,15 @@ def match_incidents_by_rules(
     incidents: list[dict],
     limit: int | None = 50,
     strategy: str = "recent",
+    feature_rules: dict | None = None,
 ) -> dict:
     """오늘 조건과 같은 source별 룰 구간을 공유하는 사고 사례를 반환한다."""
     label_col = LABEL_COLS.get(source, "사고유형")
-    today_buckets = _bucket_map(source, _context_features(store, weather))
+    today_buckets = _bucket_map(source, _context_features(store, weather), feature_rules)
 
     matched = []
     for incident in incidents:
-        item = _matched_incident(source, incident, today_buckets)
+        item = _matched_incident(source, incident, today_buckets, feature_rules)
         if item:
             matched.append(item)
 

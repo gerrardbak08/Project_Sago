@@ -9,7 +9,9 @@ models/{cust,emp}/rule_incidents.json에 저장한다.
 from __future__ import annotations
 
 import json
+import re
 import sys
+from collections import Counter
 from pathlib import Path
 
 import pandas as pd
@@ -29,6 +31,132 @@ from build_dataset import (  # noqa: E402
     STORE_NUM_FEATURES,
     WEATHER_FEATURES,
 )
+
+_CONDITION_RE = re.compile(
+    r"([A-Za-z0-9_가-힣()㎡]+)\s*(<=|>=|<|>)\s*(-?[\d.]+)"
+)
+
+
+def _format_num(value: float) -> str:
+    text = f"{value:.4f}".rstrip("0").rstrip(".")
+    return text if text else "0"
+
+
+def _incident_text(incident: dict) -> str:
+    return (
+        incident.get("사고내용요약")
+        or incident.get("사고 내용")
+        or incident.get("사고내용")
+        or ""
+    )
+
+
+def _collect_tree_thresholds(leaf_table: dict) -> dict[str, list[float]]:
+    thresholds: dict[str, set[float]] = {}
+    for leaf in leaf_table.values():
+        rule = leaf.get("rule", "")
+        for feature, _op, value in _CONDITION_RE.findall(rule):
+            thresholds.setdefault(feature, set()).add(float(value))
+    return {feature: sorted(values) for feature, values in thresholds.items()}
+
+
+def _make_bucket_defs(thresholds: list[float]) -> list[tuple[str, dict]]:
+    buckets: list[tuple[str, dict]] = []
+    for index, threshold in enumerate(thresholds):
+        if index == 0:
+            label = f"<= {_format_num(threshold)}"
+        else:
+            previous = thresholds[index - 1]
+            label = f"> {_format_num(previous)}~<= {_format_num(threshold)}"
+        buckets.append((label, {"op": "<=", "val": threshold}))
+
+    last = thresholds[-1]
+    buckets.append((f"> {_format_num(last)}", {"op": ">", "val": last}))
+    return buckets
+
+
+def _classify_bucket_label(value: object, bucket_defs: list[tuple[str, dict]]) -> str | None:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+
+    for label, info in bucket_defs:
+        op = info["op"]
+        threshold = float(info["val"])
+        if op == "<=" and numeric <= threshold:
+            return label
+        if op == ">" and numeric > threshold:
+            return label
+    return None
+
+
+def _build_bucket_risk(
+    source: str,
+    feature: str,
+    label: str,
+    incidents: list[dict],
+    label_col: str,
+) -> str:
+    source_label = "고객" if source == "cust" else "직원"
+    if not incidents:
+        return f"{source_label} {feature} {label} 구간은 의사결정트리 분기 기준에서 분리된 유사 사례 검색 구간입니다."
+
+    type_counts = Counter(
+        inc.get(label_col)
+        for inc in incidents
+        if inc.get(label_col) is not None
+    )
+    dominant = type_counts.most_common(1)[0][0] if type_counts else "사고"
+    examples = []
+    for inc in incidents:
+        text = _incident_text(inc).strip()
+        if text:
+            examples.append(text[:45])
+        if len(examples) == 2:
+            break
+
+    if examples:
+        return (
+            f"{source_label} {feature} {label} 구간에서 {dominant} 사례가 주로 확인됩니다. "
+            f"예: {' / '.join(examples)}"
+        )
+    return f"{source_label} {feature} {label} 구간에서 {dominant} 사례가 확인됩니다."
+
+
+def build_feature_rules_from_tree(
+    source: str,
+    leaf_table: dict,
+    incidents: list[dict],
+    label_col: str,
+) -> dict:
+    """Decision Tree 리프 규칙에 등장한 split threshold로 source별 기준표를 만든다."""
+    result: dict[str, dict] = {}
+    for feature, thresholds in _collect_tree_thresholds(leaf_table).items():
+        if not thresholds:
+            continue
+
+        bucket_defs = _make_bucket_defs(thresholds)
+        incidents_by_bucket: dict[str, list[dict]] = {label: [] for label, _ in bucket_defs}
+        for incident in incidents:
+            bucket_label = _classify_bucket_label(incident.get(feature), bucket_defs)
+            if bucket_label:
+                incidents_by_bucket[bucket_label].append(incident)
+
+        feature_rules = {}
+        for label, info in bucket_defs:
+            rule_info = dict(info)
+            rule_info["risk"] = _build_bucket_risk(
+                source,
+                feature,
+                label,
+                incidents_by_bucket.get(label, []),
+                label_col,
+            )
+            feature_rules[label] = rule_info
+        result[feature] = feature_rules
+
+    return result
 
 
 def _to_records(df: pd.DataFrame, cols: list[str]) -> list[dict]:
@@ -62,6 +190,17 @@ def _build_source(source: str) -> None:
         "total_incidents": int(len(df)),
         "incidents": _to_records(df, cols),
     }
+
+    leaf_table_path = MODELS / source / "leaf_table.json"
+    if leaf_table_path.exists():
+        with open(leaf_table_path, "r", encoding="utf-8") as f:
+            leaf_table = json.load(f)
+        payload["feature_rules"] = build_feature_rules_from_tree(
+            source,
+            leaf_table,
+            payload["incidents"],
+            label_col,
+        )
 
     out_dir = MODELS / source
     out_dir.mkdir(parents=True, exist_ok=True)
