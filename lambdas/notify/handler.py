@@ -197,14 +197,14 @@ def _build_message_body(store_name: str, date_str: str, results: dict) -> str:
         else:
             guide = source_data.get("guide", {})
             lines.append(f"⚠️ {guide.get('위험_요약', '정보 없음')}")
-            if guide.get("오늘의_특별_주의사항"):
-                lines.append("  [오늘 특별 주의]")
-                for item in guide["오늘의_특별_주의사항"]:
+            if guide.get("오늘의_주의사항"):
+                lines.append("  [오늘 주의]")
+                for item in guide["오늘의_주의사항"]:
                     lines.append(f"  ☑️ {item.get('수칙', '')}")
-            if guide.get("상시_주의사항"):
+            if guide.get("부주의_주의사항"):
                 lines.append("  [상시 주의]")
-                for item in guide["상시_주의사항"]:
-                    lines.append(f"  ☑️ {item.get('수칙', '')}")
+                for item in guide["부주의_주의사항"]:
+                    lines.append(f"  ☑️ {item}")
         lines.append("")
     return "\n".join(lines)
 

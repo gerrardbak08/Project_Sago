@@ -6,18 +6,13 @@ import rawStores from '../../../data/raw/stores.json';
 
 const STORES_LIST = rawStores.data.filter(s => s['폐점여부'] === '영업');
 
-const RISK_META = {
-  high:   { label: "고위험", bg: "bg-red-50",     text: "text-red-700",     dot: "#D70011" },
-  medium: { label: "중위험", bg: "bg-amber-50",   text: "text-amber-700",   dot: "#B45309" },
-  low:    { label: "저위험", bg: "bg-emerald-50", text: "text-emerald-700", dot: "#15803D" },
-};
-
-function RiskBadge({ grade }) {
-  const m = RISK_META[grade] || RISK_META.low;
+function RiskTypeBadge({ label, tone }) {
+  const colorClass = tone === "cust"
+    ? "bg-sky-50 text-sky-700 border-sky-100"
+    : "bg-indigo-50 text-indigo-700 border-indigo-100";
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${m.bg} ${m.text}`}>
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: m.dot }} />
-      {m.label}
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-semibold ${colorClass}`}>
+      {label}
     </span>
   );
 }
@@ -264,8 +259,8 @@ function AlertSend() {
                         </div>
                       )}
                       <div className="flex gap-1.5 mt-1">
-                        {s.risk_cust && <RiskBadge grade={s.risk_cust} />}
-                        {s.risk_emp && <RiskBadge grade={s.risk_emp} />}
+                        {s["주요_위험유형_cust"] && <RiskTypeBadge tone="cust" label={`고객 ${s["주요_위험유형_cust"]}`} />}
+                        {s["주요_위험유형_emp"] && <RiskTypeBadge tone="emp" label={`직원 ${s["주요_위험유형_emp"]}`} />}
                       </div>
                     </div>
                   )}

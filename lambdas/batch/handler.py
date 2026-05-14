@@ -168,20 +168,20 @@ def _build_message_body(store_name: str, date_str: str, results: dict) -> str:
         else:
             guide = source_data.get("guide", {})
             lines.append(f"⚠️ {guide.get('위험_요약', '정보 없음')}")
-            if guide.get("오늘의_특별_주의사항"):
-                lines.append("  [오늘 특별 주의]")
-                for item in guide["오늘의_특별_주의사항"]:
+            if guide.get("오늘의_주의사항"):
+                lines.append("  [오늘 주의]")
+                for item in guide["오늘의_주의사항"]:
                     lines.append(f"  ☑️ {item.get('수칙', '')}")
-            if guide.get("상시_주의사항"):
+            if guide.get("부주의_주의사항"):
                 lines.append("  [상시 주의]")
-                for item in guide["상시_주의사항"]:
-                    lines.append(f"  ☑️ {item.get('수칙', '')}")
+                for item in guide["부주의_주의사항"]:
+                    lines.append(f"  ☑️ {item}")
         lines.append("")
     return "\n".join(lines)
 
 
 # ──────────────────────────────────────────────
-# 알림 현황 S3 기록 (frontend 버킷 — 대시보드 조회용)
+# 알림 현황 S3 기록 (alerts 조회 버킷 — 대시보드 조회용)
 # ──────────────────────────────────────────────
 def _record_alert(
     s3_client: Any,
@@ -189,10 +189,10 @@ def _record_alert(
     channel: str,
     trigger_type: str,
 ) -> None:
-    """발송 결과를 frontend 버킷의 alerts/{date}/index.json에 기록한다."""
-    frontend_bucket = os.environ.get("FRONTEND_BUCKET", "")
-    if not frontend_bucket:
-        print("[batch] FRONTEND_BUCKET 미설정 → 기록 스킵")
+    """발송 결과를 alerts/{date}/index.json에 기록한다."""
+    alerts_bucket = os.environ.get("FRONTEND_BUCKET") or os.environ.get("DAILY_BUCKET", "")
+    if not alerts_bucket:
+        print("[batch] FRONTEND_BUCKET/DAILY_BUCKET 미설정 → 기록 스킵")
         return
 
     store_code = guide_result.get("store_code", "unknown")
@@ -219,7 +219,7 @@ def _record_alert(
     # 상세 파일 저장
     try:
         s3_client.put_object(
-            Bucket=frontend_bucket,
+            Bucket=alerts_bucket,
             Key=file_key,
             Body=json.dumps(guide_result, ensure_ascii=False, indent=2).encode("utf-8"),
             ContentType="application/json; charset=utf-8",
@@ -230,7 +230,7 @@ def _record_alert(
     # index.json 업데이트
     index_key = f"alerts/{date_str}/index.json"
     try:
-        resp = s3_client.get_object(Bucket=frontend_bucket, Key=index_key)
+        resp = s3_client.get_object(Bucket=alerts_bucket, Key=index_key)
         index_data = json.loads(resp["Body"].read().decode("utf-8"))
     except Exception:
         index_data = []
@@ -238,7 +238,7 @@ def _record_alert(
     index_data.append(summary_record)
     try:
         s3_client.put_object(
-            Bucket=frontend_bucket,
+            Bucket=alerts_bucket,
             Key=index_key,
             Body=json.dumps(index_data, ensure_ascii=False, indent=2).encode("utf-8"),
             ContentType="application/json; charset=utf-8",
