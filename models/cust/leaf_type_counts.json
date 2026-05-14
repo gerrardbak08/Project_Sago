@@ -1,296 +1,545 @@
 {
   "label_column": "사고유형",
   "leaves": {
-    "4": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) <= 688.0 & temperature_2m_max <= 15.85 & temperature_2m_min <= -4.65",
-      "total": 40,
+    "3": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) <= 688.0 & 계약면적(㎡) <= 292.93",
+      "total": 37,
       "type_counts": {
-        "낙상": 25,
-        "충돌": 5,
-        "재물": 7,
-        "자상": 3
+        "낙상": 11,
+        "충돌": 7,
+        "재물": 19
       }
     },
     "6": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) <= 688.0 & temperature_2m_max <= 15.85 & temperature_2m_min > -4.65 & relative_humidity_2m_mean <= 68.5",
-      "total": 40,
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) <= 688.0 & 계약면적(㎡) > 292.93 & temperature_2m_max <= 15.85 & temperature_2m_max <= 1.85",
+      "total": 20,
       "type_counts": {
-        "충돌": 8,
-        "낙상": 16,
-        "재물": 16
+        "낙상": 13,
+        "충돌": 2,
+        "자상": 3,
+        "재물": 2
       }
     },
-    "7": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) <= 688.0 & temperature_2m_max <= 15.85 & temperature_2m_min > -4.65 & relative_humidity_2m_mean > 68.5",
-      "total": 54,
+    "8": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) <= 688.0 & 계약면적(㎡) > 292.93 & temperature_2m_max <= 15.85 & temperature_2m_max > 1.85 & relative_humidity_2m_mean <= 60.5",
+      "total": 29,
       "type_counts": {
-        "낙상": 32,
-        "충돌": 13,
-        "재물": 9
-      }
-    },
-    "9": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) <= 688.0 & temperature_2m_max > 15.85 & temperature_2m_min <= 12.7",
-      "total": 45,
-      "type_counts": {
-        "재물": 5,
-        "낙상": 29,
-        "자상": 8,
-        "충돌": 3
+        "충돌": 5,
+        "낙상": 14,
+        "재물": 10
       }
     },
     "10": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) <= 688.0 & temperature_2m_max > 15.85 & temperature_2m_min > 12.7",
-      "total": 68,
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) <= 688.0 & 계약면적(㎡) > 292.93 & temperature_2m_max <= 15.85 & temperature_2m_max > 1.85 & relative_humidity_2m_mean > 60.5 & rain_sum <= 1.0",
+      "total": 39,
       "type_counts": {
-        "재물": 14,
-        "낙상": 36,
         "충돌": 14,
-        "자상": 4
+        "낙상": 23,
+        "재물": 2
+      }
+    },
+    "11": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) <= 688.0 & 계약면적(㎡) > 292.93 & temperature_2m_max <= 15.85 & temperature_2m_max > 1.85 & relative_humidity_2m_mean > 60.5 & rain_sum > 1.0",
+      "total": 20,
+      "type_counts": {
+        "낙상": 15,
+        "충돌": 2,
+        "재물": 3
       }
     },
     "14": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 <= 10006928.5 & temperature_2m_min <= 11.45 & 평수 <= 278.5",
-      "total": 62,
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) <= 688.0 & 계약면적(㎡) > 292.93 & temperature_2m_max > 15.85 & temperature_2m_min <= 12.7 & temperature_2m_max <= 21.15",
+      "total": 20,
       "type_counts": {
-        "낙상": 37,
-        "재물": 18,
-        "충돌": 7
+        "낙상": 15,
+        "자상": 3,
+        "충돌": 2
       }
     },
     "15": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 <= 10006928.5 & temperature_2m_min <= 11.45 & 평수 > 278.5",
-      "total": 48,
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) <= 688.0 & 계약면적(㎡) > 292.93 & temperature_2m_max > 15.85 & temperature_2m_min <= 12.7 & temperature_2m_max > 21.15",
+      "total": 20,
       "type_counts": {
-        "재물": 24,
-        "낙상": 12,
-        "자상": 4,
-        "충돌": 8
+        "자상": 5,
+        "재물": 3,
+        "낙상": 12
       }
     },
-    "16": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 <= 10006928.5 & temperature_2m_min > 11.45",
-      "total": 58,
+    "17": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) <= 688.0 & 계약면적(㎡) > 292.93 & temperature_2m_max > 15.85 & temperature_2m_min > 12.7 & precipitation_sum <= 0.3",
+      "total": 24,
       "type_counts": {
-        "재물": 12,
-        "충돌": 11,
-        "자상": 10,
-        "낙상": 25
+        "낙상": 14,
+        "충돌": 7,
+        "재물": 3
+      }
+    },
+    "18": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) <= 688.0 & 계약면적(㎡) > 292.93 & temperature_2m_max > 15.85 & temperature_2m_min > 12.7 & precipitation_sum > 0.3",
+      "total": 38,
+      "type_counts": {
+        "재물": 9,
+        "낙상": 21,
+        "충돌": 4,
+        "자상": 4
       }
     },
     "23": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 <= 299.75 & 평수 <= 244.5 & 진열평수 <= 175.5",
-      "total": 53,
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 <= 10006928.5 & temperature_2m_min <= 19.6 & 계약면적(㎡) <= 1020.5 & relative_humidity_2m_mean <= 59.5",
+      "total": 20,
       "type_counts": {
-        "낙상": 26,
-        "충돌": 6,
-        "재물": 14,
-        "자상": 6,
-        "클레임": 1
-      }
-    },
-    "24": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 <= 299.75 & 평수 <= 244.5 & 진열평수 > 175.5",
-      "total": 42,
-      "type_counts": {
-        "낙상": 22,
-        "재물": 6,
-        "충돌": 8,
-        "클레임": 4,
-        "자상": 2
+        "낙상": 10,
+        "재물": 10
       }
     },
     "26": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 <= 299.75 & 평수 > 244.5 & relative_humidity_2m_mean <= 70.0",
-      "total": 42,
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 <= 10006928.5 & temperature_2m_min <= 19.6 & 계약면적(㎡) <= 1020.5 & relative_humidity_2m_mean > 59.5 & 진열평수 <= 220.5 & 계약면적(㎡) <= 852.5",
+      "total": 21,
       "type_counts": {
-        "낙상": 17,
-        "충돌": 8,
-        "재물": 17
-      }
-    },
-    "27": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 <= 299.75 & 평수 > 244.5 & relative_humidity_2m_mean > 70.0",
-      "total": 51,
-      "type_counts": {
-        "낙상": 23,
-        "충돌": 10,
-        "재물": 12,
-        "자상": 6
-      }
-    },
-    "30": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 > 299.75 & 계약면적(㎡) <= 1337.0 & 매장인원 <= 10.95",
-      "total": 53,
-      "type_counts": {
-        "낙상": 14,
-        "충돌": 15,
-        "재물": 16,
-        "자상": 5,
-        "클레임": 3
-      }
-    },
-    "31": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 > 299.75 & 계약면적(㎡) <= 1337.0 & 매장인원 > 10.95",
-      "total": 65,
-      "type_counts": {
-        "낙상": 25,
-        "충돌": 6,
-        "재물": 15,
-        "클레임": 12,
-        "자상": 7
-      }
-    },
-    "33": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 > 299.75 & 계약면적(㎡) > 1337.0 & 진열평수 <= 349.5",
-      "total": 56,
-      "type_counts": {
-        "낙상": 19,
-        "재물": 24,
-        "충돌": 8,
-        "자상": 5
-      }
-    },
-    "34": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 > 299.75 & 계약면적(㎡) > 1337.0 & 진열평수 > 349.5",
-      "total": 40,
-      "type_counts": {
-        "재물": 13,
-        "낙상": 17,
-        "클레임": 2,
-        "자상": 4,
+        "낙상": 13,
+        "재물": 4,
         "충돌": 4
       }
     },
-    "35": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 > 49.13",
-      "total": 54,
+    "27": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 <= 10006928.5 & temperature_2m_min <= 19.6 & 계약면적(㎡) <= 1020.5 & relative_humidity_2m_mean > 59.5 & 진열평수 <= 220.5 & 계약면적(㎡) > 852.5",
+      "total": 20,
       "type_counts": {
-        "재물": 17,
-        "낙상": 24,
-        "충돌": 7,
-        "자상": 6
+        "충돌": 9,
+        "낙상": 8,
+        "재물": 3
       }
     },
-    "37": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max > 6.235 & temperature_2m_min <= 3.3",
-      "total": 40,
+    "28": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 <= 10006928.5 & temperature_2m_min <= 19.6 & 계약면적(㎡) <= 1020.5 & relative_humidity_2m_mean > 59.5 & 진열평수 > 220.5",
+      "total": 20,
       "type_counts": {
-        "재물": 19,
-        "낙상": 16,
-        "충돌": 4,
+        "재물": 10,
+        "낙상": 7,
+        "충돌": 3
+      }
+    },
+    "30": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 <= 10006928.5 & temperature_2m_min <= 19.6 & 계약면적(㎡) > 1020.5 & 입고도우미PO <= 0.55",
+      "total": 36,
+      "type_counts": {
+        "낙상": 18,
+        "재물": 15,
+        "충돌": 2,
         "자상": 1
       }
     },
-    "38": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max > 6.235 & temperature_2m_min > 3.3",
-      "total": 40,
+    "31": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 <= 10006928.5 & temperature_2m_min <= 19.6 & 계약면적(㎡) > 1020.5 & 입고도우미PO > 0.55",
+      "total": 27,
       "type_counts": {
-        "낙상": 18,
-        "재물": 9,
-        "충돌": 10,
-        "자상": 3
+        "낙상": 7,
+        "재물": 8,
+        "자상": 6,
+        "충돌": 6
+      }
+    },
+    "32": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 <= 10006928.5 & temperature_2m_min > 19.6",
+      "total": 24,
+      "type_counts": {
+        "충돌": 2,
+        "재물": 4,
+        "자상": 7,
+        "낙상": 11
+      }
+    },
+    "39": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 <= 299.75 & 평수 <= 244.5 & soil_temperature_0_to_7cm_mean <= 1.5",
+      "total": 35,
+      "type_counts": {
+        "낙상": 19,
+        "재물": 8,
+        "자상": 2,
+        "충돌": 6
+      }
+    },
+    "41": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 <= 299.75 & 평수 <= 244.5 & soil_temperature_0_to_7cm_mean > 1.5 & 입고도우미PO <= 0.75",
+      "total": 20,
+      "type_counts": {
+        "충돌": 4,
+        "재물": 6,
+        "낙상": 8,
+        "자상": 2
       }
     },
     "43": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 > 16233571.5 & rain_sum <= 5.6 & wind_speed_10m_max <= 5.755 & 입고도우미PO <= 1.15 & wind_speed_10m_max <= 3.77",
-      "total": 65,
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 <= 299.75 & 평수 <= 244.5 & soil_temperature_0_to_7cm_mean > 1.5 & 입고도우미PO > 0.75 & 창고 <= 13.5",
+      "total": 20,
       "type_counts": {
-        "재물": 15,
-        "낙상": 32,
-        "충돌": 11,
-        "자상": 7
+        "낙상": 9,
+        "클레임": 4,
+        "충돌": 4,
+        "재물": 3
       }
     },
     "44": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 > 16233571.5 & rain_sum <= 5.6 & wind_speed_10m_max <= 5.755 & 입고도우미PO <= 1.15 & wind_speed_10m_max > 3.77",
-      "total": 64,
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 <= 299.75 & 평수 <= 244.5 & soil_temperature_0_to_7cm_mean > 1.5 & 입고도우미PO > 0.75 & 창고 > 13.5",
+      "total": 20,
       "type_counts": {
-        "재물": 24,
-        "낙상": 24,
-        "충돌": 15,
-        "자상": 1
-      }
-    },
-    "46": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 > 16233571.5 & rain_sum <= 5.6 & wind_speed_10m_max <= 5.755 & 입고도우미PO > 1.15 & 계약면적(㎡) <= 2316.0399",
-      "total": 45,
-      "type_counts": {
-        "낙상": 9,
-        "재물": 16,
-        "자상": 12,
-        "충돌": 8
+        "낙상": 12,
+        "자상": 4,
+        "재물": 3,
+        "클레임": 1
       }
     },
     "47": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 > 16233571.5 & rain_sum <= 5.6 & wind_speed_10m_max <= 5.755 & 입고도우미PO > 1.15 & 계약면적(㎡) > 2316.0399",
-      "total": 41,
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 <= 299.75 & 평수 > 244.5 & relative_humidity_2m_mean <= 70.0 & 평수 <= 277.0",
+      "total": 22,
       "type_counts": {
-        "낙상": 22,
+        "낙상": 12,
         "충돌": 6,
-        "재물": 10,
-        "자상": 3
+        "재물": 4
       }
     },
     "48": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 > 16233571.5 & rain_sum <= 5.6 & wind_speed_10m_max > 5.755",
-      "total": 53,
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 <= 299.75 & 평수 > 244.5 & relative_humidity_2m_mean <= 70.0 & 평수 > 277.0",
+      "total": 20,
       "type_counts": {
-        "충돌": 12,
-        "재물": 21,
-        "낙상": 19,
+        "낙상": 5,
+        "재물": 13,
+        "충돌": 2
+      }
+    },
+    "50": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 <= 299.75 & 평수 > 244.5 & relative_humidity_2m_mean > 70.0 & 계약면적(㎡) <= 1033.28",
+      "total": 28,
+      "type_counts": {
+        "낙상": 15,
+        "충돌": 5,
+        "재물": 7,
         "자상": 1
       }
     },
-    "49": {
-      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 > 16233571.5 & rain_sum > 5.6",
-      "total": 55,
+    "51": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 <= 299.75 & 평수 > 244.5 & relative_humidity_2m_mean > 70.0 & 계약면적(㎡) > 1033.28",
+      "total": 23,
       "type_counts": {
-        "낙상": 29,
-        "재물": 11,
-        "클레임": 3,
+        "낙상": 8,
         "충돌": 5,
-        "자상": 7
-      }
-    },
-    "53": {
-      "rule": "soil_temperature_0_to_7cm_mean > 26.55 & 창고 <= 33.9 & 일평균매출 <= 13721169.5 & 실평수 <= 212.0",
-      "total": 42,
-      "type_counts": {
-        "낙상": 21,
-        "충돌": 7,
-        "재물": 11,
-        "자상": 3
-      }
-    },
-    "54": {
-      "rule": "soil_temperature_0_to_7cm_mean > 26.55 & 창고 <= 33.9 & 일평균매출 <= 13721169.5 & 실평수 > 212.0",
-      "total": 46,
-      "type_counts": {
-        "낙상": 13,
-        "재물": 12,
-        "자상": 13,
-        "충돌": 8
-      }
-    },
-    "55": {
-      "rule": "soil_temperature_0_to_7cm_mean > 26.55 & 창고 <= 33.9 & 일평균매출 > 13721169.5",
-      "total": 61,
-      "type_counts": {
-        "충돌": 22,
-        "낙상": 28,
-        "자상": 6,
+        "자상": 5,
         "재물": 5
       }
     },
-    "56": {
-      "rule": "soil_temperature_0_to_7cm_mean > 26.55 & 창고 > 33.9",
-      "total": 58,
+    "55": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 > 299.75 & 계약면적(㎡) <= 1337.0 & 매장인원 <= 10.95 & 계약면적(㎡) <= 995.03",
+      "total": 22,
       "type_counts": {
-        "낙상": 27,
-        "자상": 13,
+        "낙상": 7,
+        "충돌": 5,
+        "재물": 8,
+        "자상": 2
+      }
+    },
+    "56": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 > 299.75 & 계약면적(㎡) <= 1337.0 & 매장인원 <= 10.95 & 계약면적(㎡) > 995.03",
+      "total": 31,
+      "type_counts": {
+        "낙상": 7,
+        "충돌": 10,
+        "재물": 8,
+        "자상": 3,
+        "클레임": 3
+      }
+    },
+    "58": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 > 299.75 & 계약면적(㎡) <= 1337.0 & 매장인원 > 10.95 & soil_temperature_0_to_7cm_mean <= 13.95",
+      "total": 31,
+      "type_counts": {
+        "낙상": 16,
+        "충돌": 3,
+        "재물": 7,
+        "클레임": 5
+      }
+    },
+    "59": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 > 299.75 & 계약면적(㎡) <= 1337.0 & 매장인원 > 10.95 & soil_temperature_0_to_7cm_mean > 13.95",
+      "total": 34,
+      "type_counts": {
+        "재물": 8,
+        "낙상": 9,
+        "충돌": 3,
+        "클레임": 7,
+        "자상": 7
+      }
+    },
+    "62": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 > 299.75 & 계약면적(㎡) > 1337.0 & 계약면적(㎡) <= 2157.7 & 계약면적(㎡) <= 1500.24",
+      "total": 26,
+      "type_counts": {
+        "재물": 12,
+        "낙상": 10,
+        "충돌": 4
+      }
+    },
+    "64": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 > 299.75 & 계약면적(㎡) > 1337.0 & 계약면적(㎡) <= 2157.7 & 계약면적(㎡) > 1500.24 & wind_speed_10m_max <= 3.825",
+      "total": 25,
+      "type_counts": {
+        "낙상": 13,
+        "재물": 5,
+        "자상": 6,
+        "충돌": 1
+      }
+    },
+    "65": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 > 299.75 & 계약면적(㎡) > 1337.0 & 계약면적(㎡) <= 2157.7 & 계약면적(㎡) > 1500.24 & wind_speed_10m_max > 3.825",
+      "total": 21,
+      "type_counts": {
+        "낙상": 5,
+        "재물": 8,
+        "자상": 2,
+        "충돌": 6
+      }
+    },
+    "66": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 <= 49.13 & 평수 > 299.75 & 계약면적(㎡) > 1337.0 & 계약면적(㎡) > 2157.7",
+      "total": 24,
+      "type_counts": {
+        "낙상": 8,
+        "재물": 12,
+        "클레임": 2,
+        "충돌": 1,
+        "자상": 1
+      }
+    },
+    "68": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 > 49.13 & soil_temperature_0_to_7cm_mean <= 15.7",
+      "total": 29,
+      "type_counts": {
+        "재물": 11,
+        "낙상": 14,
+        "충돌": 4
+      }
+    },
+    "69": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max <= 6.235 & 창고 > 49.13 & soil_temperature_0_to_7cm_mean > 15.7",
+      "total": 25,
+      "type_counts": {
+        "낙상": 10,
+        "자상": 6,
+        "충돌": 3,
+        "재물": 6
+      }
+    },
+    "71": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max > 6.235 & temperature_2m_max <= 10.25",
+      "total": 34,
+      "type_counts": {
+        "낙상": 17,
+        "재물": 15,
+        "충돌": 2
+      }
+    },
+    "73": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max > 6.235 & temperature_2m_max > 10.25 & wind_speed_10m_max <= 6.85",
+      "total": 22,
+      "type_counts": {
+        "낙상": 8,
+        "충돌": 8,
+        "재물": 3,
+        "자상": 3
+      }
+    },
+    "74": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 <= 16233571.5 & wind_speed_10m_max > 6.235 & temperature_2m_max > 10.25 & wind_speed_10m_max > 6.85",
+      "total": 24,
+      "type_counts": {
+        "재물": 10,
+        "낙상": 9,
         "충돌": 4,
-        "재물": 14
+        "자상": 1
+      }
+    },
+    "77": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 > 16233571.5 & rain_sum <= 5.6 & temperature_2m_max <= 2.45",
+      "total": 34,
+      "type_counts": {
+        "재물": 13,
+        "충돌": 4,
+        "낙상": 17
+      }
+    },
+    "79": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 > 16233571.5 & rain_sum <= 5.6 & temperature_2m_max > 2.45 & 매장인원 <= 13.45",
+      "total": 24,
+      "type_counts": {
+        "재물": 8,
+        "낙상": 10,
+        "충돌": 6
+      }
+    },
+    "84": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 > 16233571.5 & rain_sum <= 5.6 & temperature_2m_max > 2.45 & 매장인원 > 13.45 & wind_speed_10m_max <= 5.79 & temperature_2m_max <= 26.05 & temperature_2m_max <= 20.6 & 진열평수 <= 315.945",
+      "total": 37,
+      "type_counts": {
+        "재물": 11,
+        "충돌": 11,
+        "낙상": 14,
+        "자상": 1
+      }
+    },
+    "86": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 > 16233571.5 & rain_sum <= 5.6 & temperature_2m_max > 2.45 & 매장인원 > 13.45 & wind_speed_10m_max <= 5.79 & temperature_2m_max <= 26.05 & temperature_2m_max <= 20.6 & 진열평수 > 315.945 & 매장인원 <= 18.85",
+      "total": 34,
+      "type_counts": {
+        "낙상": 16,
+        "재물": 11,
+        "자상": 3,
+        "충돌": 4
+      }
+    },
+    "87": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 > 16233571.5 & rain_sum <= 5.6 & temperature_2m_max > 2.45 & 매장인원 > 13.45 & wind_speed_10m_max <= 5.79 & temperature_2m_max <= 26.05 & temperature_2m_max <= 20.6 & 진열평수 > 315.945 & 매장인원 > 18.85",
+      "total": 30,
+      "type_counts": {
+        "재물": 6,
+        "충돌": 8,
+        "낙상": 7,
+        "자상": 9
+      }
+    },
+    "89": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 > 16233571.5 & rain_sum <= 5.6 & temperature_2m_max > 2.45 & 매장인원 > 13.45 & wind_speed_10m_max <= 5.79 & temperature_2m_max <= 26.05 & temperature_2m_max > 20.6 & temperature_2m_min <= 12.95",
+      "total": 21,
+      "type_counts": {
+        "재물": 11,
+        "낙상": 9,
+        "자상": 1
+      }
+    },
+    "90": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 > 16233571.5 & rain_sum <= 5.6 & temperature_2m_max > 2.45 & 매장인원 > 13.45 & wind_speed_10m_max <= 5.79 & temperature_2m_max <= 26.05 & temperature_2m_max > 20.6 & temperature_2m_min > 12.95",
+      "total": 21,
+      "type_counts": {
+        "재물": 8,
+        "자상": 5,
+        "낙상": 6,
+        "충돌": 2
+      }
+    },
+    "91": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 > 16233571.5 & rain_sum <= 5.6 & temperature_2m_max > 2.45 & 매장인원 > 13.45 & wind_speed_10m_max <= 5.79 & temperature_2m_max > 26.05",
+      "total": 28,
+      "type_counts": {
+        "충돌": 10,
+        "낙상": 12,
+        "자상": 4,
+        "재물": 2
+      }
+    },
+    "92": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 > 16233571.5 & rain_sum <= 5.6 & temperature_2m_max > 2.45 & 매장인원 > 13.45 & wind_speed_10m_max > 5.79",
+      "total": 39,
+      "type_counts": {
+        "재물": 16,
+        "낙상": 15,
+        "충돌": 7,
+        "자상": 1
+      }
+    },
+    "94": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 > 16233571.5 & rain_sum > 5.6 & relative_humidity_2m_mean <= 82.5",
+      "total": 23,
+      "type_counts": {
+        "낙상": 13,
+        "재물": 4,
+        "클레임": 3,
+        "자상": 2,
+        "충돌": 1
+      }
+    },
+    "95": {
+      "rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 계약면적(㎡) > 688.0 & 일평균매출 > 10006928.5 & 일평균매출 > 16233571.5 & rain_sum > 5.6 & relative_humidity_2m_mean > 82.5",
+      "total": 32,
+      "type_counts": {
+        "낙상": 16,
+        "재물": 7,
+        "충돌": 4,
+        "자상": 5
+      }
+    },
+    "99": {
+      "rule": "soil_temperature_0_to_7cm_mean > 26.55 & soil_temperature_0_to_7cm_mean <= 30.75 & 창고 <= 33.9 & 일평균물동량 <= 183.5",
+      "total": 21,
+      "type_counts": {
+        "자상": 7,
+        "재물": 3,
+        "낙상": 10,
+        "충돌": 1
+      }
+    },
+    "101": {
+      "rule": "soil_temperature_0_to_7cm_mean > 26.55 & soil_temperature_0_to_7cm_mean <= 30.75 & 창고 <= 33.9 & 일평균물동량 > 183.5 & 입고도우미PO <= 0.65",
+      "total": 34,
+      "type_counts": {
+        "낙상": 14,
+        "재물": 11,
+        "충돌": 8,
+        "자상": 1
+      }
+    },
+    "103": {
+      "rule": "soil_temperature_0_to_7cm_mean > 26.55 & soil_temperature_0_to_7cm_mean <= 30.75 & 창고 <= 33.9 & 일평균물동량 > 183.5 & 입고도우미PO > 0.65 & relative_humidity_2m_mean <= 78.5",
+      "total": 20,
+      "type_counts": {
+        "낙상": 9,
+        "자상": 7,
+        "충돌": 4
+      }
+    },
+    "105": {
+      "rule": "soil_temperature_0_to_7cm_mean > 26.55 & soil_temperature_0_to_7cm_mean <= 30.75 & 창고 <= 33.9 & 일평균물동량 > 183.5 & 입고도우미PO > 0.65 & relative_humidity_2m_mean > 78.5 & wind_speed_10m_max <= 3.73",
+      "total": 24,
+      "type_counts": {
+        "충돌": 10,
+        "재물": 6,
+        "낙상": 8
+      }
+    },
+    "106": {
+      "rule": "soil_temperature_0_to_7cm_mean > 26.55 & soil_temperature_0_to_7cm_mean <= 30.75 & 창고 <= 33.9 & 일평균물동량 > 183.5 & 입고도우미PO > 0.65 & relative_humidity_2m_mean > 78.5 & wind_speed_10m_max > 3.73",
+      "total": 22,
+      "type_counts": {
+        "자상": 6,
+        "재물": 2,
+        "낙상": 9,
+        "충돌": 5
+      }
+    },
+    "108": {
+      "rule": "soil_temperature_0_to_7cm_mean > 26.55 & soil_temperature_0_to_7cm_mean <= 30.75 & 창고 > 33.9 & wind_speed_10m_max <= 3.415",
+      "total": 20,
+      "type_counts": {
+        "낙상": 5,
+        "자상": 8,
+        "재물": 7
+      }
+    },
+    "109": {
+      "rule": "soil_temperature_0_to_7cm_mean > 26.55 & soil_temperature_0_to_7cm_mean <= 30.75 & 창고 > 33.9 & wind_speed_10m_max > 3.415",
+      "total": 27,
+      "type_counts": {
+        "낙상": 16,
+        "자상": 4,
+        "재물": 6,
+        "충돌": 1
+      }
+    },
+    "110": {
+      "rule": "soil_temperature_0_to_7cm_mean > 26.55 & soil_temperature_0_to_7cm_mean > 30.75",
+      "total": 39,
+      "type_counts": {
+        "충돌": 12,
+        "낙상": 18,
+        "자상": 2,
+        "재물": 7
       }
     }
   }

@@ -96,8 +96,6 @@ def match_with_fallback(
     all_leaf_ids = [int(lid) for lid in leaf_table.keys()]
     if all_leaf_ids:
         merged = _merge_leaves(leaf_table, all_leaf_ids)
-        if "incidents" in merged:
-            merged["incidents"] = merged["incidents"][:50]
         return str(leaf_id), merged, 2
 
     return str(leaf_id), None, 2
@@ -116,7 +114,7 @@ def _merge_leaves(leaf_table: dict[str, Any], leaf_ids: list[int]) -> dict:
         merged_summary["total"] += summary.get("total", 0)
 
         for key, value in summary.items():
-            if key in {"total", "sampled"}:
+            if key == "total":
                 continue
             if isinstance(value, dict):
                 bucket = merged_summary.setdefault(key, {})
