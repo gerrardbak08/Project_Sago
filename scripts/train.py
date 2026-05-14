@@ -337,42 +337,6 @@ def _build_leaf_table(
     return leaf_table
 
 
-# ──────────────────────────────────────────────
-# leaf_type_counts 구축
-# ──────────────────────────────────────────────
-def _build_leaf_type_counts(
-    leaf_table: dict,
-    label_col: str,
-) -> dict:
-    """리프별 사고유형 카운트를 별도 JSON으로 요약.
-
-    구조:
-      {
-        "label_column": "사고유형",
-        "leaves": {
-          "<leaf_id>": {
-            "rule": "...",
-            "total": int,
-            "type_counts": {유형명: 건수, ...}
-          }, ...
-        }
-      }
-    """
-    leaves: dict[str, Any] = {}
-    for lid, data in leaf_table.items():
-        summary = data.get("summary", {})
-        leaves[lid] = {
-            "rule": data.get("rule", ""),
-            "total": summary.get("total", 0),
-            "type_counts": dict(summary.get(label_col, {})),
-        }
-
-    return {
-        "label_column": label_col,
-        "leaves": leaves,
-    }
-
-
 def _tune_tree(X: pd.DataFrame, y: pd.Series) -> tuple[dict, dict]:
     """train/test split으로 후보 하이퍼파라미터를 평가하고 최적 파라미터를 반환."""
     label_counts = y.value_counts()
@@ -553,11 +517,6 @@ def train_source(source: str) -> None:
     )
     _dump_json(tree_rules, out_dir / "tree_rules.json")
     print(f"  → tree_rules.json")
-
-    # ── 6. leaf_type_counts.json ──
-    leaf_type_counts = _build_leaf_type_counts(leaf_table, label_col)
-    _dump_json(leaf_type_counts, out_dir / "leaf_type_counts.json")
-    print(f"  → leaf_type_counts.json")
 
     # ── 검증 ──
     print(f"\n  [검증]")
