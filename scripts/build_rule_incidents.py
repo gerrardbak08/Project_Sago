@@ -30,10 +30,21 @@ from build_dataset import (  # noqa: E402
     WEATHER_FEATURES,
 )
 
+
+def _clean_value(key: str, value):
+    if pd.isna(value):
+        if key == "image_url":
+            return ""
+        return None
+    if hasattr(value, "item"):
+        return value.item()
+    return value
+
+
 def _to_records(df: pd.DataFrame, cols: list[str]) -> list[dict]:
     records = []
-    for row in df[cols].where(pd.notna(df[cols]), None).to_dict(orient="records"):
-        records.append(row)
+    for row in df[cols].to_dict(orient="records"):
+        records.append({key: _clean_value(key, value) for key, value in row.items()})
     return records
 
 
@@ -66,7 +77,7 @@ def _build_source(source: str) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / "rule_incidents.json"
     with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
+        json.dump(payload, f, ensure_ascii=False, indent=2, allow_nan=False)
 
     print(f"[OK] {out_path} 생성 ({len(df)}건)")
 

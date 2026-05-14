@@ -1,7 +1,27 @@
 import unittest
 
+import pandas as pd
+
 
 class RuleRetrieverTests(unittest.TestCase):
+    def test_build_rule_incidents_serializes_missing_image_url_as_empty_string(self):
+        from scripts.build_rule_incidents import _to_records
+
+        df = pd.DataFrame(
+            [
+                {
+                    "incident_id": "cust_0001",
+                    "image_url": float("nan"),
+                    "일평균매출": float("nan"),
+                }
+            ]
+        )
+
+        records = _to_records(df, ["incident_id", "image_url", "일평균매출"])
+
+        self.assertEqual(records[0]["image_url"], "")
+        self.assertIsNone(records[0]["일평균매출"])
+
     def test_common_thresholds_classify_feature_bucket(self):
         from core.rule_enrichment import classify_feature_bucket, get_feature_thresholds
 
