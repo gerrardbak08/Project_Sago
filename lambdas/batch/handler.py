@@ -22,7 +22,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Any
 
 from core.weather import get_weather
-from core.rule_matcher import match_with_fallback
+from core.rule_retriever import match_incidents_by_rules
 from core.llm import generate_guide
 from core.notifier import get_notifier
 
@@ -72,13 +72,11 @@ def _load_stores() -> list[dict]:
     return _load_json_s3("stores.json")
 
 
-def _load_model_files(source: str) -> tuple[dict, dict, dict, dict]:
+def _load_model_files(source: str) -> tuple[dict, dict]:
     prefix = f"models/{source}"
     return (
-        _load_json_s3(f"{prefix}/leaf_table.json"),
+        _load_json_s3(f"{prefix}/rule_incidents.json"),
         _load_json_s3(f"{prefix}/metadata.json"),
-        _load_json_s3(f"{prefix}/encoder_map.json"),
-        _load_json_s3(f"{prefix}/siblings.json"),
     )
 
 
@@ -119,23 +117,30 @@ def _generate_store_guide(store: dict, date_str: str) -> dict:
     results: dict[str, Any] = {}
     for source in SOURCES:
         try:
-            leaf_table, metadata, encoder_map, siblings = _load_model_files(source)
+            rule_incidents, metadata = _load_model_files(source)
         except Exception as e:
             results[source] = {"error": str(e)}
             continue
 
         label_col = LABEL_COLS.get(source, metadata.get("label_column", "사고유형"))
-        total_incidents = metadata.get("total_incidents", 0)
-        features = _build_features(weather, store, encoder_map)
-        leaf_id, leaf_data, fallback_level = match_with_fallback(
-            features, leaf_table, siblings, metadata
+        limit = int(os.environ.get("RULE_INCIDENT_LIMIT", "50"))
+        strategy = os.environ.get("RULE_INCIDENT_STRATEGY", "recent")
+        leaf_data = match_incidents_by_rules(
+            source,
+            store,
+            weather,
+            rule_incidents.get("incidents", []),
+            limit=limit,
+            strategy=strategy,
         )
+        leaf_id = None
+        fallback_level = None
         if leaf_data is None:
-            results[source] = {"error": "리프 매칭 실패"}
+            results[source] = {"error": "룰 기반 사례 매칭 실패"}
             continue
 
         leaf_summary = leaf_data.get("summary", {})
-        guide = generate_guide(store, weather, leaf_data, label_col)
+        guide = generate_guide(store, weather, leaf_data, label_col, source)
 
         results[source] = {
             "leaf_id": str(leaf_id) if leaf_id is not None else None,

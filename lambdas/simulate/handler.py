@@ -22,7 +22,7 @@ from typing import Any
 
 # ── core 모듈 ──
 from core.weather import get_weather
-from core.rule_matcher import match_with_fallback
+from core.rule_retriever import match_incidents_by_rules
 from core.llm import generate_guide
 
 # ──────────────────────────────────────────────
@@ -106,22 +106,16 @@ def _load_stores() -> list[dict]:
     return _load_json("stores.json", Path("stores.json"))
 
 
-def _load_model_files(source: str) -> tuple[dict, dict, dict, dict]:
-    """모델 파일 4종을 로드한다 (leaf_table, metadata, encoder_map, siblings)."""
+def _load_model_files(source: str) -> tuple[dict, dict]:
+    """룰 기반 사고 인덱스와 메타데이터를 로드한다."""
     prefix = f"models/{source}"
-    leaf_table = _load_json(
-        f"{prefix}/leaf_table.json", Path(f"models/{source}/leaf_table.json")
+    rule_incidents = _load_json(
+        f"{prefix}/rule_incidents.json", Path(f"models/{source}/rule_incidents.json")
     )
     metadata = _load_json(
         f"{prefix}/metadata.json", Path(f"models/{source}/metadata.json")
     )
-    encoder_map = _load_json(
-        f"{prefix}/encoder_map.json", Path(f"models/{source}/encoder_map.json")
-    )
-    siblings = _load_json(
-        f"{prefix}/siblings.json", Path(f"models/{source}/siblings.json")
-    )
-    return leaf_table, metadata, encoder_map, siblings
+    return rule_incidents, metadata
 
 
 # ──────────────────────────────────────────────
@@ -337,28 +331,31 @@ def lambda_handler(event: dict, context: Any) -> dict:
 
     for source in SOURCES:
         try:
-            leaf_table, metadata, encoder_map, siblings = _load_model_files(source)
+            rule_incidents, metadata = _load_model_files(source)
         except FileNotFoundError as e:
             results[source] = {"error": str(e)}
             continue
 
         label_col = LABEL_COLS.get(source, metadata.get("label_column", "사고유형"))
-
-        # 피처 구성
-        features = _build_features(weather, store, encoder_map)
-
-        # 리프 매칭
-        leaf_id, leaf_data, fallback_level = match_with_fallback(
-            features, leaf_table, siblings, metadata
+        limit = int(os.environ.get("RULE_INCIDENT_LIMIT", "50"))
+        strategy = os.environ.get("RULE_INCIDENT_STRATEGY", "recent")
+        leaf_data = match_incidents_by_rules(
+            source,
+            store,
+            weather,
+            rule_incidents.get("incidents", []),
+            limit=limit,
+            strategy=strategy,
         )
+        leaf_id = None
+        fallback_level = None
 
         if leaf_data is None:
-            results[source] = {"error": "리프 매칭 실패"}
+            results[source] = {"error": "룰 기반 사례 매칭 실패"}
             continue
 
-        # LLM 안전 가이드 생성 (신 시그니처: risk_info 제거, label_col 전달)
         leaf_summary = leaf_data.get("summary", {})
-        guide = generate_guide(store, weather, leaf_data, label_col)
+        guide = generate_guide(store, weather, leaf_data, label_col, source)
 
         # 결과 조립
         matched_rule = leaf_data.get("rule", "")

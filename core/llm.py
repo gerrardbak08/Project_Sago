@@ -415,11 +415,30 @@ def _format_incidents_detail_block(incidents: list[dict], today_weather: dict) -
     )
 
 
-def _build_leaf_risk_context(rule_str: str, type_counts: dict) -> str:
+def _build_rule_context(rule_context: dict) -> str:
+    today_buckets = rule_context.get("today_buckets", {})
+    source_label = rule_context.get("source_label", "사고")
+    strategy = rule_context.get("strategy", "recent")
+    limit = rule_context.get("limit", "")
+
+    lines = [
+        f"- 검색방식: {source_label} 룰 기반 유사 사례 검색",
+        f"- 후보선정: 오늘 조건과 같은 룰 구간을 공유하는 사례를 {strategy} 방식으로 선택 (limit={limit})",
+    ]
+    if today_buckets:
+        lines.append("- 오늘 적용 구간:")
+        for feature, bucket in today_buckets.items():
+            lines.append(
+                f"  * [{feature}] {bucket.get('label')}: {bucket.get('risk')}"
+            )
+    return "\n".join(lines)
+
+
+def _build_leaf_risk_context(rule_str: str, type_counts: dict, source: str | None = None) -> str:
     """리프 규칙을 고도화 분석하여 프롬프트용 컨텍스트 문자열을 생성."""
     try:
         from core.rule_enrichment import enrich_leaf_rule
-        enrichment = enrich_leaf_rule(rule_str, type_counts)
+        enrichment = enrich_leaf_rule(rule_str, type_counts, source)
 
         lines = [
             f"- 위험 시나리오: {enrichment['scenario_label']}",
@@ -446,6 +465,7 @@ def build_user_prompt(
     weather: dict,
     leaf_data: dict,
     label_col: str,
+    source: str | None = None,
 ) -> str:
     """유저 프롬프트 구성 — 사례별 발생 조건 + 기상 Δ + 리프 위험 분석 포함."""
     today = date.today().isoformat()
@@ -460,8 +480,10 @@ def build_user_prompt(
         f"- {k} 분포: {summary.get(k, {})}" for k in aux_dist_keys
     )
 
-    # 리프 규칙 고도화 분석
-    leaf_risk_context = _build_leaf_risk_context(rule, type_dist)
+    if leaf_data.get("rule_context"):
+        leaf_risk_context = _build_rule_context(leaf_data["rule_context"])
+    else:
+        leaf_risk_context = _build_leaf_risk_context(rule, type_dist, source)
 
     return f"""## 오늘의 조건
 - 날짜: {today}
@@ -470,10 +492,10 @@ def build_user_prompt(
 ## 오늘의 기상
 {_format_weather_block(weather)}
 
-## 리프 노드 위험 분석 (규칙 기반 도메인 해석)
+## 위험 분석 (규칙 기반 도메인 해석)
 {leaf_risk_context}
 
-## 유사 조건 과거 사고 사례 (리프 규칙: {rule}, 총 {total}건)
+## 유사 조건 과거 사고 사례 (규칙: {rule}, 총 {total}건)
 - {label_col} 분포: {type_dist}
 {aux_dist_lines}
 
@@ -675,6 +697,7 @@ def generate_guide(
     weather: dict,
     leaf_data: dict,
     label_col: str = "사고유형",
+    source: str | None = None,
 ) -> dict:
     """안전 가이드 생성.
 
@@ -694,7 +717,7 @@ def generate_guide(
         print("[llm] Mock 모드로 안전 가이드를 생성합니다.")
         guide = generate_guide_mock(store, weather, leaf_data, label_col)
     else:
-        user_prompt = build_user_prompt(store, weather, leaf_data, label_col)
+        user_prompt = build_user_prompt(store, weather, leaf_data, label_col, source)
         try:
             print("[llm] Bedrock 호출 중 (Tool Use)...")
             guide = _call_bedrock(user_prompt)

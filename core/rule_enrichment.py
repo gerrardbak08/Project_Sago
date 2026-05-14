@@ -11,6 +11,7 @@ LLM 프롬프트에 "왜 이 리프가 위험한지"를 설명할 수 있다.
 """
 
 from __future__ import annotations
+import copy
 from typing import Any
 
 
@@ -117,10 +118,238 @@ FEATURE_RISK_THRESHOLDS = {
 
 
 # ──────────────────────────────────────────────
+# 1-1. 고객/직원별 룰 기준
+# ──────────────────────────────────────────────
+#
+# 기준 구간은 Decision Tree 산출물의 주요 분기 피처와 기존 임계값을 함께 사용한다.
+# risk 문구는 leaf_table의 대표 사례를 참고해 고객 사고(cust)와 직원 사고(emp)의
+# 실제 행동/상황 차이가 드러나도록 분리한다.
+
+_CUST_RISK_OVERRIDES = {
+    "precipitation_sum": {
+        "약한비": "고객 우산 동선과 입구 물기로 출입구 미끄러짐 위험",
+        "보통비": "고객이 셀프계산대·입구로 이동 중 젖은 바닥에 미끄러질 위험",
+        "많은비": "고객 출입구 혼잡과 바닥 물기로 낙상·충돌 위험 급증",
+    },
+    "rain_sum": {
+        "약한비": "고객 우산 물기 유입으로 매장 입구 미끄러짐 위험",
+        "보통비": "고객 이동 동선의 물기와 매트 걸림으로 낙상 위험",
+        "많은비": "고객 출입 집중 구간의 물기·혼잡으로 낙상 위험 급증",
+    },
+    "snowfall_sum": {
+        "소설": "고객 입구·계단·외부 보행면 미끄러짐 위험",
+        "대설": "고객 주차장·출입구 결빙 및 낙설·미끄러짐 위험",
+    },
+    "wind_speed_10m_max": {
+        "중풍": "고객 출입문 급개폐와 외부 적재물 흔들림 주의",
+        "강풍": "고객 출입구 주변 간판·적재물 전도 및 출입문 충돌 위험",
+        "폭풍": "고객 외부 보행과 출입구 접근 중 구조물 낙하 위험",
+    },
+    "temperature_2m_min": {
+        "극한파": "고객 출입구·계단·외부 보행면 결빙 낙상 위험 매우 높음",
+        "한파": "고객 매장 입구와 외부 보행면 결빙 낙상 위험",
+        "쌀쌀": "고객 새벽·야간 입구 매트 및 계단 미끄러짐 주의",
+    },
+    "temperature_2m_max": {
+        "한파지속": "고객 외부 보행면 결빙이 낮에도 유지될 수 있음",
+        "폭염": "고객 대기·쇼핑 중 탈진 및 어지럼으로 인한 전도 주의",
+    },
+    "soil_temperature_0_to_7cm_mean": {
+        "지표결빙": "고객 주차장·입구·외부 데크 결빙 낙상 위험",
+        "동절기": "고객 외부 보행면과 입구 매트 미끄러짐 주의",
+        "폭염기": "고객 외부 대기와 이동 중 온열 부담 증가",
+    },
+    "평수": {
+        "소형": "고객 통로가 좁아 상품박스·진열대 접촉 및 충돌 위험",
+        "대형": "고객 이동 동선이 길어 계단·코너·매대 주변 낙상 위험",
+        "초대형": "고객 이동 사각지대와 장거리 동선에서 낙상·충돌 위험",
+    },
+    "실평수": {
+        "소형": "고객 유효 보행 공간이 좁아 매대·차단봉·박스 접촉 위험",
+        "대형": "고객 이동 범위가 넓어 계단·코너 사고 관찰 필요",
+        "초대형": "고객 동선 분산으로 사각지대 낙상 발견 지연 위험",
+    },
+    "진열평수": {
+        "대형": "고객 진열대 접촉·상품 낙하·모서리 충돌 위험 증가",
+        "초대형": "고객 진열 동선이 길고 사각지대가 늘어 사고 발견 지연 위험",
+    },
+    "창고": {
+        "소규모": "고객 동선 주변 임시 적재가 늘면 박스 걸림·충돌 위험",
+        "대규모": "입고·진열 중 고객 통로 점유와 적재물 접촉 위험",
+        "초대규모": "대량 입고·적재 이동으로 고객 통로 충돌 위험 증가",
+    },
+    "계약면적(㎡)": {
+        "소형": "고객 밀집과 좁은 동선으로 차단봉·매대 접촉 위험",
+        "대형": "고객 이동 구간이 길어 계단·코너·외부 연결부 낙상 위험",
+        "초대형": "고객 사각지대와 장거리 동선에서 낙상·충돌 위험",
+    },
+    "매장인원": {
+        "극소": "고객 동선 정리와 물기 제거 대응이 지연될 위험",
+        "소": "고객 혼잡·적재물 방치에 대한 현장 대응 여력 부족",
+        "대": "직원 작업 동선과 고객 동선이 겹쳐 충돌 위험",
+    },
+    "입고도우미PO": {
+        "없음": "입고 정리가 지연되어 고객 통로 박스 걸림 위험",
+        "다수": "입고 작업량이 많아 고객 통로 점유·충돌 위험",
+    },
+    "일평균매출": {
+        "고매출": "고객 밀집으로 출입구·계산대·코너 충돌 및 낙상 위험",
+        "초고매출": "고객 혼잡이 커져 차단봉·매트·박스 걸림 사고 위험 급증",
+    },
+    "일평균물동량": {
+        "고물동": "입고·진열 물량 증가로 고객 통로 적재물 걸림 위험",
+    },
+}
+
+_EMP_RISK_OVERRIDES = {
+    "precipitation_sum": {
+        "약한비": "직원 매트 교체·물기 제거 중 미끄러짐 위험",
+        "보통비": "직원 입구 정리와 외부 이동 작업 중 미끄러짐 위험",
+        "많은비": "직원 제수·매트 교체·외부 정리 작업 중 낙상 위험 급증",
+    },
+    "rain_sum": {
+        "약한비": "직원 물기 제거와 우산 정리 작업 중 미끄러짐 주의",
+        "보통비": "직원 입구·계단·외부 보행면 정리 작업 중 낙상 위험",
+        "많은비": "직원 외부 정리와 물기 대응 작업 중 낙상·무리한 동작 위험",
+    },
+    "snowfall_sum": {
+        "소설": "직원 제설·매트 교체 중 미끄러짐과 허리 부담 위험",
+        "대설": "직원 제설·외부 정리·중량물 이동 중 낙상 및 근골격계 위험",
+    },
+    "wind_speed_10m_max": {
+        "중풍": "직원 외부 적재물·출입문 점검 중 손 끼임·부딪힘 주의",
+        "강풍": "직원 간판·집기 고정과 외부 정리 중 전도·낙하물 위험",
+        "폭풍": "직원 외부 작업 제한 필요, 구조물·적재물 낙하 위험",
+    },
+    "temperature_2m_min": {
+        "극한파": "직원 출근·입고·외부 정리 중 결빙 낙상 위험 매우 높음",
+        "한파": "직원 창고·입구 이동 및 외부 작업 중 결빙 낙상 위험",
+        "쌀쌀": "직원 계단 이동과 입고 작업 중 발 헛디딤 주의",
+    },
+    "temperature_2m_max": {
+        "한파지속": "직원 저온 환경 입고·정리 작업 중 근육 긴장과 낙상 위험",
+        "폭염": "직원 창고·야외 정리 작업 중 온열질환과 탈진 위험",
+    },
+    "soil_temperature_0_to_7cm_mean": {
+        "지표결빙": "직원 외부 보행·입고 동선 결빙으로 낙상 위험",
+        "동절기": "직원 계단·입구·창고 이동 중 발 헛디딤 주의",
+        "폭염기": "직원 창고·외부 작업 중 온열 부담과 피로 증가",
+    },
+    "평수": {
+        "소형": "직원 작업 공간이 좁아 상품 운반 중 부딪힘·끼임 위험",
+        "대형": "직원 장거리 이동과 반복 운반으로 무리한 동작 위험",
+        "초대형": "직원 창고·매장 간 이동량 증가로 피로와 넘어짐 위험",
+    },
+    "실평수": {
+        "소형": "직원 유효 작업 공간 부족으로 박스 운반 중 충돌 위험",
+        "대형": "직원 반복 이동과 상품 보충 작업 부담 증가",
+        "초대형": "직원 장거리 이동과 사각지대 작업 중 사고 발견 지연 위험",
+    },
+    "진열평수": {
+        "대형": "직원 상품 보충·진열 중 어깨·허리 부담 증가",
+        "초대형": "직원 반복 진열과 이동 작업으로 무리한 동작 위험 증가",
+    },
+    "창고": {
+        "소규모": "직원 좁은 창고에서 적재물 낙하·끼임 위험",
+        "대규모": "직원 창고 이동·적재·롤테이너 작업 중 부딪힘 위험",
+        "초대규모": "직원 대형 창고 작업에서 낙하물·충돌·중량물 위험 증가",
+    },
+    "계약면적(㎡)": {
+        "소형": "직원 좁은 동선에서 상품 운반 중 부딪힘·넘어짐 위험",
+        "대형": "직원 넓은 작업 구역 이동과 반복 운반 부담 증가",
+        "초대형": "직원 장거리 이동·창고 작업·사각지대 사고 위험",
+    },
+    "매장인원": {
+        "극소": "직원 1인 작업과 중량물 단독 운반 위험",
+        "소": "직원 입고·진열 작업 부담이 커져 무리한 동작 위험",
+        "대": "직원 간 작업 동선 혼잡으로 부딪힘·끼임 위험",
+    },
+    "입고도우미PO": {
+        "없음": "직원 직접 입고 부담으로 허리·손목 부상 위험",
+        "소수": "직원 입고 보조가 부족해 중량물 운반 부담 증가",
+        "다수": "입고 작업량이 많아 롤테이너·박스 충돌 및 낙하 위험",
+    },
+    "일평균매출": {
+        "고매출": "직원 고객 대응과 진열 보충이 겹쳐 피로·충돌 위험",
+        "초고매출": "직원 고강도 보충·정리 작업으로 무리한 동작 위험 급증",
+    },
+    "일평균물동량": {
+        "고물동": "직원 입고·진열 작업 강도가 높아 중량물·근골격계 사고 위험",
+    },
+}
+
+
+def _build_source_thresholds(overrides: dict[str, dict[str, str]]) -> dict:
+    thresholds = copy.deepcopy(FEATURE_RISK_THRESHOLDS)
+    for feature, label_map in overrides.items():
+        feature_rules = thresholds.get(feature)
+        if not feature_rules:
+            continue
+        for label, risk in label_map.items():
+            if label in feature_rules:
+                feature_rules[label]["risk"] = risk
+    return thresholds
+
+
+SOURCE_FEATURE_RISK_THRESHOLDS = {
+    "cust": _build_source_thresholds(_CUST_RISK_OVERRIDES),
+    "emp": _build_source_thresholds(_EMP_RISK_OVERRIDES),
+}
+
+
+def get_feature_thresholds(source: str | None = None) -> dict:
+    """source별 룰 기준표를 반환한다. source가 없으면 공통 기준표를 반환."""
+    if source in SOURCE_FEATURE_RISK_THRESHOLDS:
+        return SOURCE_FEATURE_RISK_THRESHOLDS[source]
+    return FEATURE_RISK_THRESHOLDS
+
+
+def classify_feature_bucket(
+    source: str | None,
+    feature: str,
+    value: Any,
+) -> dict | None:
+    """피처 값을 source별 기준표의 구간 라벨로 분류한다."""
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+
+    thresholds = get_feature_thresholds(source).get(feature)
+    if not thresholds:
+        return None
+
+    for label, info in thresholds.items():
+        op = info["op"]
+        threshold = float(info["val"])
+        if (
+            (op == "<=" and numeric <= threshold)
+            or (op == "<" and numeric < threshold)
+            or (op == ">" and numeric > threshold)
+            or (op == ">=" and numeric >= threshold)
+        ):
+            return {
+                "feature": feature,
+                "label": label,
+                "value": numeric,
+                "op": op,
+                "threshold": threshold,
+                "risk": info["risk"],
+            }
+
+    return None
+
+
+# ──────────────────────────────────────────────
 # 2. 조건 해석 함수
 # ──────────────────────────────────────────────
 
-def interpret_condition(feature: str, op: str, threshold: float) -> dict:
+def interpret_condition(
+    feature: str,
+    op: str,
+    threshold: float,
+    source: str | None = None,
+) -> dict:
     """단일 조건을 도메인 지식으로 해석한다.
 
     Returns:
@@ -133,7 +362,7 @@ def interpret_condition(feature: str, op: str, threshold: float) -> dict:
             "severity": str,    # "높음"/"중간"/"낮음"
         }
     """
-    thresholds = FEATURE_RISK_THRESHOLDS.get(feature)
+    thresholds = get_feature_thresholds(source).get(feature)
     if not thresholds:
         return {
             "feature": feature,
@@ -219,7 +448,11 @@ def _assess_severity(feature: str, op: str, threshold: float) -> str:
 # 3. 리프 규칙 전체 해석
 # ──────────────────────────────────────────────
 
-def enrich_leaf_rule(rule_str: str, type_counts: dict | None = None) -> dict:
+def enrich_leaf_rule(
+    rule_str: str,
+    type_counts: dict | None = None,
+    source: str | None = None,
+) -> dict:
     """리프 규칙 문자열을 고도화된 해석 정보로 변환한다.
 
     Args:
@@ -256,7 +489,7 @@ def enrich_leaf_rule(rule_str: str, type_counts: dict | None = None) -> dict:
     # 각 조건 해석
     conditions = []
     for feat, op, thresh in parsed:
-        interp = interpret_condition(feat, op, thresh)
+        interp = interpret_condition(feat, op, thresh, source)
         conditions.append(interp)
 
     # 기상 vs 매장 분리

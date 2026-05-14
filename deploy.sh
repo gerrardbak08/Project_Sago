@@ -28,7 +28,7 @@ SITE_PKG="/tmp/core-layer-build/python/lib/python3.12/site-packages"
 mkdir -p "$SITE_PKG/core"
 
 # core 모듈 복사
-cp core/__init__.py core/llm.py core/rule_matcher.py core/rule_enrichment.py core/weather.py core/notifier.py \
+cp core/__init__.py core/llm.py core/rule_matcher.py core/rule_enrichment.py core/rule_retriever.py core/weather.py core/notifier.py \
   "$SITE_PKG/core/"
 
 # 외부 패키지 설치 (requests, python-dotenv)
