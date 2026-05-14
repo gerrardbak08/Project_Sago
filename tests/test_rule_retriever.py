@@ -124,6 +124,46 @@ class RuleRetrieverTests(unittest.TestCase):
             leaf_data["incidents"][1]["rule_match"]["matched_count"],
         )
 
+    def test_llm_prompt_excludes_rule_risk_context(self):
+        from core.llm import build_user_prompt
+
+        prompt = build_user_prompt(
+            store={"매장명": "테스트점", "지역": "서울", "형태": "직영점", "평수": 200},
+            weather={"precipitation_sum": 12.0},
+            leaf_data={
+                "rule": "rule-based-cust",
+                "rule_context": {
+                    "today_buckets": {
+                        "precipitation_sum": {
+                            "label": "많은비",
+                            "risk": "이 설명은 LLM 컨텍스트에 들어가면 안 됩니다.",
+                            "value": 12.0,
+                        }
+                    }
+                },
+                "summary": {"total": 1, "사고유형": {"낙상": 1}},
+                "incidents": [
+                    {
+                        "incident_id": "cust_0001",
+                        "발생일시": "2026-01-01",
+                        "사고유형": "낙상",
+                        "사고내용요약": "입구 바닥에서 미끄러짐",
+                        "precipitation_sum": 10.0,
+                        "평수": 210,
+                    }
+                ],
+            },
+            label_col="사고유형",
+            source="cust",
+        )
+
+        self.assertIn("## 유사 조건 과거 사고 사례", prompt)
+        self.assertIn("[발생 당시 기상", prompt)
+        self.assertIn("[발생 당시 매장", prompt)
+        self.assertNotIn("이 설명은 LLM 컨텍스트에 들어가면 안 됩니다.", prompt)
+        self.assertNotIn("## 위험 분석", prompt)
+        self.assertNotIn("리프 위험 분석", prompt)
+
 
 if __name__ == "__main__":
     unittest.main()
