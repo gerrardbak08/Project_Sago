@@ -1,5 +1,5 @@
 {
-  "3": {
+  "4": {
     "conditions": [
       {
         "feature": "soil_temperature_0_to_7cm_mean",
@@ -7,282 +7,234 @@
         "threshold": 26.55,
         "label": "동절기",
         "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": "<=",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      }
-    ],
-    "scenario_label": "낙상주의",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max)",
-    "store_context": "소형(평수)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험) | 과거 사고 패턴: 낙상 55.6% (20/36건)"
-  },
-  "8": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": "<=",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": "<=",
-        "threshold": 11.05,
-        "label": "온화",
-        "risk_desc": "일반 수준, 특이 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "창고",
-        "op": "<=",
-        "threshold": 14.5,
-        "label": "소규모",
-        "risk_desc": "소형 창고, 적재 밀도 높아 낙하물 위험",
         "severity": "중간"
       },
       {
         "feature": "계약면적(㎡)",
         "op": "<=",
-        "threshold": 771.5,
+        "threshold": 688.0,
         "label": "소형",
         "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "창고",
-        "op": "<=",
-        "threshold": 4.79,
-        "label": "소규모",
-        "risk_desc": "소형 창고, 적재 밀도 높아 낙하물 위험",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "재물주의",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온화(temperature_2m_min)",
-    "store_context": "소형(평수) + 소규모(창고) + 소형(계약면적(㎡)) + 소규모(창고)",
-    "dominant_accident_type": "재물",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온화(일반 수준, 특이 위험 낮음) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 소규모(소형 창고, 적재 밀도 높아 낙하물 위험), 소형(소형 매장, 밀집도 높아 충돌 위험), 소규모(소형 창고, 적재 밀도 높아 낙하물 위험) | 과거 사고 패턴: 재물 40.7% (11/27건)"
-  },
-  "11": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": "<=",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": "<=",
-        "threshold": 11.05,
-        "label": "온화",
-        "risk_desc": "일반 수준, 특이 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "창고",
-        "op": "<=",
-        "threshold": 14.5,
-        "label": "소규모",
-        "risk_desc": "소형 창고, 적재 밀도 높아 낙하물 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 771.5,
-        "label": "소형",
-        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "창고",
-        "op": ">",
-        "threshold": 4.79,
-        "label": "소규모",
-        "risk_desc": "소형 창고, 적재 밀도 높아 낙하물 위험",
         "severity": "중간"
       },
       {
         "feature": "temperature_2m_max",
         "op": "<=",
-        "threshold": 7.85,
+        "threshold": 15.85,
         "label": "한파지속",
         "risk_desc": "낮에도 영상 한자릿수, 종일 결빙 해소 안됨",
-        "severity": "높음"
+        "severity": "중간"
       },
       {
         "feature": "temperature_2m_min",
         "op": "<=",
-        "threshold": -4.2,
+        "threshold": -4.65,
         "label": "극한파",
         "risk_desc": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙",
         "severity": "높음"
-      }
-    ],
-    "scenario_label": "결빙·낙상 · 종일결빙",
-    "risk_level": "높음",
-    "primary_risk_factors": [
-      {
-        "feature": "temperature_2m_max",
-        "label": "한파지속",
-        "risk": "낮에도 영상 한자릿수, 종일 결빙 해소 안됨"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "label": "극한파",
-        "risk": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙"
-      }
-    ],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온화(temperature_2m_min) + 한파지속(temperature_2m_max) + 극한파(temperature_2m_min)",
-    "store_context": "소형(평수) + 소규모(창고) + 소형(계약면적(㎡)) + 소규모(창고)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 높음]  | 핵심 위험요인: 한파지속(temperature_2m_max): 낮에도 영상 한자릿수, 종일 결빙 해소 안됨; 극한파(temperature_2m_min): 극심한 결빙, 입구·주차장·외부 보행면 전면 결빙 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온화(일반 수준, 특이 위험 낮음), 한파지속(낮에도 영상 한자릿수, 종일 결빙 해소 안됨), 극한파(극심한 결빙, 입구·주차장·외부 보행면 전면 결빙) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 소규모(소형 창고, 적재 밀도 높아 낙하물 위험), 소형(소형 매장, 밀집도 높아 충돌 위험), 소규모(소형 창고, 적재 밀도 높아 낙하물 위험) | 과거 사고 패턴: 낙상 72.4% (21/29건)"
-  },
-  "12": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": "<=",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": "<=",
-        "threshold": 11.05,
-        "label": "온화",
-        "risk_desc": "일반 수준, 특이 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "창고",
-        "op": "<=",
-        "threshold": 14.5,
-        "label": "소규모",
-        "risk_desc": "소형 창고, 적재 밀도 높아 낙하물 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 771.5,
-        "label": "소형",
-        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "창고",
-        "op": ">",
-        "threshold": 4.79,
-        "label": "소규모",
-        "risk_desc": "소형 창고, 적재 밀도 높아 낙하물 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": "<=",
-        "threshold": 7.85,
-        "label": "한파지속",
-        "risk_desc": "낮에도 영상 한자릿수, 종일 결빙 해소 안됨",
-        "severity": "높음"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": -4.2,
-        "label": "극한파",
-        "risk_desc": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙",
-        "severity": "중간"
       }
     ],
     "scenario_label": "결빙·낙상 · 종일결빙",
     "risk_level": "중간",
     "primary_risk_factors": [
       {
-        "feature": "temperature_2m_max",
-        "label": "한파지속",
-        "risk": "낮에도 영상 한자릿수, 종일 결빙 해소 안됨"
+        "feature": "temperature_2m_min",
+        "label": "극한파",
+        "risk": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙"
       }
     ],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온화(temperature_2m_min) + 한파지속(temperature_2m_max) + 극한파(temperature_2m_min)",
-    "store_context": "소형(평수) + 소규모(창고) + 소형(계약면적(㎡)) + 소규모(창고)",
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 한파지속(temperature_2m_max) + 극한파(temperature_2m_min)",
+    "store_context": "소형(계약면적(㎡))",
     "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 한파지속(temperature_2m_max): 낮에도 영상 한자릿수, 종일 결빙 해소 안됨 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온화(일반 수준, 특이 위험 낮음), 한파지속(낮에도 영상 한자릿수, 종일 결빙 해소 안됨), 극한파(극심한 결빙, 입구·주차장·외부 보행면 전면 결빙) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 소규모(소형 창고, 적재 밀도 높아 낙하물 위험), 소형(소형 매장, 밀집도 높아 충돌 위험), 소규모(소형 창고, 적재 밀도 높아 낙하물 위험) | 과거 사고 패턴: 낙상 52.2% (12/23건)"
+    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 극한파(temperature_2m_min): 극심한 결빙, 입구·주차장·외부 보행면 전면 결빙 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 한파지속(낮에도 영상 한자릿수, 종일 결빙 해소 안됨), 극한파(극심한 결빙, 입구·주차장·외부 보행면 전면 결빙) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험) | 과거 사고 패턴: 낙상 62.5% (25/40건)"
+  },
+  "6": {
+    "conditions": [
+      {
+        "feature": "soil_temperature_0_to_7cm_mean",
+        "op": "<=",
+        "threshold": 26.55,
+        "label": "동절기",
+        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
+        "severity": "중간"
+      },
+      {
+        "feature": "계약면적(㎡)",
+        "op": "<=",
+        "threshold": 688.0,
+        "label": "소형",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "temperature_2m_max",
+        "op": "<=",
+        "threshold": 15.85,
+        "label": "한파지속",
+        "risk_desc": "낮에도 영상 한자릿수, 종일 결빙 해소 안됨",
+        "severity": "중간"
+      },
+      {
+        "feature": "temperature_2m_min",
+        "op": ">",
+        "threshold": -4.65,
+        "label": "극한파",
+        "risk_desc": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙",
+        "severity": "중간"
+      },
+      {
+        "feature": "relative_humidity_2m_mean",
+        "op": "<=",
+        "threshold": 68.5,
+        "label": "적정",
+        "risk_desc": "쾌적 습도, 특이 위험 낮음",
+        "severity": "중간"
+      }
+    ],
+    "scenario_label": "결빙·낙상 · 종일결빙",
+    "risk_level": "낮음",
+    "primary_risk_factors": [],
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 한파지속(temperature_2m_max) + 극한파(temperature_2m_min) + 적정(relative_humidity_2m_mean)",
+    "store_context": "소형(계약면적(㎡))",
+    "dominant_accident_type": "낙상",
+    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 한파지속(낮에도 영상 한자릿수, 종일 결빙 해소 안됨), 극한파(극심한 결빙, 입구·주차장·외부 보행면 전면 결빙), 적정(쾌적 습도, 특이 위험 낮음) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험) | 과거 사고 패턴: 낙상 40.0% (16/40건)"
+  },
+  "7": {
+    "conditions": [
+      {
+        "feature": "soil_temperature_0_to_7cm_mean",
+        "op": "<=",
+        "threshold": 26.55,
+        "label": "동절기",
+        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
+        "severity": "중간"
+      },
+      {
+        "feature": "계약면적(㎡)",
+        "op": "<=",
+        "threshold": 688.0,
+        "label": "소형",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "temperature_2m_max",
+        "op": "<=",
+        "threshold": 15.85,
+        "label": "한파지속",
+        "risk_desc": "낮에도 영상 한자릿수, 종일 결빙 해소 안됨",
+        "severity": "중간"
+      },
+      {
+        "feature": "temperature_2m_min",
+        "op": ">",
+        "threshold": -4.65,
+        "label": "극한파",
+        "risk_desc": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙",
+        "severity": "중간"
+      },
+      {
+        "feature": "relative_humidity_2m_mean",
+        "op": ">",
+        "threshold": 68.5,
+        "label": "적정",
+        "risk_desc": "쾌적 습도, 특이 위험 낮음",
+        "severity": "중간"
+      }
+    ],
+    "scenario_label": "결빙·낙상 · 종일결빙",
+    "risk_level": "낮음",
+    "primary_risk_factors": [],
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 한파지속(temperature_2m_max) + 극한파(temperature_2m_min) + 적정(relative_humidity_2m_mean)",
+    "store_context": "소형(계약면적(㎡))",
+    "dominant_accident_type": "낙상",
+    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 한파지속(낮에도 영상 한자릿수, 종일 결빙 해소 안됨), 극한파(극심한 결빙, 입구·주차장·외부 보행면 전면 결빙), 적정(쾌적 습도, 특이 위험 낮음) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험) | 과거 사고 패턴: 낙상 59.3% (32/54건)"
+  },
+  "9": {
+    "conditions": [
+      {
+        "feature": "soil_temperature_0_to_7cm_mean",
+        "op": "<=",
+        "threshold": 26.55,
+        "label": "동절기",
+        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
+        "severity": "중간"
+      },
+      {
+        "feature": "계약면적(㎡)",
+        "op": "<=",
+        "threshold": 688.0,
+        "label": "소형",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "temperature_2m_max",
+        "op": ">",
+        "threshold": 15.85,
+        "label": "한파지속",
+        "risk_desc": "낮에도 영상 한자릿수, 종일 결빙 해소 안됨",
+        "severity": "중간"
+      },
+      {
+        "feature": "temperature_2m_min",
+        "op": "<=",
+        "threshold": 12.7,
+        "label": "온화",
+        "risk_desc": "일반 수준, 특이 위험 낮음",
+        "severity": "낮음"
+      }
+    ],
+    "scenario_label": "종일결빙",
+    "risk_level": "낮음",
+    "primary_risk_factors": [],
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 한파지속(temperature_2m_max) + 온화(temperature_2m_min)",
+    "store_context": "소형(계약면적(㎡))",
+    "dominant_accident_type": "낙상",
+    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 한파지속(낮에도 영상 한자릿수, 종일 결빙 해소 안됨), 온화(일반 수준, 특이 위험 낮음) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험) | 과거 사고 패턴: 낙상 64.4% (29/45건)"
+  },
+  "10": {
+    "conditions": [
+      {
+        "feature": "soil_temperature_0_to_7cm_mean",
+        "op": "<=",
+        "threshold": 26.55,
+        "label": "동절기",
+        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
+        "severity": "중간"
+      },
+      {
+        "feature": "계약면적(㎡)",
+        "op": "<=",
+        "threshold": 688.0,
+        "label": "소형",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "temperature_2m_max",
+        "op": ">",
+        "threshold": 15.85,
+        "label": "한파지속",
+        "risk_desc": "낮에도 영상 한자릿수, 종일 결빙 해소 안됨",
+        "severity": "중간"
+      },
+      {
+        "feature": "temperature_2m_min",
+        "op": ">",
+        "threshold": 12.7,
+        "label": "온난",
+        "risk_desc": "결빙 위험 없음, 여름철 온열질환 주의 시작",
+        "severity": "낮음"
+      }
+    ],
+    "scenario_label": "종일결빙",
+    "risk_level": "낮음",
+    "primary_risk_factors": [],
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 한파지속(temperature_2m_max) + 온난(temperature_2m_min)",
+    "store_context": "소형(계약면적(㎡))",
+    "dominant_accident_type": "낙상",
+    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 한파지속(낮에도 영상 한자릿수, 종일 결빙 해소 안됨), 온난(결빙 위험 없음, 여름철 온열질환 주의 시작) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험) | 과거 사고 패턴: 낙상 52.9% (36/68건)"
   },
   "14": {
     "conditions": [
@@ -295,77 +247,45 @@
         "severity": "중간"
       },
       {
-        "feature": "평수",
-        "op": "<=",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": "<=",
-        "threshold": 11.05,
-        "label": "온화",
-        "risk_desc": "일반 수준, 특이 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "창고",
-        "op": "<=",
-        "threshold": 14.5,
-        "label": "소규모",
-        "risk_desc": "소형 창고, 적재 밀도 높아 낙하물 위험",
-        "severity": "중간"
-      },
-      {
         "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 771.5,
+        "op": ">",
+        "threshold": 688.0,
         "label": "소형",
         "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
         "severity": "중간"
       },
       {
-        "feature": "창고",
-        "op": ">",
-        "threshold": 4.79,
-        "label": "소규모",
-        "risk_desc": "소형 창고, 적재 밀도 높아 낙하물 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": ">",
-        "threshold": 7.85,
-        "label": "한파지속",
-        "risk_desc": "낮에도 영상 한자릿수, 종일 결빙 해소 안됨",
-        "severity": "중간"
-      },
-      {
-        "feature": "실평수",
+        "feature": "일평균매출",
         "op": "<=",
-        "threshold": 129.0,
-        "label": "실평수 <= 129.0",
-        "risk_desc": "도메인 정보 없음",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "severity": "중간"
+      },
+      {
+        "feature": "temperature_2m_min",
+        "op": "<=",
+        "threshold": 11.45,
+        "label": "온화",
+        "risk_desc": "일반 수준, 특이 위험 낮음",
+        "severity": "낮음"
+      },
+      {
+        "feature": "평수",
+        "op": "<=",
+        "threshold": 278.5,
+        "label": "소형",
+        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
         "severity": "중간"
       }
     ],
-    "scenario_label": "종일결빙",
+    "scenario_label": "낙상주의",
     "risk_level": "낮음",
     "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온화(temperature_2m_min) + 한파지속(temperature_2m_max)",
-    "store_context": "소형(평수) + 소규모(창고) + 소형(계약면적(㎡)) + 소규모(창고) + 실평수 <= 129.0(실평수)",
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 온화(temperature_2m_min)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출) + 소형(평수)",
     "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온화(일반 수준, 특이 위험 낮음), 한파지속(낮에도 영상 한자릿수, 종일 결빙 해소 안됨) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 소규모(소형 창고, 적재 밀도 높아 낙하물 위험), 소형(소형 매장, 밀집도 높아 충돌 위험), 소규모(소형 창고, 적재 밀도 높아 낙하물 위험), 실평수 <= 129.0(도메인 정보 없음) | 과거 사고 패턴: 낙상 77.3% (17/22건)"
+    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 온화(일반 수준, 특이 위험 낮음) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음), 소형(좁은 통로, 고객·직원 충돌 위험) | 과거 사고 패턴: 낙상 59.7% (37/62건)"
   },
   "15": {
     "conditions": [
@@ -378,124 +298,9 @@
         "severity": "중간"
       },
       {
-        "feature": "평수",
-        "op": "<=",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": "<=",
-        "threshold": 11.05,
-        "label": "온화",
-        "risk_desc": "일반 수준, 특이 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "창고",
-        "op": "<=",
-        "threshold": 14.5,
-        "label": "소규모",
-        "risk_desc": "소형 창고, 적재 밀도 높아 낙하물 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 771.5,
-        "label": "소형",
-        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "창고",
-        "op": ">",
-        "threshold": 4.79,
-        "label": "소규모",
-        "risk_desc": "소형 창고, 적재 밀도 높아 낙하물 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": ">",
-        "threshold": 7.85,
-        "label": "한파지속",
-        "risk_desc": "낮에도 영상 한자릿수, 종일 결빙 해소 안됨",
-        "severity": "중간"
-      },
-      {
-        "feature": "실평수",
-        "op": ">",
-        "threshold": 129.0,
-        "label": "실평수 > 129.0",
-        "risk_desc": "도메인 정보 없음",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "종일결빙",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온화(temperature_2m_min) + 한파지속(temperature_2m_max)",
-    "store_context": "소형(평수) + 소규모(창고) + 소형(계약면적(㎡)) + 소규모(창고) + 실평수 > 129.0(실평수)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온화(일반 수준, 특이 위험 낮음), 한파지속(낮에도 영상 한자릿수, 종일 결빙 해소 안됨) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 소규모(소형 창고, 적재 밀도 높아 낙하물 위험), 소형(소형 매장, 밀집도 높아 충돌 위험), 소규모(소형 창고, 적재 밀도 높아 낙하물 위험), 실평수 > 129.0(도메인 정보 없음) | 과거 사고 패턴: 낙상 93.3% (28/30건)"
-  },
-  "17": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": "<=",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": "<=",
-        "threshold": 11.05,
-        "label": "온화",
-        "risk_desc": "일반 수준, 특이 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "창고",
-        "op": "<=",
-        "threshold": 14.5,
-        "label": "소규모",
-        "risk_desc": "소형 창고, 적재 밀도 높아 낙하물 위험",
-        "severity": "중간"
-      },
-      {
         "feature": "계약면적(㎡)",
         "op": ">",
-        "threshold": 771.5,
+        "threshold": 688.0,
         "label": "소형",
         "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
         "severity": "중간"
@@ -503,153 +308,161 @@
       {
         "feature": "일평균매출",
         "op": "<=",
-        "threshold": 12917812.5,
-        "label": "중매출",
-        "risk_desc": "중간 매출, 일반 혼잡도",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
         "severity": "중간"
-      }
-    ],
-    "scenario_label": "낙상주의",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온화(temperature_2m_min)",
-    "store_context": "소형(평수) + 소규모(창고) + 소형(계약면적(㎡)) + 중매출(일평균매출)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온화(일반 수준, 특이 위험 낮음) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 소규모(소형 창고, 적재 밀도 높아 낙하물 위험), 소형(소형 매장, 밀집도 높아 충돌 위험), 중매출(중간 매출, 일반 혼잡도) | 과거 사고 패턴: 낙상 58.3% (21/36건)"
-  },
-  "18": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": "<=",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
       },
       {
         "feature": "temperature_2m_min",
         "op": "<=",
-        "threshold": 11.05,
+        "threshold": 11.45,
         "label": "온화",
         "risk_desc": "일반 수준, 특이 위험 낮음",
         "severity": "낮음"
       },
       {
-        "feature": "창고",
-        "op": "<=",
-        "threshold": 14.5,
-        "label": "소규모",
-        "risk_desc": "소형 창고, 적재 밀도 높아 낙하물 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": ">",
-        "threshold": 771.5,
-        "label": "소형",
-        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균매출",
-        "op": ">",
-        "threshold": 12917812.5,
-        "label": "중매출",
-        "risk_desc": "중간 매출, 일반 혼잡도",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "낙상주의",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온화(temperature_2m_min)",
-    "store_context": "소형(평수) + 소규모(창고) + 소형(계약면적(㎡)) + 중매출(일평균매출)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온화(일반 수준, 특이 위험 낮음) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 소규모(소형 창고, 적재 밀도 높아 낙하물 위험), 소형(소형 매장, 밀집도 높아 충돌 위험), 중매출(중간 매출, 일반 혼잡도) | 과거 사고 패턴: 낙상 54.1% (20/37건)"
-  },
-  "21": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
         "feature": "평수",
-        "op": "<=",
-        "threshold": 299.75,
+        "op": ">",
+        "threshold": 278.5,
         "label": "소형",
         "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": "<=",
-        "threshold": 11.05,
-        "label": "온화",
-        "risk_desc": "일반 수준, 특이 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "창고",
-        "op": ">",
-        "threshold": 14.5,
-        "label": "중규모",
-        "risk_desc": "일반 창고, 적재물 이동 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": "<=",
-        "threshold": 17.35,
-        "label": "서늘",
-        "risk_desc": "봄가을 수준, 환절기 체력 저하 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균물동량",
-        "op": "<=",
-        "threshold": 175.0,
-        "label": "저물동",
-        "risk_desc": "물동량 적음, 입고 작업 부담 낮음",
         "severity": "중간"
       }
     ],
     "scenario_label": "재물주의",
     "risk_level": "낮음",
     "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온화(temperature_2m_min) + 서늘(temperature_2m_max)",
-    "store_context": "소형(평수) + 중규모(창고) + 저물동(일평균물동량)",
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 온화(temperature_2m_min)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출) + 소형(평수)",
     "dominant_accident_type": "재물",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온화(일반 수준, 특이 위험 낮음), 서늘(봄가을 수준, 환절기 체력 저하 주의) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중규모(일반 창고, 적재물 이동 주의), 저물동(물동량 적음, 입고 작업 부담 낮음) | 과거 사고 패턴: 재물 61.3% (19/31건)"
+    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 온화(일반 수준, 특이 위험 낮음) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음), 소형(좁은 통로, 고객·직원 충돌 위험) | 과거 사고 패턴: 재물 50.0% (24/48건)"
+  },
+  "16": {
+    "conditions": [
+      {
+        "feature": "soil_temperature_0_to_7cm_mean",
+        "op": "<=",
+        "threshold": 26.55,
+        "label": "동절기",
+        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
+        "severity": "중간"
+      },
+      {
+        "feature": "계약면적(㎡)",
+        "op": ">",
+        "threshold": 688.0,
+        "label": "소형",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": "<=",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "severity": "중간"
+      },
+      {
+        "feature": "temperature_2m_min",
+        "op": ">",
+        "threshold": 11.45,
+        "label": "온난",
+        "risk_desc": "결빙 위험 없음, 여름철 온열질환 주의 시작",
+        "severity": "낮음"
+      }
+    ],
+    "scenario_label": "낙상주의",
+    "risk_level": "낮음",
+    "primary_risk_factors": [],
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 온난(temperature_2m_min)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출)",
+    "dominant_accident_type": "낙상",
+    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 온난(결빙 위험 없음, 여름철 온열질환 주의 시작) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음) | 과거 사고 패턴: 낙상 43.1% (25/58건)"
+  },
+  "23": {
+    "conditions": [
+      {
+        "feature": "soil_temperature_0_to_7cm_mean",
+        "op": "<=",
+        "threshold": 26.55,
+        "label": "동절기",
+        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
+        "severity": "중간"
+      },
+      {
+        "feature": "계약면적(㎡)",
+        "op": ">",
+        "threshold": 688.0,
+        "label": "소형",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": "<=",
+        "threshold": 16233571.5,
+        "label": "고매출",
+        "risk_desc": "고매출, 고객 밀집·혼잡 증가",
+        "severity": "중간"
+      },
+      {
+        "feature": "wind_speed_10m_max",
+        "op": "<=",
+        "threshold": 6.235,
+        "label": "중풍",
+        "risk_desc": "간판·현수막 흔들림, 출입문 급개폐 주의",
+        "severity": "중간"
+      },
+      {
+        "feature": "창고",
+        "op": "<=",
+        "threshold": 49.13,
+        "label": "대규모",
+        "risk_desc": "대형 창고, 지게차·적재물 충돌 위험 증가",
+        "severity": "중간"
+      },
+      {
+        "feature": "평수",
+        "op": "<=",
+        "threshold": 299.75,
+        "label": "소형",
+        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "평수",
+        "op": "<=",
+        "threshold": 244.5,
+        "label": "소형",
+        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "진열평수",
+        "op": "<=",
+        "threshold": 175.5,
+        "label": "진열평수 <= 175.5",
+        "risk_desc": "도메인 정보 없음",
+        "severity": "중간"
+      }
+    ],
+    "scenario_label": "대형창고작업 · 고객혼잡",
+    "risk_level": "낮음",
+    "primary_risk_factors": [],
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 중풍(wind_speed_10m_max)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출) + 고매출(일평균매출) + 대규모(창고) + 소형(평수) + 소형(평수) + 진열평수 <= 175.5(진열평수)",
+    "dominant_accident_type": "낙상",
+    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 중풍(간판·현수막 흔들림, 출입문 급개폐 주의) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음), 고매출(고매출, 고객 밀집·혼잡 증가), 대규모(대형 창고, 지게차·적재물 충돌 위험 증가), 소형(좁은 통로, 고객·직원 충돌 위험), 소형(좁은 통로, 고객·직원 충돌 위험), 진열평수 <= 175.5(도메인 정보 없음) | 과거 사고 패턴: 낙상 49.1% (26/53건)"
   },
   "24": {
     "conditions": [
@@ -662,92 +475,43 @@
         "severity": "중간"
       },
       {
-        "feature": "평수",
-        "op": "<=",
-        "threshold": 299.75,
+        "feature": "계약면적(㎡)",
+        "op": ">",
+        "threshold": 688.0,
         "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": "<=",
+        "threshold": 16233571.5,
+        "label": "고매출",
+        "risk_desc": "고매출, 고객 밀집·혼잡 증가",
         "severity": "중간"
       },
       {
         "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
         "op": "<=",
-        "threshold": 11.05,
-        "label": "온화",
-        "risk_desc": "일반 수준, 특이 위험 낮음",
-        "severity": "낮음"
+        "threshold": 6.235,
+        "label": "중풍",
+        "risk_desc": "간판·현수막 흔들림, 출입문 급개폐 주의",
+        "severity": "중간"
       },
       {
         "feature": "창고",
-        "op": ">",
-        "threshold": 14.5,
-        "label": "중규모",
-        "risk_desc": "일반 창고, 적재물 이동 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
         "op": "<=",
-        "threshold": 17.35,
-        "label": "서늘",
-        "risk_desc": "봄가을 수준, 환절기 체력 저하 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균물동량",
-        "op": ">",
-        "threshold": 175.0,
-        "label": "저물동",
-        "risk_desc": "물동량 적음, 입고 작업 부담 낮음",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 4.18,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": "<=",
-        "threshold": -3.2,
-        "label": "극한파",
-        "risk_desc": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙",
-        "severity": "높음"
-      }
-    ],
-    "scenario_label": "결빙·낙상",
-    "risk_level": "중간",
-    "primary_risk_factors": [
-      {
-        "feature": "temperature_2m_min",
-        "label": "극한파",
-        "risk": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙"
-      }
-    ],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온화(temperature_2m_min) + 서늘(temperature_2m_max) + 약풍(wind_speed_10m_max) + 극한파(temperature_2m_min)",
-    "store_context": "소형(평수) + 중규모(창고) + 저물동(일평균물동량)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 극한파(temperature_2m_min): 극심한 결빙, 입구·주차장·외부 보행면 전면 결빙 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온화(일반 수준, 특이 위험 낮음), 서늘(봄가을 수준, 환절기 체력 저하 주의), 약풍(약한 바람, 경량 적재물 주의), 극한파(극심한 결빙, 입구·주차장·외부 보행면 전면 결빙) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중규모(일반 창고, 적재물 이동 주의), 저물동(물동량 적음, 입고 작업 부담 낮음) | 과거 사고 패턴: 낙상 52.4% (11/21건)"
-  },
-  "25": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
+        "threshold": 49.13,
+        "label": "대규모",
+        "risk_desc": "대형 창고, 지게차·적재물 충돌 위험 증가",
         "severity": "중간"
       },
       {
@@ -759,71 +523,31 @@
         "severity": "중간"
       },
       {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
+        "feature": "평수",
         "op": "<=",
-        "threshold": 11.05,
-        "label": "온화",
-        "risk_desc": "일반 수준, 특이 위험 낮음",
-        "severity": "낮음"
+        "threshold": 244.5,
+        "label": "소형",
+        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
+        "severity": "중간"
       },
       {
-        "feature": "창고",
+        "feature": "진열평수",
         "op": ">",
-        "threshold": 14.5,
-        "label": "중규모",
-        "risk_desc": "일반 창고, 적재물 이동 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": "<=",
-        "threshold": 17.35,
-        "label": "서늘",
-        "risk_desc": "봄가을 수준, 환절기 체력 저하 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균물동량",
-        "op": ">",
-        "threshold": 175.0,
-        "label": "저물동",
-        "risk_desc": "물동량 적음, 입고 작업 부담 낮음",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 4.18,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": -3.2,
-        "label": "극한파",
-        "risk_desc": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙",
+        "threshold": 175.5,
+        "label": "진열평수 > 175.5",
+        "risk_desc": "도메인 정보 없음",
         "severity": "중간"
       }
     ],
-    "scenario_label": "결빙·낙상",
+    "scenario_label": "대형창고작업 · 고객혼잡",
     "risk_level": "낮음",
     "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온화(temperature_2m_min) + 서늘(temperature_2m_max) + 약풍(wind_speed_10m_max) + 극한파(temperature_2m_min)",
-    "store_context": "소형(평수) + 중규모(창고) + 저물동(일평균물동량)",
-    "dominant_accident_type": "충돌",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온화(일반 수준, 특이 위험 낮음), 서늘(봄가을 수준, 환절기 체력 저하 주의), 약풍(약한 바람, 경량 적재물 주의), 극한파(극심한 결빙, 입구·주차장·외부 보행면 전면 결빙) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중규모(일반 창고, 적재물 이동 주의), 저물동(물동량 적음, 입고 작업 부담 낮음) | 과거 사고 패턴: 충돌 46.2% (12/26건)"
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 중풍(wind_speed_10m_max)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출) + 고매출(일평균매출) + 대규모(창고) + 소형(평수) + 소형(평수) + 진열평수 > 175.5(진열평수)",
+    "dominant_accident_type": "낙상",
+    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 중풍(간판·현수막 흔들림, 출입문 급개폐 주의) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음), 고매출(고매출, 고객 밀집·혼잡 증가), 대규모(대형 창고, 지게차·적재물 충돌 위험 증가), 소형(좁은 통로, 고객·직원 충돌 위험), 소형(좁은 통로, 고객·직원 충돌 위험), 진열평수 > 175.5(도메인 정보 없음) | 과거 사고 패턴: 낙상 52.4% (22/42건)"
   },
-  "28": {
+  "26": {
     "conditions": [
       {
         "feature": "soil_temperature_0_to_7cm_mean",
@@ -831,6 +555,46 @@
         "threshold": 26.55,
         "label": "동절기",
         "risk_desc": "겨울~초봄, 새벽 결빙 가능",
+        "severity": "중간"
+      },
+      {
+        "feature": "계약면적(㎡)",
+        "op": ">",
+        "threshold": 688.0,
+        "label": "소형",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": "<=",
+        "threshold": 16233571.5,
+        "label": "고매출",
+        "risk_desc": "고매출, 고객 밀집·혼잡 증가",
+        "severity": "중간"
+      },
+      {
+        "feature": "wind_speed_10m_max",
+        "op": "<=",
+        "threshold": 6.235,
+        "label": "중풍",
+        "risk_desc": "간판·현수막 흔들림, 출입문 급개폐 주의",
+        "severity": "중간"
+      },
+      {
+        "feature": "창고",
+        "op": "<=",
+        "threshold": 49.13,
+        "label": "대규모",
+        "risk_desc": "대형 창고, 지게차·적재물 충돌 위험 증가",
         "severity": "중간"
       },
       {
@@ -842,79 +606,31 @@
         "severity": "중간"
       },
       {
-        "feature": "wind_speed_10m_max",
+        "feature": "평수",
         "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": "<=",
-        "threshold": 11.05,
-        "label": "온화",
-        "risk_desc": "일반 수준, 특이 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "창고",
-        "op": ">",
-        "threshold": 14.5,
-        "label": "중규모",
-        "risk_desc": "일반 창고, 적재물 이동 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": "<=",
-        "threshold": 17.35,
-        "label": "서늘",
-        "risk_desc": "봄가을 수준, 환절기 체력 저하 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균물동량",
-        "op": ">",
-        "threshold": 175.0,
-        "label": "저물동",
-        "risk_desc": "물동량 적음, 입고 작업 부담 낮음",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 4.18,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": "<=",
-        "threshold": 0.8,
-        "label": "한파",
-        "risk_desc": "결빙 위험, 입구·주차장 낙상 급증",
+        "threshold": 244.5,
+        "label": "소형",
+        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
         "severity": "중간"
       },
       {
         "feature": "relative_humidity_2m_mean",
         "op": "<=",
-        "threshold": 58.0,
-        "label": "건조",
-        "risk_desc": "정전기 발생, 건조 피부 자상 위험",
+        "threshold": 70.0,
+        "label": "적정",
+        "risk_desc": "쾌적 습도, 특이 위험 낮음",
         "severity": "중간"
       }
     ],
-    "scenario_label": "결빙·낙상",
+    "scenario_label": "대형창고작업 · 고객혼잡",
     "risk_level": "낮음",
     "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온화(temperature_2m_min) + 서늘(temperature_2m_max) + 약풍(wind_speed_10m_max) + 한파(temperature_2m_min) + 건조(relative_humidity_2m_mean)",
-    "store_context": "소형(평수) + 중규모(창고) + 저물동(일평균물동량)",
-    "dominant_accident_type": "재물",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온화(일반 수준, 특이 위험 낮음), 서늘(봄가을 수준, 환절기 체력 저하 주의), 약풍(약한 바람, 경량 적재물 주의), 한파(결빙 위험, 입구·주차장 낙상 급증), 건조(정전기 발생, 건조 피부 자상 위험) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중규모(일반 창고, 적재물 이동 주의), 저물동(물동량 적음, 입고 작업 부담 낮음) | 과거 사고 패턴: 재물 54.5% (12/22건)"
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 중풍(wind_speed_10m_max) + 적정(relative_humidity_2m_mean)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출) + 고매출(일평균매출) + 대규모(창고) + 소형(평수) + 소형(평수)",
+    "dominant_accident_type": "낙상",
+    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 중풍(간판·현수막 흔들림, 출입문 급개폐 주의), 적정(쾌적 습도, 특이 위험 낮음) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음), 고매출(고매출, 고객 밀집·혼잡 증가), 대규모(대형 창고, 지게차·적재물 충돌 위험 증가), 소형(좁은 통로, 고객·직원 충돌 위험), 소형(좁은 통로, 고객·직원 충돌 위험) | 과거 사고 패턴: 낙상 40.5% (17/42건)"
   },
-  "29": {
+  "27": {
     "conditions": [
       {
         "feature": "soil_temperature_0_to_7cm_mean",
@@ -922,6 +638,46 @@
         "threshold": 26.55,
         "label": "동절기",
         "risk_desc": "겨울~초봄, 새벽 결빙 가능",
+        "severity": "중간"
+      },
+      {
+        "feature": "계약면적(㎡)",
+        "op": ">",
+        "threshold": 688.0,
+        "label": "소형",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": "<=",
+        "threshold": 16233571.5,
+        "label": "고매출",
+        "risk_desc": "고매출, 고객 밀집·혼잡 증가",
+        "severity": "중간"
+      },
+      {
+        "feature": "wind_speed_10m_max",
+        "op": "<=",
+        "threshold": 6.235,
+        "label": "중풍",
+        "risk_desc": "간판·현수막 흔들림, 출입문 급개폐 주의",
+        "severity": "중간"
+      },
+      {
+        "feature": "창고",
+        "op": "<=",
+        "threshold": 49.13,
+        "label": "대규모",
+        "risk_desc": "대형 창고, 지게차·적재물 충돌 위험 증가",
         "severity": "중간"
       },
       {
@@ -933,77 +689,29 @@
         "severity": "중간"
       },
       {
-        "feature": "wind_speed_10m_max",
+        "feature": "평수",
         "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": "<=",
-        "threshold": 11.05,
-        "label": "온화",
-        "risk_desc": "일반 수준, 특이 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "창고",
-        "op": ">",
-        "threshold": 14.5,
-        "label": "중규모",
-        "risk_desc": "일반 창고, 적재물 이동 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": "<=",
-        "threshold": 17.35,
-        "label": "서늘",
-        "risk_desc": "봄가을 수준, 환절기 체력 저하 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균물동량",
-        "op": ">",
-        "threshold": 175.0,
-        "label": "저물동",
-        "risk_desc": "물동량 적음, 입고 작업 부담 낮음",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 4.18,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": "<=",
-        "threshold": 0.8,
-        "label": "한파",
-        "risk_desc": "결빙 위험, 입구·주차장 낙상 급증",
+        "threshold": 244.5,
+        "label": "소형",
+        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
         "severity": "중간"
       },
       {
         "feature": "relative_humidity_2m_mean",
         "op": ">",
-        "threshold": 58.0,
-        "label": "건조",
-        "risk_desc": "정전기 발생, 건조 피부 자상 위험",
+        "threshold": 70.0,
+        "label": "적정",
+        "risk_desc": "쾌적 습도, 특이 위험 낮음",
         "severity": "중간"
       }
     ],
-    "scenario_label": "결빙·낙상",
+    "scenario_label": "대형창고작업 · 고객혼잡",
     "risk_level": "낮음",
     "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온화(temperature_2m_min) + 서늘(temperature_2m_max) + 약풍(wind_speed_10m_max) + 한파(temperature_2m_min) + 건조(relative_humidity_2m_mean)",
-    "store_context": "소형(평수) + 중규모(창고) + 저물동(일평균물동량)",
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 중풍(wind_speed_10m_max) + 적정(relative_humidity_2m_mean)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출) + 고매출(일평균매출) + 대규모(창고) + 소형(평수) + 소형(평수)",
     "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온화(일반 수준, 특이 위험 낮음), 서늘(봄가을 수준, 환절기 체력 저하 주의), 약풍(약한 바람, 경량 적재물 주의), 한파(결빙 위험, 입구·주차장 낙상 급증), 건조(정전기 발생, 건조 피부 자상 위험) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중규모(일반 창고, 적재물 이동 주의), 저물동(물동량 적음, 입고 작업 부담 낮음) | 과거 사고 패턴: 낙상 53.8% (14/26건)"
+    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 중풍(간판·현수막 흔들림, 출입문 급개폐 주의), 적정(쾌적 습도, 특이 위험 낮음) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음), 고매출(고매출, 고객 밀집·혼잡 증가), 대규모(대형 창고, 지게차·적재물 충돌 위험 증가), 소형(좁은 통로, 고객·직원 충돌 위험), 소형(좁은 통로, 고객·직원 충돌 위험) | 과거 사고 패턴: 낙상 45.1% (23/51건)"
   },
   "30": {
     "conditions": [
@@ -1016,77 +724,77 @@
         "severity": "중간"
       },
       {
-        "feature": "평수",
+        "feature": "계약면적(㎡)",
+        "op": ">",
+        "threshold": 688.0,
+        "label": "소형",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
         "op": "<=",
+        "threshold": 16233571.5,
+        "label": "고매출",
+        "risk_desc": "고매출, 고객 밀집·혼잡 증가",
+        "severity": "중간"
+      },
+      {
+        "feature": "wind_speed_10m_max",
+        "op": "<=",
+        "threshold": 6.235,
+        "label": "중풍",
+        "risk_desc": "간판·현수막 흔들림, 출입문 급개폐 주의",
+        "severity": "중간"
+      },
+      {
+        "feature": "창고",
+        "op": "<=",
+        "threshold": 49.13,
+        "label": "대규모",
+        "risk_desc": "대형 창고, 지게차·적재물 충돌 위험 증가",
+        "severity": "중간"
+      },
+      {
+        "feature": "평수",
+        "op": ">",
         "threshold": 299.75,
         "label": "소형",
         "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
         "severity": "중간"
       },
       {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
+        "feature": "계약면적(㎡)",
         "op": "<=",
-        "threshold": 11.05,
-        "label": "온화",
-        "risk_desc": "일반 수준, 특이 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "창고",
-        "op": ">",
-        "threshold": 14.5,
-        "label": "중규모",
-        "risk_desc": "일반 창고, 적재물 이동 주의",
+        "threshold": 1337.0,
+        "label": "대형",
+        "risk_desc": "대형 매장, 동선 길어 이동 사고 증가",
         "severity": "중간"
       },
       {
-        "feature": "temperature_2m_max",
+        "feature": "매장인원",
         "op": "<=",
-        "threshold": 17.35,
-        "label": "서늘",
-        "risk_desc": "봄가을 수준, 환절기 체력 저하 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균물동량",
-        "op": ">",
-        "threshold": 175.0,
-        "label": "저물동",
-        "risk_desc": "물동량 적음, 입고 작업 부담 낮음",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 4.18,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": 0.8,
-        "label": "한파",
-        "risk_desc": "결빙 위험, 입구·주차장 낙상 급증",
+        "threshold": 10.95,
+        "label": "소",
+        "risk_desc": "소규모 인원, 고강도 작업 빈도 높음",
         "severity": "중간"
       }
     ],
-    "scenario_label": "결빙·낙상",
+    "scenario_label": "대형창고작업 · 고객혼잡",
     "risk_level": "낮음",
     "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온화(temperature_2m_min) + 서늘(temperature_2m_max) + 약풍(wind_speed_10m_max) + 한파(temperature_2m_min)",
-    "store_context": "소형(평수) + 중규모(창고) + 저물동(일평균물동량)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온화(일반 수준, 특이 위험 낮음), 서늘(봄가을 수준, 환절기 체력 저하 주의), 약풍(약한 바람, 경량 적재물 주의), 한파(결빙 위험, 입구·주차장 낙상 급증) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중규모(일반 창고, 적재물 이동 주의), 저물동(물동량 적음, 입고 작업 부담 낮음) | 과거 사고 패턴: 낙상 46.7% (14/30건)"
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 중풍(wind_speed_10m_max)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출) + 고매출(일평균매출) + 대규모(창고) + 소형(평수) + 대형(계약면적(㎡)) + 소(매장인원)",
+    "dominant_accident_type": "재물",
+    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 중풍(간판·현수막 흔들림, 출입문 급개폐 주의) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음), 고매출(고매출, 고객 밀집·혼잡 증가), 대규모(대형 창고, 지게차·적재물 충돌 위험 증가), 소형(좁은 통로, 고객·직원 충돌 위험), 대형(대형 매장, 동선 길어 이동 사고 증가), 소(소규모 인원, 고강도 작업 빈도 높음) | 과거 사고 패턴: 재물 30.2% (16/53건)"
   },
   "31": {
     "conditions": [
@@ -1099,53 +807,77 @@
         "severity": "중간"
       },
       {
-        "feature": "평수",
+        "feature": "계약면적(㎡)",
+        "op": ">",
+        "threshold": 688.0,
+        "label": "소형",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
         "op": "<=",
+        "threshold": 16233571.5,
+        "label": "고매출",
+        "risk_desc": "고매출, 고객 밀집·혼잡 증가",
+        "severity": "중간"
+      },
+      {
+        "feature": "wind_speed_10m_max",
+        "op": "<=",
+        "threshold": 6.235,
+        "label": "중풍",
+        "risk_desc": "간판·현수막 흔들림, 출입문 급개폐 주의",
+        "severity": "중간"
+      },
+      {
+        "feature": "창고",
+        "op": "<=",
+        "threshold": 49.13,
+        "label": "대규모",
+        "risk_desc": "대형 창고, 지게차·적재물 충돌 위험 증가",
+        "severity": "중간"
+      },
+      {
+        "feature": "평수",
+        "op": ">",
         "threshold": 299.75,
         "label": "소형",
         "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
         "severity": "중간"
       },
       {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
+        "feature": "계약면적(㎡)",
         "op": "<=",
-        "threshold": 11.05,
-        "label": "온화",
-        "risk_desc": "일반 수준, 특이 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "창고",
-        "op": ">",
-        "threshold": 14.5,
-        "label": "중규모",
-        "risk_desc": "일반 창고, 적재물 이동 주의",
+        "threshold": 1337.0,
+        "label": "대형",
+        "risk_desc": "대형 매장, 동선 길어 이동 사고 증가",
         "severity": "중간"
       },
       {
-        "feature": "temperature_2m_max",
+        "feature": "매장인원",
         "op": ">",
-        "threshold": 17.35,
-        "label": "서늘",
-        "risk_desc": "봄가을 수준, 환절기 체력 저하 주의",
+        "threshold": 10.95,
+        "label": "소",
+        "risk_desc": "소규모 인원, 고강도 작업 빈도 높음",
         "severity": "중간"
       }
     ],
-    "scenario_label": "낙상주의",
+    "scenario_label": "대형창고작업 · 고객혼잡",
     "risk_level": "낮음",
     "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온화(temperature_2m_min) + 서늘(temperature_2m_max)",
-    "store_context": "소형(평수) + 중규모(창고)",
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 중풍(wind_speed_10m_max)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출) + 고매출(일평균매출) + 대규모(창고) + 소형(평수) + 대형(계약면적(㎡)) + 소(매장인원)",
     "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온화(일반 수준, 특이 위험 낮음), 서늘(봄가을 수준, 환절기 체력 저하 주의) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중규모(일반 창고, 적재물 이동 주의) | 과거 사고 패턴: 낙상 51.6% (16/31건)"
+    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 중풍(간판·현수막 흔들림, 출입문 급개폐 주의) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음), 고매출(고매출, 고객 밀집·혼잡 증가), 대규모(대형 창고, 지게차·적재물 충돌 위험 증가), 소형(좁은 통로, 고객·직원 충돌 위험), 대형(대형 매장, 동선 길어 이동 사고 증가), 소(소규모 인원, 고강도 작업 빈도 높음) | 과거 사고 패턴: 낙상 38.5% (25/65건)"
   },
   "33": {
     "conditions": [
@@ -1158,45 +890,290 @@
         "severity": "중간"
       },
       {
-        "feature": "평수",
+        "feature": "계약면적(㎡)",
+        "op": ">",
+        "threshold": 688.0,
+        "label": "소형",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
         "op": "<=",
+        "threshold": 16233571.5,
+        "label": "고매출",
+        "risk_desc": "고매출, 고객 밀집·혼잡 증가",
+        "severity": "중간"
+      },
+      {
+        "feature": "wind_speed_10m_max",
+        "op": "<=",
+        "threshold": 6.235,
+        "label": "중풍",
+        "risk_desc": "간판·현수막 흔들림, 출입문 급개폐 주의",
+        "severity": "중간"
+      },
+      {
+        "feature": "창고",
+        "op": "<=",
+        "threshold": 49.13,
+        "label": "대규모",
+        "risk_desc": "대형 창고, 지게차·적재물 충돌 위험 증가",
+        "severity": "중간"
+      },
+      {
+        "feature": "평수",
+        "op": ">",
         "threshold": 299.75,
         "label": "소형",
         "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
         "severity": "중간"
       },
       {
-        "feature": "wind_speed_10m_max",
+        "feature": "계약면적(㎡)",
         "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
+        "threshold": 1337.0,
+        "label": "초대형",
+        "risk_desc": "초대형 매장, 관리 사각지대 발생",
+        "severity": "중간"
       },
       {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": 11.05,
-        "label": "온난",
-        "risk_desc": "결빙 위험 없음, 여름철 온열질환 주의 시작",
-        "severity": "낮음"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
+        "feature": "진열평수",
         "op": "<=",
-        "threshold": 18.25,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
+        "threshold": 349.5,
+        "label": "진열평수 <= 349.5",
+        "risk_desc": "도메인 정보 없음",
         "severity": "중간"
       }
     ],
-    "scenario_label": "낙상주의",
+    "scenario_label": "대형창고작업 · 고객혼잡",
     "risk_level": "낮음",
     "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온난(temperature_2m_min) + 동절기(soil_temperature_0_to_7cm_mean)",
-    "store_context": "소형(평수)",
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 중풍(wind_speed_10m_max)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출) + 고매출(일평균매출) + 대규모(창고) + 소형(평수) + 초대형(계약면적(㎡)) + 진열평수 <= 349.5(진열평수)",
+    "dominant_accident_type": "재물",
+    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 중풍(간판·현수막 흔들림, 출입문 급개폐 주의) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음), 고매출(고매출, 고객 밀집·혼잡 증가), 대규모(대형 창고, 지게차·적재물 충돌 위험 증가), 소형(좁은 통로, 고객·직원 충돌 위험), 초대형(초대형 매장, 관리 사각지대 발생), 진열평수 <= 349.5(도메인 정보 없음) | 과거 사고 패턴: 재물 42.9% (24/56건)"
+  },
+  "34": {
+    "conditions": [
+      {
+        "feature": "soil_temperature_0_to_7cm_mean",
+        "op": "<=",
+        "threshold": 26.55,
+        "label": "동절기",
+        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
+        "severity": "중간"
+      },
+      {
+        "feature": "계약면적(㎡)",
+        "op": ">",
+        "threshold": 688.0,
+        "label": "소형",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": "<=",
+        "threshold": 16233571.5,
+        "label": "고매출",
+        "risk_desc": "고매출, 고객 밀집·혼잡 증가",
+        "severity": "중간"
+      },
+      {
+        "feature": "wind_speed_10m_max",
+        "op": "<=",
+        "threshold": 6.235,
+        "label": "중풍",
+        "risk_desc": "간판·현수막 흔들림, 출입문 급개폐 주의",
+        "severity": "중간"
+      },
+      {
+        "feature": "창고",
+        "op": "<=",
+        "threshold": 49.13,
+        "label": "대규모",
+        "risk_desc": "대형 창고, 지게차·적재물 충돌 위험 증가",
+        "severity": "중간"
+      },
+      {
+        "feature": "평수",
+        "op": ">",
+        "threshold": 299.75,
+        "label": "소형",
+        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "계약면적(㎡)",
+        "op": ">",
+        "threshold": 1337.0,
+        "label": "초대형",
+        "risk_desc": "초대형 매장, 관리 사각지대 발생",
+        "severity": "중간"
+      },
+      {
+        "feature": "진열평수",
+        "op": ">",
+        "threshold": 349.5,
+        "label": "진열평수 > 349.5",
+        "risk_desc": "도메인 정보 없음",
+        "severity": "중간"
+      }
+    ],
+    "scenario_label": "대형창고작업 · 고객혼잡",
+    "risk_level": "낮음",
+    "primary_risk_factors": [],
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 중풍(wind_speed_10m_max)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출) + 고매출(일평균매출) + 대규모(창고) + 소형(평수) + 초대형(계약면적(㎡)) + 진열평수 > 349.5(진열평수)",
     "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온난(결빙 위험 없음, 여름철 온열질환 주의 시작), 동절기(겨울~초봄, 새벽 결빙 가능) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험) | 과거 사고 패턴: 낙상 42.9% (15/35건)"
+    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 중풍(간판·현수막 흔들림, 출입문 급개폐 주의) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음), 고매출(고매출, 고객 밀집·혼잡 증가), 대규모(대형 창고, 지게차·적재물 충돌 위험 증가), 소형(좁은 통로, 고객·직원 충돌 위험), 초대형(초대형 매장, 관리 사각지대 발생), 진열평수 > 349.5(도메인 정보 없음) | 과거 사고 패턴: 낙상 42.5% (17/40건)"
+  },
+  "35": {
+    "conditions": [
+      {
+        "feature": "soil_temperature_0_to_7cm_mean",
+        "op": "<=",
+        "threshold": 26.55,
+        "label": "동절기",
+        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
+        "severity": "중간"
+      },
+      {
+        "feature": "계약면적(㎡)",
+        "op": ">",
+        "threshold": 688.0,
+        "label": "소형",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": "<=",
+        "threshold": 16233571.5,
+        "label": "고매출",
+        "risk_desc": "고매출, 고객 밀집·혼잡 증가",
+        "severity": "중간"
+      },
+      {
+        "feature": "wind_speed_10m_max",
+        "op": "<=",
+        "threshold": 6.235,
+        "label": "중풍",
+        "risk_desc": "간판·현수막 흔들림, 출입문 급개폐 주의",
+        "severity": "중간"
+      },
+      {
+        "feature": "창고",
+        "op": ">",
+        "threshold": 49.13,
+        "label": "초대규모",
+        "risk_desc": "초대형 창고, 복잡 동선+중장비 사고 위험",
+        "severity": "높음"
+      }
+    ],
+    "scenario_label": "대형창고작업 · 고객혼잡",
+    "risk_level": "중간",
+    "primary_risk_factors": [
+      {
+        "feature": "창고",
+        "label": "초대규모",
+        "risk": "초대형 창고, 복잡 동선+중장비 사고 위험"
+      }
+    ],
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 중풍(wind_speed_10m_max)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출) + 고매출(일평균매출) + 초대규모(창고)",
+    "dominant_accident_type": "낙상",
+    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 초대규모(창고): 초대형 창고, 복잡 동선+중장비 사고 위험 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 중풍(간판·현수막 흔들림, 출입문 급개폐 주의) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음), 고매출(고매출, 고객 밀집·혼잡 증가), 초대규모(초대형 창고, 복잡 동선+중장비 사고 위험) | 과거 사고 패턴: 낙상 44.4% (24/54건)"
+  },
+  "37": {
+    "conditions": [
+      {
+        "feature": "soil_temperature_0_to_7cm_mean",
+        "op": "<=",
+        "threshold": 26.55,
+        "label": "동절기",
+        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
+        "severity": "중간"
+      },
+      {
+        "feature": "계약면적(㎡)",
+        "op": ">",
+        "threshold": 688.0,
+        "label": "소형",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": "<=",
+        "threshold": 16233571.5,
+        "label": "고매출",
+        "risk_desc": "고매출, 고객 밀집·혼잡 증가",
+        "severity": "중간"
+      },
+      {
+        "feature": "wind_speed_10m_max",
+        "op": ">",
+        "threshold": 6.235,
+        "label": "중풍",
+        "risk_desc": "간판·현수막 흔들림, 출입문 급개폐 주의",
+        "severity": "높음"
+      },
+      {
+        "feature": "temperature_2m_min",
+        "op": "<=",
+        "threshold": 3.3,
+        "label": "한파",
+        "risk_desc": "결빙 위험, 입구·주차장 낙상 급증",
+        "severity": "중간"
+      }
+    ],
+    "scenario_label": "결빙·낙상 · 고객혼잡",
+    "risk_level": "중간",
+    "primary_risk_factors": [
+      {
+        "feature": "wind_speed_10m_max",
+        "label": "중풍",
+        "risk": "간판·현수막 흔들림, 출입문 급개폐 주의"
+      }
+    ],
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 중풍(wind_speed_10m_max) + 한파(temperature_2m_min)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출) + 고매출(일평균매출)",
+    "dominant_accident_type": "재물",
+    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 중풍(wind_speed_10m_max): 간판·현수막 흔들림, 출입문 급개폐 주의 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 중풍(간판·현수막 흔들림, 출입문 급개폐 주의), 한파(결빙 위험, 입구·주차장 낙상 급증) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음), 고매출(고매출, 고객 밀집·혼잡 증가) | 과거 사고 패턴: 재물 47.5% (19/40건)"
   },
   "38": {
     "conditions": [
@@ -1209,334 +1186,59 @@
         "severity": "중간"
       },
       {
-        "feature": "평수",
-        "op": "<=",
-        "threshold": 299.75,
+        "feature": "계약면적(㎡)",
+        "op": ">",
+        "threshold": 688.0,
         "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": "<=",
+        "threshold": 16233571.5,
+        "label": "고매출",
+        "risk_desc": "고매출, 고객 밀집·혼잡 증가",
         "severity": "중간"
       },
       {
         "feature": "wind_speed_10m_max",
         "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
+        "threshold": 6.235,
+        "label": "중풍",
+        "risk_desc": "간판·현수막 흔들림, 출입문 급개폐 주의",
+        "severity": "높음"
       },
       {
         "feature": "temperature_2m_min",
         "op": ">",
-        "threshold": 11.05,
-        "label": "온난",
-        "risk_desc": "결빙 위험 없음, 여름철 온열질환 주의 시작",
-        "severity": "낮음"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": ">",
-        "threshold": 18.25,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 1343.0,
-        "label": "대형",
-        "risk_desc": "대형 매장, 동선 길어 이동 사고 증가",
-        "severity": "중간"
-      },
-      {
-        "feature": "입고도우미PO",
-        "op": "<=",
-        "threshold": 0.85,
-        "label": "없음",
-        "risk_desc": "도우미 없음, 직원 직접 입고 → 과부하",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": "<=",
-        "threshold": 28.75,
-        "label": "적정",
-        "risk_desc": "쾌적 온도, 특이 위험 낮음",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": "<=",
-        "threshold": 23.75,
-        "label": "서늘",
-        "risk_desc": "봄가을 수준, 환절기 체력 저하 주의",
+        "threshold": 3.3,
+        "label": "한파",
+        "risk_desc": "결빙 위험, 입구·주차장 낙상 급증",
         "severity": "중간"
       }
     ],
-    "scenario_label": "낙상주의",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온난(temperature_2m_min) + 동절기(soil_temperature_0_to_7cm_mean) + 적정(temperature_2m_max) + 서늘(temperature_2m_max)",
-    "store_context": "소형(평수) + 대형(계약면적(㎡)) + 없음(입고도우미PO)",
+    "scenario_label": "결빙·낙상 · 고객혼잡",
+    "risk_level": "중간",
+    "primary_risk_factors": [
+      {
+        "feature": "wind_speed_10m_max",
+        "label": "중풍",
+        "risk": "간판·현수막 흔들림, 출입문 급개폐 주의"
+      }
+    ],
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 중풍(wind_speed_10m_max) + 한파(temperature_2m_min)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출) + 고매출(일평균매출)",
     "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온난(결빙 위험 없음, 여름철 온열질환 주의 시작), 동절기(겨울~초봄, 새벽 결빙 가능), 적정(쾌적 온도, 특이 위험 낮음), 서늘(봄가을 수준, 환절기 체력 저하 주의) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 대형(대형 매장, 동선 길어 이동 사고 증가), 없음(도우미 없음, 직원 직접 입고 → 과부하) | 과거 사고 패턴: 낙상 60.0% (12/20건)"
-  },
-  "40": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": "<=",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": 11.05,
-        "label": "온난",
-        "risk_desc": "결빙 위험 없음, 여름철 온열질환 주의 시작",
-        "severity": "낮음"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": ">",
-        "threshold": 18.25,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 1343.0,
-        "label": "대형",
-        "risk_desc": "대형 매장, 동선 길어 이동 사고 증가",
-        "severity": "중간"
-      },
-      {
-        "feature": "입고도우미PO",
-        "op": "<=",
-        "threshold": 0.85,
-        "label": "없음",
-        "risk_desc": "도우미 없음, 직원 직접 입고 → 과부하",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": "<=",
-        "threshold": 28.75,
-        "label": "적정",
-        "risk_desc": "쾌적 온도, 특이 위험 낮음",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": ">",
-        "threshold": 23.75,
-        "label": "서늘",
-        "risk_desc": "봄가을 수준, 환절기 체력 저하 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": "<=",
-        "threshold": 26.25,
-        "label": "적정",
-        "risk_desc": "쾌적 온도, 특이 위험 낮음",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "재물주의",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온난(temperature_2m_min) + 동절기(soil_temperature_0_to_7cm_mean) + 적정(temperature_2m_max) + 서늘(temperature_2m_max) + 적정(temperature_2m_max)",
-    "store_context": "소형(평수) + 대형(계약면적(㎡)) + 없음(입고도우미PO)",
-    "dominant_accident_type": "재물",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온난(결빙 위험 없음, 여름철 온열질환 주의 시작), 동절기(겨울~초봄, 새벽 결빙 가능), 적정(쾌적 온도, 특이 위험 낮음), 서늘(봄가을 수준, 환절기 체력 저하 주의), 적정(쾌적 온도, 특이 위험 낮음) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 대형(대형 매장, 동선 길어 이동 사고 증가), 없음(도우미 없음, 직원 직접 입고 → 과부하) | 과거 사고 패턴: 재물 56.5% (13/23건)"
-  },
-  "41": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": "<=",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": 11.05,
-        "label": "온난",
-        "risk_desc": "결빙 위험 없음, 여름철 온열질환 주의 시작",
-        "severity": "낮음"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": ">",
-        "threshold": 18.25,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 1343.0,
-        "label": "대형",
-        "risk_desc": "대형 매장, 동선 길어 이동 사고 증가",
-        "severity": "중간"
-      },
-      {
-        "feature": "입고도우미PO",
-        "op": "<=",
-        "threshold": 0.85,
-        "label": "없음",
-        "risk_desc": "도우미 없음, 직원 직접 입고 → 과부하",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": "<=",
-        "threshold": 28.75,
-        "label": "적정",
-        "risk_desc": "쾌적 온도, 특이 위험 낮음",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": ">",
-        "threshold": 23.75,
-        "label": "서늘",
-        "risk_desc": "봄가을 수준, 환절기 체력 저하 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": ">",
-        "threshold": 26.25,
-        "label": "적정",
-        "risk_desc": "쾌적 온도, 특이 위험 낮음",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "낙상주의",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온난(temperature_2m_min) + 동절기(soil_temperature_0_to_7cm_mean) + 적정(temperature_2m_max) + 서늘(temperature_2m_max) + 적정(temperature_2m_max)",
-    "store_context": "소형(평수) + 대형(계약면적(㎡)) + 없음(입고도우미PO)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온난(결빙 위험 없음, 여름철 온열질환 주의 시작), 동절기(겨울~초봄, 새벽 결빙 가능), 적정(쾌적 온도, 특이 위험 낮음), 서늘(봄가을 수준, 환절기 체력 저하 주의), 적정(쾌적 온도, 특이 위험 낮음) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 대형(대형 매장, 동선 길어 이동 사고 증가), 없음(도우미 없음, 직원 직접 입고 → 과부하) | 과거 사고 패턴: 낙상 60.6% (20/33건)"
-  },
-  "42": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": "<=",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": 11.05,
-        "label": "온난",
-        "risk_desc": "결빙 위험 없음, 여름철 온열질환 주의 시작",
-        "severity": "낮음"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": ">",
-        "threshold": 18.25,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 1343.0,
-        "label": "대형",
-        "risk_desc": "대형 매장, 동선 길어 이동 사고 증가",
-        "severity": "중간"
-      },
-      {
-        "feature": "입고도우미PO",
-        "op": "<=",
-        "threshold": 0.85,
-        "label": "없음",
-        "risk_desc": "도우미 없음, 직원 직접 입고 → 과부하",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": ">",
-        "threshold": 28.75,
-        "label": "적정",
-        "risk_desc": "쾌적 온도, 특이 위험 낮음",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "충돌주의",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온난(temperature_2m_min) + 동절기(soil_temperature_0_to_7cm_mean) + 적정(temperature_2m_max)",
-    "store_context": "소형(평수) + 대형(계약면적(㎡)) + 없음(입고도우미PO)",
-    "dominant_accident_type": "충돌",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온난(결빙 위험 없음, 여름철 온열질환 주의 시작), 동절기(겨울~초봄, 새벽 결빙 가능), 적정(쾌적 온도, 특이 위험 낮음) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 대형(대형 매장, 동선 길어 이동 사고 증가), 없음(도우미 없음, 직원 직접 입고 → 과부하) | 과거 사고 패턴: 충돌 39.3% (11/28건)"
+    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 중풍(wind_speed_10m_max): 간판·현수막 흔들림, 출입문 급개폐 주의 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 중풍(간판·현수막 흔들림, 출입문 급개폐 주의), 한파(결빙 위험, 입구·주차장 낙상 급증) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음), 고매출(고매출, 고객 밀집·혼잡 증가) | 과거 사고 패턴: 낙상 45.0% (18/40건)"
   },
   "43": {
     "conditions": [
@@ -1549,61 +1251,75 @@
         "severity": "중간"
       },
       {
-        "feature": "평수",
-        "op": "<=",
-        "threshold": 299.75,
+        "feature": "계약면적(㎡)",
+        "op": ">",
+        "threshold": 688.0,
         "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
         "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 16233571.5,
+        "label": "초고매출",
+        "risk_desc": "초고매출, 극심한 혼잡 → 충돌·낙상 급증",
+        "severity": "높음"
+      },
+      {
+        "feature": "rain_sum",
+        "op": "<=",
+        "threshold": 5.6,
+        "label": "무강우",
+        "risk_desc": "비 없음",
+        "severity": "낮음"
       },
       {
         "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 1.995,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": 11.05,
-        "label": "온난",
-        "risk_desc": "결빙 위험 없음, 여름철 온열질환 주의 시작",
-        "severity": "낮음"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": ">",
-        "threshold": 18.25,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
         "op": "<=",
-        "threshold": 1343.0,
-        "label": "대형",
-        "risk_desc": "대형 매장, 동선 길어 이동 사고 증가",
+        "threshold": 5.755,
+        "label": "약풍",
+        "risk_desc": "약한 바람, 경량 적재물 주의",
         "severity": "중간"
       },
       {
         "feature": "입고도우미PO",
-        "op": ">",
-        "threshold": 0.85,
-        "label": "없음",
-        "risk_desc": "도우미 없음, 직원 직접 입고 → 과부하",
+        "op": "<=",
+        "threshold": 1.15,
+        "label": "소수",
+        "risk_desc": "최소 인원, 입고 작업 강도 높음",
         "severity": "중간"
+      },
+      {
+        "feature": "wind_speed_10m_max",
+        "op": "<=",
+        "threshold": 3.77,
+        "label": "미풍",
+        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
+        "severity": "낮음"
       }
     ],
-    "scenario_label": "재물주의",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온난(temperature_2m_min) + 동절기(soil_temperature_0_to_7cm_mean)",
-    "store_context": "소형(평수) + 대형(계약면적(㎡)) + 없음(입고도우미PO)",
-    "dominant_accident_type": "재물",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온난(결빙 위험 없음, 여름철 온열질환 주의 시작), 동절기(겨울~초봄, 새벽 결빙 가능) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 대형(대형 매장, 동선 길어 이동 사고 증가), 없음(도우미 없음, 직원 직접 입고 → 과부하) | 과거 사고 패턴: 재물 37.1% (13/35건)"
+    "scenario_label": "고객혼잡",
+    "risk_level": "중간",
+    "primary_risk_factors": [
+      {
+        "feature": "일평균매출",
+        "label": "초고매출",
+        "risk": "초고매출, 극심한 혼잡 → 충돌·낙상 급증"
+      }
+    ],
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 무강우(rain_sum) + 약풍(wind_speed_10m_max) + 미풍(wind_speed_10m_max)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출) + 초고매출(일평균매출) + 소수(입고도우미PO)",
+    "dominant_accident_type": "낙상",
+    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 초고매출(일평균매출): 초고매출, 극심한 혼잡 → 충돌·낙상 급증 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 무강우(비 없음), 약풍(약한 바람, 경량 적재물 주의), 미풍(바람 거의 없음, 풍압 사고 위험 낮음) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음), 초고매출(초고매출, 극심한 혼잡 → 충돌·낙상 급증), 소수(최소 인원, 입고 작업 강도 높음) | 과거 사고 패턴: 낙상 49.2% (32/65건)"
   },
   "44": {
     "conditions": [
@@ -1616,33 +1332,82 @@
         "severity": "중간"
       },
       {
-        "feature": "평수",
-        "op": "<=",
-        "threshold": 299.75,
+        "feature": "계약면적(㎡)",
+        "op": ">",
+        "threshold": 688.0,
         "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 16233571.5,
+        "label": "초고매출",
+        "risk_desc": "초고매출, 극심한 혼잡 → 충돌·낙상 급증",
+        "severity": "높음"
+      },
+      {
+        "feature": "rain_sum",
+        "op": "<=",
+        "threshold": 5.6,
+        "label": "무강우",
+        "risk_desc": "비 없음",
+        "severity": "낮음"
+      },
+      {
+        "feature": "wind_speed_10m_max",
+        "op": "<=",
+        "threshold": 5.755,
+        "label": "약풍",
+        "risk_desc": "약한 바람, 경량 적재물 주의",
+        "severity": "중간"
+      },
+      {
+        "feature": "입고도우미PO",
+        "op": "<=",
+        "threshold": 1.15,
+        "label": "소수",
+        "risk_desc": "최소 인원, 입고 작업 강도 높음",
         "severity": "중간"
       },
       {
         "feature": "wind_speed_10m_max",
         "op": ">",
-        "threshold": 1.995,
+        "threshold": 3.77,
         "label": "미풍",
         "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
         "severity": "낮음"
-      },
+      }
+    ],
+    "scenario_label": "고객혼잡",
+    "risk_level": "중간",
+    "primary_risk_factors": [
       {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": 11.05,
-        "label": "온난",
-        "risk_desc": "결빙 위험 없음, 여름철 온열질환 주의 시작",
-        "severity": "낮음"
-      },
+        "feature": "일평균매출",
+        "label": "초고매출",
+        "risk": "초고매출, 극심한 혼잡 → 충돌·낙상 급증"
+      }
+    ],
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 무강우(rain_sum) + 약풍(wind_speed_10m_max) + 미풍(wind_speed_10m_max)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출) + 초고매출(일평균매출) + 소수(입고도우미PO)",
+    "dominant_accident_type": "재물",
+    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 초고매출(일평균매출): 초고매출, 극심한 혼잡 → 충돌·낙상 급증 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 무강우(비 없음), 약풍(약한 바람, 경량 적재물 주의), 미풍(바람 거의 없음, 풍압 사고 위험 낮음) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음), 초고매출(초고매출, 극심한 혼잡 → 충돌·낙상 급증), 소수(최소 인원, 입고 작업 강도 높음) | 과거 사고 패턴: 재물 37.5% (24/64건)"
+  },
+  "46": {
+    "conditions": [
       {
         "feature": "soil_temperature_0_to_7cm_mean",
-        "op": ">",
-        "threshold": 18.25,
+        "op": "<=",
+        "threshold": 26.55,
         "label": "동절기",
         "risk_desc": "겨울~초봄, 새벽 결빙 가능",
         "severity": "중간"
@@ -1650,19 +1415,154 @@
       {
         "feature": "계약면적(㎡)",
         "op": ">",
-        "threshold": 1343.0,
+        "threshold": 688.0,
+        "label": "소형",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 16233571.5,
+        "label": "초고매출",
+        "risk_desc": "초고매출, 극심한 혼잡 → 충돌·낙상 급증",
+        "severity": "높음"
+      },
+      {
+        "feature": "rain_sum",
+        "op": "<=",
+        "threshold": 5.6,
+        "label": "무강우",
+        "risk_desc": "비 없음",
+        "severity": "낮음"
+      },
+      {
+        "feature": "wind_speed_10m_max",
+        "op": "<=",
+        "threshold": 5.755,
+        "label": "약풍",
+        "risk_desc": "약한 바람, 경량 적재물 주의",
+        "severity": "중간"
+      },
+      {
+        "feature": "입고도우미PO",
+        "op": ">",
+        "threshold": 1.15,
+        "label": "다수",
+        "risk_desc": "다수 도우미, 입고 작업량 많음 → 적재 사고 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "계약면적(㎡)",
+        "op": "<=",
+        "threshold": 2316.0399,
+        "label": "대형",
+        "risk_desc": "대형 매장, 동선 길어 이동 사고 증가",
+        "severity": "중간"
+      }
+    ],
+    "scenario_label": "고객혼잡",
+    "risk_level": "중간",
+    "primary_risk_factors": [
+      {
+        "feature": "일평균매출",
+        "label": "초고매출",
+        "risk": "초고매출, 극심한 혼잡 → 충돌·낙상 급증"
+      }
+    ],
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 무강우(rain_sum) + 약풍(wind_speed_10m_max)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출) + 초고매출(일평균매출) + 다수(입고도우미PO) + 대형(계약면적(㎡))",
+    "dominant_accident_type": "재물",
+    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 초고매출(일평균매출): 초고매출, 극심한 혼잡 → 충돌·낙상 급증 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 무강우(비 없음), 약풍(약한 바람, 경량 적재물 주의) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음), 초고매출(초고매출, 극심한 혼잡 → 충돌·낙상 급증), 다수(다수 도우미, 입고 작업량 많음 → 적재 사고 위험), 대형(대형 매장, 동선 길어 이동 사고 증가) | 과거 사고 패턴: 재물 35.6% (16/45건)"
+  },
+  "47": {
+    "conditions": [
+      {
+        "feature": "soil_temperature_0_to_7cm_mean",
+        "op": "<=",
+        "threshold": 26.55,
+        "label": "동절기",
+        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
+        "severity": "중간"
+      },
+      {
+        "feature": "계약면적(㎡)",
+        "op": ">",
+        "threshold": 688.0,
+        "label": "소형",
+        "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 16233571.5,
+        "label": "초고매출",
+        "risk_desc": "초고매출, 극심한 혼잡 → 충돌·낙상 급증",
+        "severity": "높음"
+      },
+      {
+        "feature": "rain_sum",
+        "op": "<=",
+        "threshold": 5.6,
+        "label": "무강우",
+        "risk_desc": "비 없음",
+        "severity": "낮음"
+      },
+      {
+        "feature": "wind_speed_10m_max",
+        "op": "<=",
+        "threshold": 5.755,
+        "label": "약풍",
+        "risk_desc": "약한 바람, 경량 적재물 주의",
+        "severity": "중간"
+      },
+      {
+        "feature": "입고도우미PO",
+        "op": ">",
+        "threshold": 1.15,
+        "label": "다수",
+        "risk_desc": "다수 도우미, 입고 작업량 많음 → 적재 사고 위험",
+        "severity": "중간"
+      },
+      {
+        "feature": "계약면적(㎡)",
+        "op": ">",
+        "threshold": 2316.0399,
         "label": "초대형",
         "risk_desc": "초대형 매장, 관리 사각지대 발생",
         "severity": "중간"
       }
     ],
-    "scenario_label": "충돌주의",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 온난(temperature_2m_min) + 동절기(soil_temperature_0_to_7cm_mean)",
-    "store_context": "소형(평수) + 초대형(계약면적(㎡))",
-    "dominant_accident_type": "충돌",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 온난(결빙 위험 없음, 여름철 온열질환 주의 시작), 동절기(겨울~초봄, 새벽 결빙 가능) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 초대형(초대형 매장, 관리 사각지대 발생) | 과거 사고 패턴: 충돌 45.0% (9/20건)"
+    "scenario_label": "고객혼잡",
+    "risk_level": "중간",
+    "primary_risk_factors": [
+      {
+        "feature": "일평균매출",
+        "label": "초고매출",
+        "risk": "초고매출, 극심한 혼잡 → 충돌·낙상 급증"
+      }
+    ],
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 무강우(rain_sum) + 약풍(wind_speed_10m_max)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출) + 초고매출(일평균매출) + 다수(입고도우미PO) + 초대형(계약면적(㎡))",
+    "dominant_accident_type": "낙상",
+    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 초고매출(일평균매출): 초고매출, 극심한 혼잡 → 충돌·낙상 급증 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 무강우(비 없음), 약풍(약한 바람, 경량 적재물 주의) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음), 초고매출(초고매출, 극심한 혼잡 → 충돌·낙상 급증), 다수(다수 도우미, 입고 작업량 많음 → 적재 사고 위험), 초대형(초대형 매장, 관리 사각지대 발생) | 과거 사고 패턴: 낙상 53.7% (22/41건)"
   },
   "48": {
     "conditions": [
@@ -1675,106 +1575,61 @@
         "severity": "중간"
       },
       {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
         "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 1329.0,
-        "label": "중형",
-        "risk_desc": "중형 매장, 일반 수준",
-        "severity": "중간"
-      },
-      {
-        "feature": "매장인원",
-        "op": "<=",
-        "threshold": 9.85,
-        "label": "극소",
-        "risk_desc": "인원 부족, 1인 작업·과로 사고 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 4.145,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "인원부족과로",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 약풍(wind_speed_10m_max)",
-    "store_context": "소형(평수) + 중형(계약면적(㎡)) + 극소(매장인원)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 약풍(약한 바람, 경량 적재물 주의) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중형(중형 매장, 일반 수준), 극소(인원 부족, 1인 작업·과로 사고 위험) | 과거 사고 패턴: 낙상 34.8% (8/23건)"
-  },
-  "50": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
         "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 1329.0,
-        "label": "중형",
-        "risk_desc": "중형 매장, 일반 수준",
-        "severity": "중간"
-      },
-      {
-        "feature": "매장인원",
-        "op": "<=",
-        "threshold": 9.85,
-        "label": "극소",
-        "risk_desc": "인원 부족, 1인 작업·과로 사고 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 4.145,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 998.96,
+        "threshold": 688.0,
         "label": "소형",
         "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
         "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "severity": "중간"
+      },
+      {
+        "feature": "일평균매출",
+        "op": ">",
+        "threshold": 16233571.5,
+        "label": "초고매출",
+        "risk_desc": "초고매출, 극심한 혼잡 → 충돌·낙상 급증",
+        "severity": "높음"
+      },
+      {
+        "feature": "rain_sum",
+        "op": "<=",
+        "threshold": 5.6,
+        "label": "무강우",
+        "risk_desc": "비 없음",
+        "severity": "낮음"
+      },
+      {
+        "feature": "wind_speed_10m_max",
+        "op": ">",
+        "threshold": 5.755,
+        "label": "약풍",
+        "risk_desc": "약한 바람, 경량 적재물 주의",
+        "severity": "중간"
       }
     ],
-    "scenario_label": "인원부족과로",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 약풍(wind_speed_10m_max)",
-    "store_context": "소형(평수) + 중형(계약면적(㎡)) + 극소(매장인원) + 소형(계약면적(㎡))",
+    "scenario_label": "고객혼잡",
+    "risk_level": "중간",
+    "primary_risk_factors": [
+      {
+        "feature": "일평균매출",
+        "label": "초고매출",
+        "risk": "초고매출, 극심한 혼잡 → 충돌·낙상 급증"
+      }
+    ],
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 무강우(rain_sum) + 약풍(wind_speed_10m_max)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출) + 초고매출(일평균매출)",
     "dominant_accident_type": "재물",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 약풍(약한 바람, 경량 적재물 주의) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중형(중형 매장, 일반 수준), 극소(인원 부족, 1인 작업·과로 사고 위험), 소형(소형 매장, 밀집도 높아 충돌 위험) | 과거 사고 패턴: 재물 65.0% (13/20건)"
+    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 초고매출(일평균매출): 초고매출, 극심한 혼잡 → 충돌·낙상 급증 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 무강우(비 없음), 약풍(약한 바람, 경량 적재물 주의) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음), 초고매출(초고매출, 극심한 혼잡 → 충돌·낙상 급증) | 과거 사고 패턴: 재물 39.6% (21/53건)"
   },
-  "51": {
+  "49": {
     "conditions": [
       {
         "feature": "soil_temperature_0_to_7cm_mean",
@@ -1785,1831 +1640,139 @@
         "severity": "중간"
       },
       {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 1329.0,
-        "label": "중형",
-        "risk_desc": "중형 매장, 일반 수준",
-        "severity": "중간"
-      },
-      {
-        "feature": "매장인원",
-        "op": "<=",
-        "threshold": 9.85,
-        "label": "극소",
-        "risk_desc": "인원 부족, 1인 작업·과로 사고 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 4.145,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      },
-      {
         "feature": "계약면적(㎡)",
         "op": ">",
-        "threshold": 998.96,
+        "threshold": 688.0,
         "label": "소형",
         "risk_desc": "소형 매장, 밀집도 높아 충돌 위험",
         "severity": "중간"
-      }
-    ],
-    "scenario_label": "인원부족과로",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 약풍(wind_speed_10m_max)",
-    "store_context": "소형(평수) + 중형(계약면적(㎡)) + 극소(매장인원) + 소형(계약면적(㎡))",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 약풍(약한 바람, 경량 적재물 주의) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중형(중형 매장, 일반 수준), 극소(인원 부족, 1인 작업·과로 사고 위험), 소형(소형 매장, 밀집도 높아 충돌 위험) | 과거 사고 패턴: 낙상 45.5% (10/22건)"
-  },
-  "57": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
       },
       {
-        "feature": "평수",
+        "feature": "일평균매출",
         "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
+        "threshold": 10006928.5,
+        "label": "저매출",
+        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
         "severity": "중간"
       },
       {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 1329.0,
-        "label": "중형",
-        "risk_desc": "중형 매장, 일반 수준",
-        "severity": "중간"
-      },
-      {
-        "feature": "매장인원",
+        "feature": "일평균매출",
         "op": ">",
-        "threshold": 9.85,
-        "label": "극소",
-        "risk_desc": "인원 부족, 1인 작업·과로 사고 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균물동량",
-        "op": "<=",
-        "threshold": 325.5,
-        "label": "중물동",
-        "risk_desc": "중간 물동량, 일반 입고 작업",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 6.235,
-        "label": "중풍",
-        "risk_desc": "간판·현수막 흔들림, 출입문 급개폐 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "rain_sum",
-        "op": "<=",
-        "threshold": 6.15,
-        "label": "약한비",
-        "risk_desc": "가벼운 비, 입구 물기 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "relative_humidity_2m_mean",
-        "op": "<=",
-        "threshold": 76.5,
-        "label": "다습",
-        "risk_desc": "바닥 결로 시작, 미끄러짐 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": "<=",
-        "threshold": 9.4,
-        "label": "한파지속",
-        "risk_desc": "낮에도 영상 한자릿수, 종일 결빙 해소 안됨",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "종일결빙 · 인원부족과로",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 중풍(wind_speed_10m_max) + 약한비(rain_sum) + 다습(relative_humidity_2m_mean) + 한파지속(temperature_2m_max)",
-    "store_context": "소형(평수) + 중형(계약면적(㎡)) + 극소(매장인원) + 중물동(일평균물동량)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 중풍(간판·현수막 흔들림, 출입문 급개폐 주의), 약한비(가벼운 비, 입구 물기 주의), 다습(바닥 결로 시작, 미끄러짐 주의), 한파지속(낮에도 영상 한자릿수, 종일 결빙 해소 안됨) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중형(중형 매장, 일반 수준), 극소(인원 부족, 1인 작업·과로 사고 위험), 중물동(중간 물동량, 일반 입고 작업) | 과거 사고 패턴: 낙상 45.8% (11/24건)"
-  },
-  "59": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 1329.0,
-        "label": "중형",
-        "risk_desc": "중형 매장, 일반 수준",
-        "severity": "중간"
-      },
-      {
-        "feature": "매장인원",
-        "op": ">",
-        "threshold": 9.85,
-        "label": "극소",
-        "risk_desc": "인원 부족, 1인 작업·과로 사고 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균물동량",
-        "op": "<=",
-        "threshold": 325.5,
-        "label": "중물동",
-        "risk_desc": "중간 물동량, 일반 입고 작업",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 6.235,
-        "label": "중풍",
-        "risk_desc": "간판·현수막 흔들림, 출입문 급개폐 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "rain_sum",
-        "op": "<=",
-        "threshold": 6.15,
-        "label": "약한비",
-        "risk_desc": "가벼운 비, 입구 물기 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "relative_humidity_2m_mean",
-        "op": "<=",
-        "threshold": 76.5,
-        "label": "다습",
-        "risk_desc": "바닥 결로 시작, 미끄러짐 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": ">",
-        "threshold": 9.4,
-        "label": "한파지속",
-        "risk_desc": "낮에도 영상 한자릿수, 종일 결빙 해소 안됨",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": "<=",
-        "threshold": 315.0,
-        "label": "중형",
-        "risk_desc": "일반 규모, 동선 관리 필요",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "종일결빙 · 인원부족과로",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 중풍(wind_speed_10m_max) + 약한비(rain_sum) + 다습(relative_humidity_2m_mean) + 한파지속(temperature_2m_max)",
-    "store_context": "소형(평수) + 중형(계약면적(㎡)) + 극소(매장인원) + 중물동(일평균물동량) + 중형(평수)",
-    "dominant_accident_type": "자상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 중풍(간판·현수막 흔들림, 출입문 급개폐 주의), 약한비(가벼운 비, 입구 물기 주의), 다습(바닥 결로 시작, 미끄러짐 주의), 한파지속(낮에도 영상 한자릿수, 종일 결빙 해소 안됨) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중형(중형 매장, 일반 수준), 극소(인원 부족, 1인 작업·과로 사고 위험), 중물동(중간 물동량, 일반 입고 작업), 중형(일반 규모, 동선 관리 필요) | 과거 사고 패턴: 자상 30.0% (6/20건)"
-  },
-  "60": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 1329.0,
-        "label": "중형",
-        "risk_desc": "중형 매장, 일반 수준",
-        "severity": "중간"
-      },
-      {
-        "feature": "매장인원",
-        "op": ">",
-        "threshold": 9.85,
-        "label": "극소",
-        "risk_desc": "인원 부족, 1인 작업·과로 사고 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균물동량",
-        "op": "<=",
-        "threshold": 325.5,
-        "label": "중물동",
-        "risk_desc": "중간 물동량, 일반 입고 작업",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 6.235,
-        "label": "중풍",
-        "risk_desc": "간판·현수막 흔들림, 출입문 급개폐 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "rain_sum",
-        "op": "<=",
-        "threshold": 6.15,
-        "label": "약한비",
-        "risk_desc": "가벼운 비, 입구 물기 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "relative_humidity_2m_mean",
-        "op": "<=",
-        "threshold": 76.5,
-        "label": "다습",
-        "risk_desc": "바닥 결로 시작, 미끄러짐 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": ">",
-        "threshold": 9.4,
-        "label": "한파지속",
-        "risk_desc": "낮에도 영상 한자릿수, 종일 결빙 해소 안됨",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 315.0,
-        "label": "중형",
-        "risk_desc": "일반 규모, 동선 관리 필요",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "종일결빙 · 인원부족과로",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 중풍(wind_speed_10m_max) + 약한비(rain_sum) + 다습(relative_humidity_2m_mean) + 한파지속(temperature_2m_max)",
-    "store_context": "소형(평수) + 중형(계약면적(㎡)) + 극소(매장인원) + 중물동(일평균물동량) + 중형(평수)",
-    "dominant_accident_type": "재물",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 중풍(간판·현수막 흔들림, 출입문 급개폐 주의), 약한비(가벼운 비, 입구 물기 주의), 다습(바닥 결로 시작, 미끄러짐 주의), 한파지속(낮에도 영상 한자릿수, 종일 결빙 해소 안됨) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중형(중형 매장, 일반 수준), 극소(인원 부족, 1인 작업·과로 사고 위험), 중물동(중간 물동량, 일반 입고 작업), 중형(일반 규모, 동선 관리 필요) | 과거 사고 패턴: 재물 38.1% (8/21건)"
-  },
-  "61": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 1329.0,
-        "label": "중형",
-        "risk_desc": "중형 매장, 일반 수준",
-        "severity": "중간"
-      },
-      {
-        "feature": "매장인원",
-        "op": ">",
-        "threshold": 9.85,
-        "label": "극소",
-        "risk_desc": "인원 부족, 1인 작업·과로 사고 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균물동량",
-        "op": "<=",
-        "threshold": 325.5,
-        "label": "중물동",
-        "risk_desc": "중간 물동량, 일반 입고 작업",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 6.235,
-        "label": "중풍",
-        "risk_desc": "간판·현수막 흔들림, 출입문 급개폐 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "rain_sum",
-        "op": "<=",
-        "threshold": 6.15,
-        "label": "약한비",
-        "risk_desc": "가벼운 비, 입구 물기 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "relative_humidity_2m_mean",
-        "op": ">",
-        "threshold": 76.5,
-        "label": "다습",
-        "risk_desc": "바닥 결로 시작, 미끄러짐 주의",
+        "threshold": 16233571.5,
+        "label": "초고매출",
+        "risk_desc": "초고매출, 극심한 혼잡 → 충돌·낙상 급증",
         "severity": "높음"
+      },
+      {
+        "feature": "rain_sum",
+        "op": ">",
+        "threshold": 5.6,
+        "label": "무강우",
+        "risk_desc": "비 없음",
+        "severity": "낮음"
       }
     ],
-    "scenario_label": "인원부족과로",
+    "scenario_label": "고객혼잡",
     "risk_level": "중간",
     "primary_risk_factors": [
       {
-        "feature": "relative_humidity_2m_mean",
-        "label": "다습",
-        "risk": "바닥 결로 시작, 미끄러짐 주의"
+        "feature": "일평균매출",
+        "label": "초고매출",
+        "risk": "초고매출, 극심한 혼잡 → 충돌·낙상 급증"
       }
     ],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 중풍(wind_speed_10m_max) + 약한비(rain_sum) + 다습(relative_humidity_2m_mean)",
-    "store_context": "소형(평수) + 중형(계약면적(㎡)) + 극소(매장인원) + 중물동(일평균물동량)",
+    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 무강우(rain_sum)",
+    "store_context": "소형(계약면적(㎡)) + 저매출(일평균매출) + 초고매출(일평균매출)",
     "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 다습(relative_humidity_2m_mean): 바닥 결로 시작, 미끄러짐 주의 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 중풍(간판·현수막 흔들림, 출입문 급개폐 주의), 약한비(가벼운 비, 입구 물기 주의), 다습(바닥 결로 시작, 미끄러짐 주의) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중형(중형 매장, 일반 수준), 극소(인원 부족, 1인 작업·과로 사고 위험), 중물동(중간 물동량, 일반 입고 작업) | 과거 사고 패턴: 낙상 33.3% (9/27건)"
+    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 초고매출(일평균매출): 초고매출, 극심한 혼잡 → 충돌·낙상 급증 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 무강우(비 없음) | 매장환경: 소형(소형 매장, 밀집도 높아 충돌 위험), 저매출(저매출 매장, 고객 밀집도 낮음), 초고매출(초고매출, 극심한 혼잡 → 충돌·낙상 급증) | 과거 사고 패턴: 낙상 52.7% (29/55건)"
   },
-  "62": {
+  "53": {
     "conditions": [
       {
         "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
+        "op": ">",
         "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 1329.0,
-        "label": "중형",
-        "risk_desc": "중형 매장, 일반 수준",
-        "severity": "중간"
-      },
-      {
-        "feature": "매장인원",
-        "op": ">",
-        "threshold": 9.85,
-        "label": "극소",
-        "risk_desc": "인원 부족, 1인 작업·과로 사고 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균물동량",
-        "op": "<=",
-        "threshold": 325.5,
-        "label": "중물동",
-        "risk_desc": "중간 물동량, 일반 입고 작업",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 6.235,
-        "label": "중풍",
-        "risk_desc": "간판·현수막 흔들림, 출입문 급개폐 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "rain_sum",
-        "op": ">",
-        "threshold": 6.15,
-        "label": "약한비",
-        "risk_desc": "가벼운 비, 입구 물기 주의",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "인원부족과로",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 중풍(wind_speed_10m_max) + 약한비(rain_sum)",
-    "store_context": "소형(평수) + 중형(계약면적(㎡)) + 극소(매장인원) + 중물동(일평균물동량)",
-    "dominant_accident_type": "충돌",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 중풍(간판·현수막 흔들림, 출입문 급개폐 주의), 약한비(가벼운 비, 입구 물기 주의) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중형(중형 매장, 일반 수준), 극소(인원 부족, 1인 작업·과로 사고 위험), 중물동(중간 물동량, 일반 입고 작업) | 과거 사고 패턴: 충돌 31.8% (7/22건)"
-  },
-  "63": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 1329.0,
-        "label": "중형",
-        "risk_desc": "중형 매장, 일반 수준",
-        "severity": "중간"
-      },
-      {
-        "feature": "매장인원",
-        "op": ">",
-        "threshold": 9.85,
-        "label": "극소",
-        "risk_desc": "인원 부족, 1인 작업·과로 사고 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균물동량",
-        "op": "<=",
-        "threshold": 325.5,
-        "label": "중물동",
-        "risk_desc": "중간 물동량, 일반 입고 작업",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 6.235,
-        "label": "중풍",
-        "risk_desc": "간판·현수막 흔들림, 출입문 급개폐 주의",
-        "severity": "높음"
-      }
-    ],
-    "scenario_label": "인원부족과로",
-    "risk_level": "중간",
-    "primary_risk_factors": [
-      {
-        "feature": "wind_speed_10m_max",
-        "label": "중풍",
-        "risk": "간판·현수막 흔들림, 출입문 급개폐 주의"
-      }
-    ],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 중풍(wind_speed_10m_max)",
-    "store_context": "소형(평수) + 중형(계약면적(㎡)) + 극소(매장인원) + 중물동(일평균물동량)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 중풍(wind_speed_10m_max): 간판·현수막 흔들림, 출입문 급개폐 주의 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 중풍(간판·현수막 흔들림, 출입문 급개폐 주의) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중형(중형 매장, 일반 수준), 극소(인원 부족, 1인 작업·과로 사고 위험), 중물동(중간 물동량, 일반 입고 작업) | 과거 사고 패턴: 낙상 33.3% (7/21건)"
-  },
-  "67": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 1329.0,
-        "label": "중형",
-        "risk_desc": "중형 매장, 일반 수준",
-        "severity": "중간"
-      },
-      {
-        "feature": "매장인원",
-        "op": ">",
-        "threshold": 9.85,
-        "label": "극소",
-        "risk_desc": "인원 부족, 1인 작업·과로 사고 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균물동량",
-        "op": ">",
-        "threshold": 325.5,
-        "label": "고물동",
-        "risk_desc": "고물동량, 입고·진열 강도 높아 근골격계 사고 위험",
-        "severity": "높음"
-      },
-      {
-        "feature": "precipitation_sum",
-        "op": "<=",
-        "threshold": 3.65,
-        "label": "약한비",
-        "risk_desc": "가벼운 비, 입구 물기 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 4.375,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
+        "label": "춘추",
+        "risk_desc": "봄가을 수준, 일반 위험",
         "severity": "중간"
       },
       {
         "feature": "창고",
         "op": "<=",
-        "threshold": 20.5,
+        "threshold": 33.9,
         "label": "중규모",
         "risk_desc": "일반 창고, 적재물 이동 주의",
         "severity": "중간"
-      }
-    ],
-    "scenario_label": "고강도입고 · 인원부족과로",
-    "risk_level": "중간",
-    "primary_risk_factors": [
+      },
       {
-        "feature": "일평균물동량",
-        "label": "고물동",
-        "risk": "고물동량, 입고·진열 강도 높아 근골격계 사고 위험"
-      }
-    ],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 약한비(precipitation_sum) + 약풍(wind_speed_10m_max)",
-    "store_context": "소형(평수) + 중형(계약면적(㎡)) + 극소(매장인원) + 고물동(일평균물동량) + 중규모(창고)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 고물동(일평균물동량): 고물동량, 입고·진열 강도 높아 근골격계 사고 위험 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 약한비(가벼운 비, 입구 물기 주의), 약풍(약한 바람, 경량 적재물 주의) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중형(중형 매장, 일반 수준), 극소(인원 부족, 1인 작업·과로 사고 위험), 고물동(고물동량, 입고·진열 강도 높아 근골격계 사고 위험), 중규모(일반 창고, 적재물 이동 주의) | 과거 사고 패턴: 낙상 47.8% (11/23건)"
-  },
-  "68": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
+        "feature": "일평균매출",
         "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 1329.0,
-        "label": "중형",
-        "risk_desc": "중형 매장, 일반 수준",
-        "severity": "중간"
-      },
-      {
-        "feature": "매장인원",
-        "op": ">",
-        "threshold": 9.85,
-        "label": "극소",
-        "risk_desc": "인원 부족, 1인 작업·과로 사고 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균물동량",
-        "op": ">",
-        "threshold": 325.5,
-        "label": "고물동",
-        "risk_desc": "고물동량, 입고·진열 강도 높아 근골격계 사고 위험",
-        "severity": "높음"
-      },
-      {
-        "feature": "precipitation_sum",
-        "op": "<=",
-        "threshold": 3.65,
-        "label": "약한비",
-        "risk_desc": "가벼운 비, 입구 물기 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 4.375,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "창고",
-        "op": ">",
-        "threshold": 20.5,
-        "label": "중규모",
-        "risk_desc": "일반 창고, 적재물 이동 주의",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "고강도입고 · 인원부족과로",
-    "risk_level": "중간",
-    "primary_risk_factors": [
-      {
-        "feature": "일평균물동량",
-        "label": "고물동",
-        "risk": "고물동량, 입고·진열 강도 높아 근골격계 사고 위험"
-      }
-    ],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 약한비(precipitation_sum) + 약풍(wind_speed_10m_max)",
-    "store_context": "소형(평수) + 중형(계약면적(㎡)) + 극소(매장인원) + 고물동(일평균물동량) + 중규모(창고)",
-    "dominant_accident_type": "재물",
-    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 고물동(일평균물동량): 고물동량, 입고·진열 강도 높아 근골격계 사고 위험 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 약한비(가벼운 비, 입구 물기 주의), 약풍(약한 바람, 경량 적재물 주의) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중형(중형 매장, 일반 수준), 극소(인원 부족, 1인 작업·과로 사고 위험), 고물동(고물동량, 입고·진열 강도 높아 근골격계 사고 위험), 중규모(일반 창고, 적재물 이동 주의) | 과거 사고 패턴: 재물 33.3% (9/27건)"
-  },
-  "69": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 1329.0,
-        "label": "중형",
-        "risk_desc": "중형 매장, 일반 수준",
-        "severity": "중간"
-      },
-      {
-        "feature": "매장인원",
-        "op": ">",
-        "threshold": 9.85,
-        "label": "극소",
-        "risk_desc": "인원 부족, 1인 작업·과로 사고 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균물동량",
-        "op": ">",
-        "threshold": 325.5,
-        "label": "고물동",
-        "risk_desc": "고물동량, 입고·진열 강도 높아 근골격계 사고 위험",
-        "severity": "높음"
-      },
-      {
-        "feature": "precipitation_sum",
-        "op": "<=",
-        "threshold": 3.65,
-        "label": "약한비",
-        "risk_desc": "가벼운 비, 입구 물기 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 4.375,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "고강도입고 · 인원부족과로",
-    "risk_level": "중간",
-    "primary_risk_factors": [
-      {
-        "feature": "일평균물동량",
-        "label": "고물동",
-        "risk": "고물동량, 입고·진열 강도 높아 근골격계 사고 위험"
-      }
-    ],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 약한비(precipitation_sum) + 약풍(wind_speed_10m_max)",
-    "store_context": "소형(평수) + 중형(계약면적(㎡)) + 극소(매장인원) + 고물동(일평균물동량)",
-    "dominant_accident_type": "재물",
-    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 고물동(일평균물동량): 고물동량, 입고·진열 강도 높아 근골격계 사고 위험 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 약한비(가벼운 비, 입구 물기 주의), 약풍(약한 바람, 경량 적재물 주의) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중형(중형 매장, 일반 수준), 극소(인원 부족, 1인 작업·과로 사고 위험), 고물동(고물동량, 입고·진열 강도 높아 근골격계 사고 위험) | 과거 사고 패턴: 재물 48.3% (14/29건)"
-  },
-  "70": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": "<=",
-        "threshold": 1329.0,
-        "label": "중형",
-        "risk_desc": "중형 매장, 일반 수준",
-        "severity": "중간"
-      },
-      {
-        "feature": "매장인원",
-        "op": ">",
-        "threshold": 9.85,
-        "label": "극소",
-        "risk_desc": "인원 부족, 1인 작업·과로 사고 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균물동량",
-        "op": ">",
-        "threshold": 325.5,
-        "label": "고물동",
-        "risk_desc": "고물동량, 입고·진열 강도 높아 근골격계 사고 위험",
-        "severity": "높음"
-      },
-      {
-        "feature": "precipitation_sum",
-        "op": ">",
-        "threshold": 3.65,
-        "label": "약한비",
-        "risk_desc": "가벼운 비, 입구 물기 주의",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "고강도입고 · 인원부족과로",
-    "risk_level": "중간",
-    "primary_risk_factors": [
-      {
-        "feature": "일평균물동량",
-        "label": "고물동",
-        "risk": "고물동량, 입고·진열 강도 높아 근골격계 사고 위험"
-      }
-    ],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 약한비(precipitation_sum)",
-    "store_context": "소형(평수) + 중형(계약면적(㎡)) + 극소(매장인원) + 고물동(일평균물동량)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 고물동(일평균물동량): 고물동량, 입고·진열 강도 높아 근골격계 사고 위험 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 약한비(가벼운 비, 입구 물기 주의) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 중형(중형 매장, 일반 수준), 극소(인원 부족, 1인 작업·과로 사고 위험), 고물동(고물동량, 입고·진열 강도 높아 근골격계 사고 위험) | 과거 사고 패턴: 낙상 66.7% (14/21건)"
-  },
-  "73": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": ">",
-        "threshold": 1329.0,
-        "label": "초대형",
-        "risk_desc": "초대형 매장, 관리 사각지대 발생",
-        "severity": "중간"
-      },
-      {
-        "feature": "rain_sum",
-        "op": "<=",
-        "threshold": 10.75,
-        "label": "보통비",
-        "risk_desc": "바닥 물기·우산 물기로 미끄러짐 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": "<=",
-        "threshold": -6.85,
-        "label": "극한파",
-        "risk_desc": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙",
-        "severity": "높음"
-      }
-    ],
-    "scenario_label": "결빙·낙상 · 우천미끄러짐",
-    "risk_level": "중간",
-    "primary_risk_factors": [
-      {
-        "feature": "temperature_2m_min",
-        "label": "극한파",
-        "risk": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙"
-      }
-    ],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 보통비(rain_sum) + 극한파(temperature_2m_min)",
-    "store_context": "소형(평수) + 초대형(계약면적(㎡))",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 극한파(temperature_2m_min): 극심한 결빙, 입구·주차장·외부 보행면 전면 결빙 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 보통비(바닥 물기·우산 물기로 미끄러짐 위험), 극한파(극심한 결빙, 입구·주차장·외부 보행면 전면 결빙) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 초대형(초대형 매장, 관리 사각지대 발생) | 과거 사고 패턴: 낙상 52.4% (11/21건)"
-  },
-  "78": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": ">",
-        "threshold": 1329.0,
-        "label": "초대형",
-        "risk_desc": "초대형 매장, 관리 사각지대 발생",
-        "severity": "중간"
-      },
-      {
-        "feature": "rain_sum",
-        "op": "<=",
-        "threshold": 10.75,
-        "label": "보통비",
-        "risk_desc": "바닥 물기·우산 물기로 미끄러짐 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": -6.85,
-        "label": "극한파",
-        "risk_desc": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 5.835,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 20.0,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": "<=",
-        "threshold": 8.55,
-        "label": "한파지속",
-        "risk_desc": "낮에도 영상 한자릿수, 종일 결빙 해소 안됨",
-        "severity": "중간"
-      },
-      {
-        "feature": "입고도우미PO",
-        "op": "<=",
-        "threshold": 0.85,
-        "label": "없음",
-        "risk_desc": "도우미 없음, 직원 직접 입고 → 과부하",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "결빙·낙상 · 종일결빙 · 우천미끄러짐",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 보통비(rain_sum) + 극한파(temperature_2m_min) + 약풍(wind_speed_10m_max) + 동절기(soil_temperature_0_to_7cm_mean) + 한파지속(temperature_2m_max)",
-    "store_context": "소형(평수) + 초대형(계약면적(㎡)) + 없음(입고도우미PO)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 보통비(바닥 물기·우산 물기로 미끄러짐 위험), 극한파(극심한 결빙, 입구·주차장·외부 보행면 전면 결빙), 약풍(약한 바람, 경량 적재물 주의), 동절기(겨울~초봄, 새벽 결빙 가능), 한파지속(낮에도 영상 한자릿수, 종일 결빙 해소 안됨) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 초대형(초대형 매장, 관리 사각지대 발생), 없음(도우미 없음, 직원 직접 입고 → 과부하) | 과거 사고 패턴: 낙상 48.3% (14/29건)"
-  },
-  "79": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": ">",
-        "threshold": 1329.0,
-        "label": "초대형",
-        "risk_desc": "초대형 매장, 관리 사각지대 발생",
-        "severity": "중간"
-      },
-      {
-        "feature": "rain_sum",
-        "op": "<=",
-        "threshold": 10.75,
-        "label": "보통비",
-        "risk_desc": "바닥 물기·우산 물기로 미끄러짐 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": -6.85,
-        "label": "극한파",
-        "risk_desc": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 5.835,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 20.0,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": "<=",
-        "threshold": 8.55,
-        "label": "한파지속",
-        "risk_desc": "낮에도 영상 한자릿수, 종일 결빙 해소 안됨",
-        "severity": "중간"
-      },
-      {
-        "feature": "입고도우미PO",
-        "op": ">",
-        "threshold": 0.85,
-        "label": "없음",
-        "risk_desc": "도우미 없음, 직원 직접 입고 → 과부하",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "결빙·낙상 · 종일결빙 · 우천미끄러짐",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 보통비(rain_sum) + 극한파(temperature_2m_min) + 약풍(wind_speed_10m_max) + 동절기(soil_temperature_0_to_7cm_mean) + 한파지속(temperature_2m_max)",
-    "store_context": "소형(평수) + 초대형(계약면적(㎡)) + 없음(입고도우미PO)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 보통비(바닥 물기·우산 물기로 미끄러짐 위험), 극한파(극심한 결빙, 입구·주차장·외부 보행면 전면 결빙), 약풍(약한 바람, 경량 적재물 주의), 동절기(겨울~초봄, 새벽 결빙 가능), 한파지속(낮에도 영상 한자릿수, 종일 결빙 해소 안됨) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 초대형(초대형 매장, 관리 사각지대 발생), 없음(도우미 없음, 직원 직접 입고 → 과부하) | 과거 사고 패턴: 낙상 61.3% (19/31건)"
-  },
-  "81": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": ">",
-        "threshold": 1329.0,
-        "label": "초대형",
-        "risk_desc": "초대형 매장, 관리 사각지대 발생",
-        "severity": "중간"
-      },
-      {
-        "feature": "rain_sum",
-        "op": "<=",
-        "threshold": 10.75,
-        "label": "보통비",
-        "risk_desc": "바닥 물기·우산 물기로 미끄러짐 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": -6.85,
-        "label": "극한파",
-        "risk_desc": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 5.835,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 20.0,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": ">",
-        "threshold": 8.55,
-        "label": "한파지속",
-        "risk_desc": "낮에도 영상 한자릿수, 종일 결빙 해소 안됨",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 2.705,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      }
-    ],
-    "scenario_label": "결빙·낙상 · 종일결빙 · 우천미끄러짐",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 보통비(rain_sum) + 극한파(temperature_2m_min) + 약풍(wind_speed_10m_max) + 동절기(soil_temperature_0_to_7cm_mean) + 한파지속(temperature_2m_max) + 미풍(wind_speed_10m_max)",
-    "store_context": "소형(평수) + 초대형(계약면적(㎡))",
-    "dominant_accident_type": "재물",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 보통비(바닥 물기·우산 물기로 미끄러짐 위험), 극한파(극심한 결빙, 입구·주차장·외부 보행면 전면 결빙), 약풍(약한 바람, 경량 적재물 주의), 동절기(겨울~초봄, 새벽 결빙 가능), 한파지속(낮에도 영상 한자릿수, 종일 결빙 해소 안됨), 미풍(바람 거의 없음, 풍압 사고 위험 낮음) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 초대형(초대형 매장, 관리 사각지대 발생) | 과거 사고 패턴: 재물 36.4% (8/22건)"
-  },
-  "83": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": ">",
-        "threshold": 1329.0,
-        "label": "초대형",
-        "risk_desc": "초대형 매장, 관리 사각지대 발생",
-        "severity": "중간"
-      },
-      {
-        "feature": "rain_sum",
-        "op": "<=",
-        "threshold": 10.75,
-        "label": "보통비",
-        "risk_desc": "바닥 물기·우산 물기로 미끄러짐 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": -6.85,
-        "label": "극한파",
-        "risk_desc": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 5.835,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 20.0,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": ">",
-        "threshold": 8.55,
-        "label": "한파지속",
-        "risk_desc": "낮에도 영상 한자릿수, 종일 결빙 해소 안됨",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 2.705,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": "<=",
-        "threshold": 1.8,
-        "label": "한파",
-        "risk_desc": "결빙 위험, 입구·주차장 낙상 급증",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "결빙·낙상 · 종일결빙 · 우천미끄러짐",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 보통비(rain_sum) + 극한파(temperature_2m_min) + 약풍(wind_speed_10m_max) + 동절기(soil_temperature_0_to_7cm_mean) + 한파지속(temperature_2m_max) + 미풍(wind_speed_10m_max) + 한파(temperature_2m_min)",
-    "store_context": "소형(평수) + 초대형(계약면적(㎡))",
-    "dominant_accident_type": "재물",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 보통비(바닥 물기·우산 물기로 미끄러짐 위험), 극한파(극심한 결빙, 입구·주차장·외부 보행면 전면 결빙), 약풍(약한 바람, 경량 적재물 주의), 동절기(겨울~초봄, 새벽 결빙 가능), 한파지속(낮에도 영상 한자릿수, 종일 결빙 해소 안됨), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 한파(결빙 위험, 입구·주차장 낙상 급증) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 초대형(초대형 매장, 관리 사각지대 발생) | 과거 사고 패턴: 재물 81.0% (17/21건)"
-  },
-  "85": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": ">",
-        "threshold": 1329.0,
-        "label": "초대형",
-        "risk_desc": "초대형 매장, 관리 사각지대 발생",
-        "severity": "중간"
-      },
-      {
-        "feature": "rain_sum",
-        "op": "<=",
-        "threshold": 10.75,
-        "label": "보통비",
-        "risk_desc": "바닥 물기·우산 물기로 미끄러짐 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": -6.85,
-        "label": "극한파",
-        "risk_desc": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 5.835,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 20.0,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": ">",
-        "threshold": 8.55,
-        "label": "한파지속",
-        "risk_desc": "낮에도 영상 한자릿수, 종일 결빙 해소 안됨",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 2.705,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": 1.8,
-        "label": "한파",
-        "risk_desc": "결빙 위험, 입구·주차장 낙상 급증",
+        "threshold": 13721169.5,
+        "label": "중매출",
+        "risk_desc": "중간 매출, 일반 혼잡도",
         "severity": "중간"
       },
       {
         "feature": "실평수",
         "op": "<=",
-        "threshold": 319.0,
-        "label": "실평수 <= 319.0",
+        "threshold": 212.0,
+        "label": "실평수 <= 212.0",
         "risk_desc": "도메인 정보 없음",
         "severity": "중간"
       }
     ],
-    "scenario_label": "결빙·낙상 · 종일결빙 · 우천미끄러짐",
+    "scenario_label": "낙상주의",
     "risk_level": "낮음",
     "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 보통비(rain_sum) + 극한파(temperature_2m_min) + 약풍(wind_speed_10m_max) + 동절기(soil_temperature_0_to_7cm_mean) + 한파지속(temperature_2m_max) + 미풍(wind_speed_10m_max) + 한파(temperature_2m_min)",
-    "store_context": "소형(평수) + 초대형(계약면적(㎡)) + 실평수 <= 319.0(실평수)",
-    "dominant_accident_type": "재물",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 보통비(바닥 물기·우산 물기로 미끄러짐 위험), 극한파(극심한 결빙, 입구·주차장·외부 보행면 전면 결빙), 약풍(약한 바람, 경량 적재물 주의), 동절기(겨울~초봄, 새벽 결빙 가능), 한파지속(낮에도 영상 한자릿수, 종일 결빙 해소 안됨), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 한파(결빙 위험, 입구·주차장 낙상 급증) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 초대형(초대형 매장, 관리 사각지대 발생), 실평수 <= 319.0(도메인 정보 없음) | 과거 사고 패턴: 재물 62.1% (18/29건)"
+    "weather_context": "춘추(soil_temperature_0_to_7cm_mean)",
+    "store_context": "중규모(창고) + 중매출(일평균매출) + 실평수 <= 212.0(실평수)",
+    "dominant_accident_type": "낙상",
+    "explanation": "[위험등급: 낮음]  | 기상환경: 춘추(봄가을 수준, 일반 위험) | 매장환경: 중규모(일반 창고, 적재물 이동 주의), 중매출(중간 매출, 일반 혼잡도), 실평수 <= 212.0(도메인 정보 없음) | 과거 사고 패턴: 낙상 50.0% (21/42건)"
   },
-  "86": {
+  "54": {
     "conditions": [
       {
         "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
+        "op": ">",
         "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
+        "label": "춘추",
+        "risk_desc": "봄가을 수준, 일반 위험",
         "severity": "중간"
       },
       {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": ">",
-        "threshold": 1329.0,
-        "label": "초대형",
-        "risk_desc": "초대형 매장, 관리 사각지대 발생",
-        "severity": "중간"
-      },
-      {
-        "feature": "rain_sum",
+        "feature": "창고",
         "op": "<=",
-        "threshold": 10.75,
-        "label": "보통비",
-        "risk_desc": "바닥 물기·우산 물기로 미끄러짐 위험",
+        "threshold": 33.9,
+        "label": "중규모",
+        "risk_desc": "일반 창고, 적재물 이동 주의",
         "severity": "중간"
       },
       {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": -6.85,
-        "label": "극한파",
-        "risk_desc": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
+        "feature": "일평균매출",
         "op": "<=",
-        "threshold": 5.835,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 20.0,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_max",
-        "op": ">",
-        "threshold": 8.55,
-        "label": "한파지속",
-        "risk_desc": "낮에도 영상 한자릿수, 종일 결빙 해소 안됨",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 2.705,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": 1.8,
-        "label": "한파",
-        "risk_desc": "결빙 위험, 입구·주차장 낙상 급증",
+        "threshold": 13721169.5,
+        "label": "중매출",
+        "risk_desc": "중간 매출, 일반 혼잡도",
         "severity": "중간"
       },
       {
         "feature": "실평수",
         "op": ">",
-        "threshold": 319.0,
-        "label": "실평수 > 319.0",
+        "threshold": 212.0,
+        "label": "실평수 > 212.0",
         "risk_desc": "도메인 정보 없음",
         "severity": "중간"
       }
     ],
-    "scenario_label": "결빙·낙상 · 종일결빙 · 우천미끄러짐",
+    "scenario_label": "낙상주의",
     "risk_level": "낮음",
     "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 보통비(rain_sum) + 극한파(temperature_2m_min) + 약풍(wind_speed_10m_max) + 동절기(soil_temperature_0_to_7cm_mean) + 한파지속(temperature_2m_max) + 미풍(wind_speed_10m_max) + 한파(temperature_2m_min)",
-    "store_context": "소형(평수) + 초대형(계약면적(㎡)) + 실평수 > 319.0(실평수)",
+    "weather_context": "춘추(soil_temperature_0_to_7cm_mean)",
+    "store_context": "중규모(창고) + 중매출(일평균매출) + 실평수 > 212.0(실평수)",
     "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 보통비(바닥 물기·우산 물기로 미끄러짐 위험), 극한파(극심한 결빙, 입구·주차장·외부 보행면 전면 결빙), 약풍(약한 바람, 경량 적재물 주의), 동절기(겨울~초봄, 새벽 결빙 가능), 한파지속(낮에도 영상 한자릿수, 종일 결빙 해소 안됨), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 한파(결빙 위험, 입구·주차장 낙상 급증) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 초대형(초대형 매장, 관리 사각지대 발생), 실평수 > 319.0(도메인 정보 없음) | 과거 사고 패턴: 낙상 41.7% (15/36건)"
+    "explanation": "[위험등급: 낮음]  | 기상환경: 춘추(봄가을 수준, 일반 위험) | 매장환경: 중규모(일반 창고, 적재물 이동 주의), 중매출(중간 매출, 일반 혼잡도), 실평수 > 212.0(도메인 정보 없음) | 과거 사고 패턴: 낙상 28.3% (13/46건)"
   },
-  "88": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": ">",
-        "threshold": 1329.0,
-        "label": "초대형",
-        "risk_desc": "초대형 매장, 관리 사각지대 발생",
-        "severity": "중간"
-      },
-      {
-        "feature": "rain_sum",
-        "op": "<=",
-        "threshold": 10.75,
-        "label": "보통비",
-        "risk_desc": "바닥 물기·우산 물기로 미끄러짐 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": -6.85,
-        "label": "극한파",
-        "risk_desc": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 5.835,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": ">",
-        "threshold": 20.0,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "매장인원",
-        "op": "<=",
-        "threshold": 14.65,
-        "label": "소",
-        "risk_desc": "소규모 인원, 고강도 작업 빈도 높음",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "결빙·낙상 · 우천미끄러짐",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 보통비(rain_sum) + 극한파(temperature_2m_min) + 약풍(wind_speed_10m_max) + 동절기(soil_temperature_0_to_7cm_mean)",
-    "store_context": "소형(평수) + 초대형(계약면적(㎡)) + 소(매장인원)",
-    "dominant_accident_type": "자상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 보통비(바닥 물기·우산 물기로 미끄러짐 위험), 극한파(극심한 결빙, 입구·주차장·외부 보행면 전면 결빙), 약풍(약한 바람, 경량 적재물 주의), 동절기(겨울~초봄, 새벽 결빙 가능) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 초대형(초대형 매장, 관리 사각지대 발생), 소(소규모 인원, 고강도 작업 빈도 높음) | 과거 사고 패턴: 자상 34.6% (9/26건)"
-  },
-  "89": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": ">",
-        "threshold": 1329.0,
-        "label": "초대형",
-        "risk_desc": "초대형 매장, 관리 사각지대 발생",
-        "severity": "중간"
-      },
-      {
-        "feature": "rain_sum",
-        "op": "<=",
-        "threshold": 10.75,
-        "label": "보통비",
-        "risk_desc": "바닥 물기·우산 물기로 미끄러짐 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": -6.85,
-        "label": "극한파",
-        "risk_desc": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 5.835,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": ">",
-        "threshold": 20.0,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "매장인원",
-        "op": ">",
-        "threshold": 14.65,
-        "label": "소",
-        "risk_desc": "소규모 인원, 고강도 작업 빈도 높음",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "결빙·낙상 · 우천미끄러짐",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 보통비(rain_sum) + 극한파(temperature_2m_min) + 약풍(wind_speed_10m_max) + 동절기(soil_temperature_0_to_7cm_mean)",
-    "store_context": "소형(평수) + 초대형(계약면적(㎡)) + 소(매장인원)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 보통비(바닥 물기·우산 물기로 미끄러짐 위험), 극한파(극심한 결빙, 입구·주차장·외부 보행면 전면 결빙), 약풍(약한 바람, 경량 적재물 주의), 동절기(겨울~초봄, 새벽 결빙 가능) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 초대형(초대형 매장, 관리 사각지대 발생), 소(소규모 인원, 고강도 작업 빈도 높음) | 과거 사고 패턴: 낙상 58.8% (20/34건)"
-  },
-  "91": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": ">",
-        "threshold": 1329.0,
-        "label": "초대형",
-        "risk_desc": "초대형 매장, 관리 사각지대 발생",
-        "severity": "중간"
-      },
-      {
-        "feature": "rain_sum",
-        "op": "<=",
-        "threshold": 10.75,
-        "label": "보통비",
-        "risk_desc": "바닥 물기·우산 물기로 미끄러짐 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": -6.85,
-        "label": "극한파",
-        "risk_desc": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 5.835,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": "<=",
-        "threshold": 405.0,
-        "label": "대형",
-        "risk_desc": "넓은 동선, 이동 중 사고 빈도 증가",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "결빙·낙상 · 우천미끄러짐",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 보통비(rain_sum) + 극한파(temperature_2m_min) + 약풍(wind_speed_10m_max)",
-    "store_context": "소형(평수) + 초대형(계약면적(㎡)) + 대형(평수)",
-    "dominant_accident_type": "재물",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 보통비(바닥 물기·우산 물기로 미끄러짐 위험), 극한파(극심한 결빙, 입구·주차장·외부 보행면 전면 결빙), 약풍(약한 바람, 경량 적재물 주의) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 초대형(초대형 매장, 관리 사각지대 발생), 대형(넓은 동선, 이동 중 사고 빈도 증가) | 과거 사고 패턴: 재물 63.0% (17/27건)"
-  },
-  "92": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": ">",
-        "threshold": 1329.0,
-        "label": "초대형",
-        "risk_desc": "초대형 매장, 관리 사각지대 발생",
-        "severity": "중간"
-      },
-      {
-        "feature": "rain_sum",
-        "op": "<=",
-        "threshold": 10.75,
-        "label": "보통비",
-        "risk_desc": "바닥 물기·우산 물기로 미끄러짐 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "temperature_2m_min",
-        "op": ">",
-        "threshold": -6.85,
-        "label": "극한파",
-        "risk_desc": "극심한 결빙, 입구·주차장·외부 보행면 전면 결빙",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 5.835,
-        "label": "약풍",
-        "risk_desc": "약한 바람, 경량 적재물 주의",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 405.0,
-        "label": "초대형",
-        "risk_desc": "매우 넓은 매장, 사각지대·장거리 이동 사고",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "결빙·낙상 · 우천미끄러짐",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 보통비(rain_sum) + 극한파(temperature_2m_min) + 약풍(wind_speed_10m_max)",
-    "store_context": "소형(평수) + 초대형(계약면적(㎡)) + 초대형(평수)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 보통비(바닥 물기·우산 물기로 미끄러짐 위험), 극한파(극심한 결빙, 입구·주차장·외부 보행면 전면 결빙), 약풍(약한 바람, 경량 적재물 주의) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 초대형(초대형 매장, 관리 사각지대 발생), 초대형(매우 넓은 매장, 사각지대·장거리 이동 사고) | 과거 사고 패턴: 낙상 41.9% (13/31건)"
-  },
-  "94": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": ">",
-        "threshold": 1329.0,
-        "label": "초대형",
-        "risk_desc": "초대형 매장, 관리 사각지대 발생",
-        "severity": "중간"
-      },
-      {
-        "feature": "rain_sum",
-        "op": ">",
-        "threshold": 10.75,
-        "label": "많은비",
-        "risk_desc": "폭우, 입구 침수·혼잡으로 낙상·충돌 위험 급증",
-        "severity": "높음"
-      },
-      {
-        "feature": "창고",
-        "op": "<=",
-        "threshold": 38.0,
-        "label": "대규모",
-        "risk_desc": "대형 창고, 지게차·적재물 충돌 위험 증가",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "우천미끄러짐 · 대형창고작업",
-    "risk_level": "중간",
-    "primary_risk_factors": [
-      {
-        "feature": "rain_sum",
-        "label": "많은비",
-        "risk": "폭우, 입구 침수·혼잡으로 낙상·충돌 위험 급증"
-      }
-    ],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 많은비(rain_sum)",
-    "store_context": "소형(평수) + 초대형(계약면적(㎡)) + 대규모(창고)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 많은비(rain_sum): 폭우, 입구 침수·혼잡으로 낙상·충돌 위험 급증 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 많은비(폭우, 입구 침수·혼잡으로 낙상·충돌 위험 급증) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 초대형(초대형 매장, 관리 사각지대 발생), 대규모(대형 창고, 지게차·적재물 충돌 위험 증가) | 과거 사고 패턴: 낙상 34.8% (8/23건)"
-  },
-  "95": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 26.55,
-        "label": "동절기",
-        "risk_desc": "겨울~초봄, 새벽 결빙 가능",
-        "severity": "중간"
-      },
-      {
-        "feature": "평수",
-        "op": ">",
-        "threshold": 299.75,
-        "label": "소형",
-        "risk_desc": "좁은 통로, 고객·직원 충돌 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "계약면적(㎡)",
-        "op": ">",
-        "threshold": 1329.0,
-        "label": "초대형",
-        "risk_desc": "초대형 매장, 관리 사각지대 발생",
-        "severity": "중간"
-      },
-      {
-        "feature": "rain_sum",
-        "op": ">",
-        "threshold": 10.75,
-        "label": "많은비",
-        "risk_desc": "폭우, 입구 침수·혼잡으로 낙상·충돌 위험 급증",
-        "severity": "높음"
-      },
-      {
-        "feature": "창고",
-        "op": ">",
-        "threshold": 38.0,
-        "label": "초대규모",
-        "risk_desc": "초대형 창고, 복잡 동선+중장비 사고 위험",
-        "severity": "높음"
-      }
-    ],
-    "scenario_label": "우천미끄러짐 · 대형창고작업",
-    "risk_level": "높음",
-    "primary_risk_factors": [
-      {
-        "feature": "rain_sum",
-        "label": "많은비",
-        "risk": "폭우, 입구 침수·혼잡으로 낙상·충돌 위험 급증"
-      },
-      {
-        "feature": "창고",
-        "label": "초대규모",
-        "risk": "초대형 창고, 복잡 동선+중장비 사고 위험"
-      }
-    ],
-    "weather_context": "동절기(soil_temperature_0_to_7cm_mean) + 많은비(rain_sum)",
-    "store_context": "소형(평수) + 초대형(계약면적(㎡)) + 초대규모(창고)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 높음]  | 핵심 위험요인: 많은비(rain_sum): 폭우, 입구 침수·혼잡으로 낙상·충돌 위험 급증; 초대규모(창고): 초대형 창고, 복잡 동선+중장비 사고 위험 | 기상환경: 동절기(겨울~초봄, 새벽 결빙 가능), 많은비(폭우, 입구 침수·혼잡으로 낙상·충돌 위험 급증) | 매장환경: 소형(좁은 통로, 고객·직원 충돌 위험), 초대형(초대형 매장, 관리 사각지대 발생), 초대규모(초대형 창고, 복잡 동선+중장비 사고 위험) | 과거 사고 패턴: 낙상 60.9% (14/23건)"
-  },
-  "99": {
+  "55": {
     "conditions": [
       {
         "feature": "soil_temperature_0_to_7cm_mean",
@@ -3620,98 +1783,31 @@
         "severity": "중간"
       },
       {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 30.75,
-        "label": "춘추",
-        "risk_desc": "봄가을 수준, 일반 위험",
-        "severity": "중간"
-      },
-      {
         "feature": "창고",
         "op": "<=",
-        "threshold": 35.5,
-        "label": "대규모",
-        "risk_desc": "대형 창고, 지게차·적재물 충돌 위험 증가",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균매출",
-        "op": "<=",
-        "threshold": 9178803.5,
-        "label": "저매출",
-        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "대형창고작업",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "춘추(soil_temperature_0_to_7cm_mean) + 춘추(soil_temperature_0_to_7cm_mean)",
-    "store_context": "대규모(창고) + 저매출(일평균매출)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 춘추(봄가을 수준, 일반 위험), 춘추(봄가을 수준, 일반 위험) | 매장환경: 대규모(대형 창고, 지게차·적재물 충돌 위험 증가), 저매출(저매출 매장, 고객 밀집도 낮음) | 과거 사고 패턴: 낙상 47.6% (10/21건)"
-  },
-  "102": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": ">",
-        "threshold": 26.55,
-        "label": "춘추",
-        "risk_desc": "봄가을 수준, 일반 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 30.75,
-        "label": "춘추",
-        "risk_desc": "봄가을 수준, 일반 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "창고",
-        "op": "<=",
-        "threshold": 35.5,
-        "label": "대규모",
-        "risk_desc": "대형 창고, 지게차·적재물 충돌 위험 증가",
+        "threshold": 33.9,
+        "label": "중규모",
+        "risk_desc": "일반 창고, 적재물 이동 주의",
         "severity": "중간"
       },
       {
         "feature": "일평균매출",
         "op": ">",
-        "threshold": 9178803.5,
-        "label": "저매출",
-        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "threshold": 13721169.5,
+        "label": "중매출",
+        "risk_desc": "중간 매출, 일반 혼잡도",
         "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 3.73,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "precipitation_sum",
-        "op": "<=",
-        "threshold": 0.95,
-        "label": "맑음",
-        "risk_desc": "강수 없음",
-        "severity": "낮음"
       }
     ],
-    "scenario_label": "대형창고작업",
+    "scenario_label": "낙상주의",
     "risk_level": "낮음",
     "primary_risk_factors": [],
-    "weather_context": "춘추(soil_temperature_0_to_7cm_mean) + 춘추(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 맑음(precipitation_sum)",
-    "store_context": "대규모(창고) + 저매출(일평균매출)",
+    "weather_context": "춘추(soil_temperature_0_to_7cm_mean)",
+    "store_context": "중규모(창고) + 중매출(일평균매출)",
     "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 춘추(봄가을 수준, 일반 위험), 춘추(봄가을 수준, 일반 위험), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 맑음(강수 없음) | 매장환경: 대규모(대형 창고, 지게차·적재물 충돌 위험 증가), 저매출(저매출 매장, 고객 밀집도 낮음) | 과거 사고 패턴: 낙상 37.9% (11/29건)"
+    "explanation": "[위험등급: 낮음]  | 기상환경: 춘추(봄가을 수준, 일반 위험) | 매장환경: 중규모(일반 창고, 적재물 이동 주의), 중매출(중간 매출, 일반 혼잡도) | 과거 사고 패턴: 낙상 45.9% (28/61건)"
   },
-  "103": {
+  "56": {
     "conditions": [
       {
         "feature": "soil_temperature_0_to_7cm_mean",
@@ -3722,301 +1818,20 @@
         "severity": "중간"
       },
       {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 30.75,
-        "label": "춘추",
-        "risk_desc": "봄가을 수준, 일반 위험",
-        "severity": "중간"
-      },
-      {
         "feature": "창고",
-        "op": "<=",
-        "threshold": 35.5,
-        "label": "대규모",
-        "risk_desc": "대형 창고, 지게차·적재물 충돌 위험 증가",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균매출",
         "op": ">",
-        "threshold": 9178803.5,
-        "label": "저매출",
-        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
+        "threshold": 33.9,
+        "label": "중규모",
+        "risk_desc": "일반 창고, 적재물 이동 주의",
         "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 3.73,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "precipitation_sum",
-        "op": ">",
-        "threshold": 0.95,
-        "label": "맑음",
-        "risk_desc": "강수 없음",
-        "severity": "낮음"
       }
     ],
-    "scenario_label": "대형창고작업",
+    "scenario_label": "낙상주의",
     "risk_level": "낮음",
     "primary_risk_factors": [],
-    "weather_context": "춘추(soil_temperature_0_to_7cm_mean) + 춘추(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max) + 맑음(precipitation_sum)",
-    "store_context": "대규모(창고) + 저매출(일평균매출)",
-    "dominant_accident_type": "충돌",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 춘추(봄가을 수준, 일반 위험), 춘추(봄가을 수준, 일반 위험), 미풍(바람 거의 없음, 풍압 사고 위험 낮음), 맑음(강수 없음) | 매장환경: 대규모(대형 창고, 지게차·적재물 충돌 위험 증가), 저매출(저매출 매장, 고객 밀집도 낮음) | 과거 사고 패턴: 충돌 55.0% (11/20건)"
-  },
-  "105": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": ">",
-        "threshold": 26.55,
-        "label": "춘추",
-        "risk_desc": "봄가을 수준, 일반 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 30.75,
-        "label": "춘추",
-        "risk_desc": "봄가을 수준, 일반 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "창고",
-        "op": "<=",
-        "threshold": 35.5,
-        "label": "대규모",
-        "risk_desc": "대형 창고, 지게차·적재물 충돌 위험 증가",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균매출",
-        "op": ">",
-        "threshold": 9178803.5,
-        "label": "저매출",
-        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 3.73,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "입고도우미PO",
-        "op": "<=",
-        "threshold": 0.7,
-        "label": "없음",
-        "risk_desc": "도우미 없음, 직원 직접 입고 → 과부하",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "대형창고작업",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "춘추(soil_temperature_0_to_7cm_mean) + 춘추(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max)",
-    "store_context": "대규모(창고) + 저매출(일평균매출) + 없음(입고도우미PO)",
+    "weather_context": "춘추(soil_temperature_0_to_7cm_mean)",
+    "store_context": "중규모(창고)",
     "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 춘추(봄가을 수준, 일반 위험), 춘추(봄가을 수준, 일반 위험), 미풍(바람 거의 없음, 풍압 사고 위험 낮음) | 매장환경: 대규모(대형 창고, 지게차·적재물 충돌 위험 증가), 저매출(저매출 매장, 고객 밀집도 낮음), 없음(도우미 없음, 직원 직접 입고 → 과부하) | 과거 사고 패턴: 낙상 42.9% (9/21건)"
-  },
-  "106": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": ">",
-        "threshold": 26.55,
-        "label": "춘추",
-        "risk_desc": "봄가을 수준, 일반 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 30.75,
-        "label": "춘추",
-        "risk_desc": "봄가을 수준, 일반 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "창고",
-        "op": "<=",
-        "threshold": 35.5,
-        "label": "대규모",
-        "risk_desc": "대형 창고, 지게차·적재물 충돌 위험 증가",
-        "severity": "중간"
-      },
-      {
-        "feature": "일평균매출",
-        "op": ">",
-        "threshold": 9178803.5,
-        "label": "저매출",
-        "risk_desc": "저매출 매장, 고객 밀집도 낮음",
-        "severity": "중간"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 3.73,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      },
-      {
-        "feature": "입고도우미PO",
-        "op": ">",
-        "threshold": 0.7,
-        "label": "없음",
-        "risk_desc": "도우미 없음, 직원 직접 입고 → 과부하",
-        "severity": "중간"
-      }
-    ],
-    "scenario_label": "대형창고작업",
-    "risk_level": "낮음",
-    "primary_risk_factors": [],
-    "weather_context": "춘추(soil_temperature_0_to_7cm_mean) + 춘추(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max)",
-    "store_context": "대규모(창고) + 저매출(일평균매출) + 없음(입고도우미PO)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 낮음]  | 기상환경: 춘추(봄가을 수준, 일반 위험), 춘추(봄가을 수준, 일반 위험), 미풍(바람 거의 없음, 풍압 사고 위험 낮음) | 매장환경: 대규모(대형 창고, 지게차·적재물 충돌 위험 증가), 저매출(저매출 매장, 고객 밀집도 낮음), 없음(도우미 없음, 직원 직접 입고 → 과부하) | 과거 사고 패턴: 낙상 50.0% (17/34건)"
-  },
-  "108": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": ">",
-        "threshold": 26.55,
-        "label": "춘추",
-        "risk_desc": "봄가을 수준, 일반 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 30.75,
-        "label": "춘추",
-        "risk_desc": "봄가을 수준, 일반 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "창고",
-        "op": ">",
-        "threshold": 35.5,
-        "label": "초대규모",
-        "risk_desc": "초대형 창고, 복잡 동선+중장비 사고 위험",
-        "severity": "높음"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": "<=",
-        "threshold": 3.415,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      }
-    ],
-    "scenario_label": "대형창고작업",
-    "risk_level": "중간",
-    "primary_risk_factors": [
-      {
-        "feature": "창고",
-        "label": "초대규모",
-        "risk": "초대형 창고, 복잡 동선+중장비 사고 위험"
-      }
-    ],
-    "weather_context": "춘추(soil_temperature_0_to_7cm_mean) + 춘추(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max)",
-    "store_context": "초대규모(창고)",
-    "dominant_accident_type": "자상",
-    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 초대규모(창고): 초대형 창고, 복잡 동선+중장비 사고 위험 | 기상환경: 춘추(봄가을 수준, 일반 위험), 춘추(봄가을 수준, 일반 위험), 미풍(바람 거의 없음, 풍압 사고 위험 낮음) | 매장환경: 초대규모(초대형 창고, 복잡 동선+중장비 사고 위험) | 과거 사고 패턴: 자상 40.0% (8/20건)"
-  },
-  "109": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": ">",
-        "threshold": 26.55,
-        "label": "춘추",
-        "risk_desc": "봄가을 수준, 일반 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": "<=",
-        "threshold": 30.75,
-        "label": "춘추",
-        "risk_desc": "봄가을 수준, 일반 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "창고",
-        "op": ">",
-        "threshold": 35.5,
-        "label": "초대규모",
-        "risk_desc": "초대형 창고, 복잡 동선+중장비 사고 위험",
-        "severity": "높음"
-      },
-      {
-        "feature": "wind_speed_10m_max",
-        "op": ">",
-        "threshold": 3.415,
-        "label": "미풍",
-        "risk_desc": "바람 거의 없음, 풍압 사고 위험 낮음",
-        "severity": "낮음"
-      }
-    ],
-    "scenario_label": "대형창고작업",
-    "risk_level": "중간",
-    "primary_risk_factors": [
-      {
-        "feature": "창고",
-        "label": "초대규모",
-        "risk": "초대형 창고, 복잡 동선+중장비 사고 위험"
-      }
-    ],
-    "weather_context": "춘추(soil_temperature_0_to_7cm_mean) + 춘추(soil_temperature_0_to_7cm_mean) + 미풍(wind_speed_10m_max)",
-    "store_context": "초대규모(창고)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 초대규모(창고): 초대형 창고, 복잡 동선+중장비 사고 위험 | 기상환경: 춘추(봄가을 수준, 일반 위험), 춘추(봄가을 수준, 일반 위험), 미풍(바람 거의 없음, 풍압 사고 위험 낮음) | 매장환경: 초대규모(초대형 창고, 복잡 동선+중장비 사고 위험) | 과거 사고 패턴: 낙상 56.5% (13/23건)"
-  },
-  "110": {
-    "conditions": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": ">",
-        "threshold": 26.55,
-        "label": "춘추",
-        "risk_desc": "봄가을 수준, 일반 위험",
-        "severity": "중간"
-      },
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "op": ">",
-        "threshold": 30.75,
-        "label": "폭염기",
-        "risk_desc": "극심한 더위, 야외·창고 작업 온열질환 위험",
-        "severity": "높음"
-      }
-    ],
-    "scenario_label": "온열질환",
-    "risk_level": "중간",
-    "primary_risk_factors": [
-      {
-        "feature": "soil_temperature_0_to_7cm_mean",
-        "label": "폭염기",
-        "risk": "극심한 더위, 야외·창고 작업 온열질환 위험"
-      }
-    ],
-    "weather_context": "춘추(soil_temperature_0_to_7cm_mean) + 폭염기(soil_temperature_0_to_7cm_mean)",
-    "store_context": "매장 조건 제한 없음 (전 매장)",
-    "dominant_accident_type": "낙상",
-    "explanation": "[위험등급: 중간]  | 핵심 위험요인: 폭염기(soil_temperature_0_to_7cm_mean): 극심한 더위, 야외·창고 작업 온열질환 위험 | 기상환경: 춘추(봄가을 수준, 일반 위험), 폭염기(극심한 더위, 야외·창고 작업 온열질환 위험) | 과거 사고 패턴: 낙상 46.2% (18/39건)"
+    "explanation": "[위험등급: 낮음]  | 기상환경: 춘추(봄가을 수준, 일반 위험) | 매장환경: 중규모(일반 창고, 적재물 이동 주의) | 과거 사고 패턴: 낙상 46.6% (27/58건)"
   }
 }

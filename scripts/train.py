@@ -3,25 +3,26 @@
 train.py — Decision Tree 학습 + 리프 노드 사고 사례 테이블 생성
 
 산출물 (models/{cust,emp}/):
-  1. leaf_table.json  — 리프별 규칙 + 사고 통계 + 사례 리스트
-  2. metadata.json    — 피처명, 총 사고 건수, 리프 통계, 하이퍼파라미터
-  3. encoder_map.json — OrdinalEncoder 매핑
-  4. siblings.json    — 부모 노드별 자식 리프 매핑 (Fallback Level 1)
-  5. tree.pkl         — 학습된 DecisionTreeClassifier
-  6. encoder.pkl      — 학습된 OrdinalEncoder
+  1. leaf_table.json     — 리프별 규칙 + 사고 통계 + 사례 리스트
+  2. metadata.json       — 피처명, 총 사고 건수, 리프 통계, 튜닝 결과
+  3. encoder_map.json    — OrdinalEncoder 매핑
+  4. siblings.json       — 부모 노드별 자식 리프 매핑 (Fallback Level 1)
+  5. tree_rules.json     — sklearn 없이 실행 가능한 트리 분기 구조
+  6. incident_index.json — leaf_id가 부여된 사고 사례 인덱스
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import pickle
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import ParameterGrid, train_test_split
 from sklearn.preprocessing import OrdinalEncoder
 from sklearn.tree import DecisionTreeClassifier
 
@@ -51,14 +52,18 @@ MODELS = ROOT / "models"
 # ──────────────────────────────────────────────
 # 하이퍼파라미터
 # ──────────────────────────────────────────────
-TREE_PARAMS = dict(
-    max_depth=12,
-    min_samples_leaf=20,
-    # min_impurity_decrease=0.005,
+TREE_VERSION = "2026-05-tree-rules-v1"
+
+BASE_TREE_PARAMS = dict(
     class_weight="balanced",
-    criterion="gini",
     random_state=42,
 )
+
+PARAM_GRID = {
+    "criterion": ["gini", "entropy"],
+    "max_depth": [6, 8, 10, 12],
+    "min_samples_leaf": [15, 20, 30, 40],
+}
 
 # ──────────────────────────────────────────────
 # 범주형 인코딩 순서
@@ -99,7 +104,15 @@ def _sanitize(obj):
 def _dump_json(data, path: Path) -> None:
     """JSON 파일 저장 (numpy 타입 안전 변환)."""
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(_sanitize(data), f, ensure_ascii=False, indent=2)
+        json.dump(_sanitize(data), f, ensure_ascii=False, indent=2, allow_nan=False)
+
+
+def _clean_incident_value(key: str, value):
+    if pd.isna(value):
+        if key == "image_url":
+            return ""
+        return None
+    return _to_native(value)
 
 
 # ──────────────────────────────────────────────
@@ -201,6 +214,48 @@ def _build_siblings(tree: DecisionTreeClassifier) -> dict[int, list[int]]:
     return siblings
 
 
+def _export_tree_rules(
+    tree: DecisionTreeClassifier,
+    feature_names: list[str],
+    source: str,
+    selected_params: dict,
+    validation_metrics: dict,
+) -> dict:
+    """sklearn 없이 실행 가능한 트리 분기 구조를 JSON dict로 변환한다."""
+    tree_ = tree.tree_
+    nodes: dict[str, dict] = {}
+
+    for node_id in range(tree_.node_count):
+        left = int(tree_.children_left[node_id])
+        right = int(tree_.children_right[node_id])
+        if left == right:
+            nodes[str(node_id)] = {
+                "type": "leaf",
+                "leaf_id": int(node_id),
+                "samples": int(tree_.n_node_samples[node_id]),
+            }
+            continue
+
+        nodes[str(node_id)] = {
+            "type": "split",
+            "feature": feature_names[int(tree_.feature[node_id])],
+            "threshold": float(tree_.threshold[node_id]),
+            "left": left,
+            "right": right,
+            "samples": int(tree_.n_node_samples[node_id]),
+        }
+
+    return {
+        "tree_version": TREE_VERSION,
+        "source": source,
+        "root": 0,
+        "feature_names": feature_names,
+        "selected_params": selected_params,
+        "validation_metrics": validation_metrics,
+        "nodes": nodes,
+    }
+
+
 # ──────────────────────────────────────────────
 # leaf_table 구축
 # ──────────────────────────────────────────────
@@ -219,7 +274,7 @@ def _stratified_sample_incidents(
     n = len(leaf_df)
     if n <= max_size:
         return [
-            {c: row[c] for c in incident_cols}
+            {c: _clean_incident_value(c, row[c]) for c in incident_cols}
             for _, row in leaf_df.iterrows()
         ]
 
@@ -262,7 +317,7 @@ def _stratified_sample_incidents(
 
     sampled = pd.concat(sampled_rows).sort_index()
     return [
-        {c: row[c] for c in incident_cols}
+        {c: _clean_incident_value(c, row[c]) for c in incident_cols}
         for _, row in sampled.iterrows()
     ]
 
@@ -286,7 +341,12 @@ def _build_leaf_table(
     # 사례에 포함할 컬럼
     # incident_id를 맨 앞에 두어 사례 식별이 명확하도록 함
     incident_cols = list(dict.fromkeys(
-        ["incident_id"] + case_cols + WEATHER_FEATURES + STORE_NUM_FEATURES + STORE_CAT_FEATURES
+        ["incident_id"]
+        + case_cols
+        + WEATHER_FEATURES
+        + STORE_NUM_FEATURES
+        + STORE_CAT_FEATURES
+        + ["image_url"]
     ))
     # 실제 존재하는 컬럼만
     incident_cols = [c for c in incident_cols if c in df.columns]
@@ -294,7 +354,9 @@ def _build_leaf_table(
     leaf_table = {}
     for leaf_id in sorted(set(leaf_ids)):
         mask = leaf_ids == leaf_id
-        leaf_df = df[mask]
+        leaf_df = df[mask].copy()
+        leaf_df["leaf_id"] = int(leaf_id)
+        leaf_df["tree_version"] = TREE_VERSION
 
         # 라벨 분포
         label_counts = Counter(leaf_df[label_col].tolist())
@@ -315,13 +377,15 @@ def _build_leaf_table(
                     )
 
         # 사례 리스트 — 사고유형 stratified 샘플링, 최대 50건
+        sample_cols = list(dict.fromkeys(["leaf_id", "tree_version"] + incident_cols))
         incidents = _stratified_sample_incidents(
-            leaf_df, label_col, incident_cols, max_size=50
+            leaf_df, label_col, sample_cols, max_size=50
         )
 
         leaf_table[str(leaf_id)] = {
             "leaf_id": int(leaf_id),
             "source": source,
+            "tree_version": TREE_VERSION,
             "rule": rules.get(leaf_id, ""),
             "summary": {
                 "total": int(mask.sum()),
@@ -371,6 +435,86 @@ def _build_leaf_type_counts(
     }
 
 
+def _build_incident_index(
+    df: pd.DataFrame,
+    leaf_ids: np.ndarray,
+    label_col: str,
+    case_cols: list[str],
+) -> dict:
+    """전체 사고 사례에 leaf_id를 부여한 조회용 인덱스를 만든다."""
+    incident_cols = list(dict.fromkeys(
+        ["incident_id"]
+        + case_cols
+        + WEATHER_FEATURES
+        + STORE_NUM_FEATURES
+        + STORE_CAT_FEATURES
+        + ["image_url"]
+    ))
+    incident_cols = [c for c in incident_cols if c in df.columns]
+
+    indexed_df = df.copy()
+    indexed_df["leaf_id"] = leaf_ids.astype(int)
+    indexed_df["tree_version"] = TREE_VERSION
+
+    output_cols = list(dict.fromkeys(["leaf_id", "tree_version"] + incident_cols))
+    incidents = [
+        {col: _clean_incident_value(col, row[col]) for col in output_cols}
+        for _, row in indexed_df.iterrows()
+    ]
+
+    return {
+        "tree_version": TREE_VERSION,
+        "label_column": label_col,
+        "total_indexed": len(incidents),
+        "incidents": incidents,
+    }
+
+
+def _tune_tree(X: pd.DataFrame, y: pd.Series) -> tuple[dict, dict]:
+    """train/test split으로 후보 하이퍼파라미터를 평가하고 최적 파라미터를 반환."""
+    label_counts = y.value_counts()
+    stratify = y if label_counts.min() >= 2 else None
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42,
+        stratify=stratify,
+    )
+
+    best: dict | None = None
+    results = []
+    for params in ParameterGrid(PARAM_GRID):
+        candidate_params = {**BASE_TREE_PARAMS, **params}
+        tree = DecisionTreeClassifier(**candidate_params)
+        tree.fit(X_train, y_train)
+        pred = tree.predict(X_test)
+        metrics = {
+            "accuracy": float(accuracy_score(y_test, pred)),
+            "f1_macro": float(f1_score(y_test, pred, average="macro", zero_division=0)),
+            "tree_depth": int(tree.get_depth()),
+            "n_leaves": int(tree.get_n_leaves()),
+        }
+        record = {"params": candidate_params, "metrics": metrics}
+        results.append(record)
+
+        sort_key = (
+            metrics["f1_macro"],
+            metrics["accuracy"],
+            -abs(metrics["n_leaves"] - 30),
+            -metrics["tree_depth"],
+        )
+        if best is None or sort_key > best["sort_key"]:
+            best = {**record, "sort_key": sort_key}
+
+    assert best is not None, "하이퍼파라미터 후보가 없습니다."
+    return best["params"], {
+        "split": {"test_size": 0.2, "random_state": 42, "stratified": stratify is not None},
+        "best": {"params": best["params"], "metrics": best["metrics"]},
+        "candidates": results,
+    }
+
+
 # ──────────────────────────────────────────────
 # metadata 구축
 # ──────────────────────────────────────────────
@@ -380,6 +524,8 @@ def _build_metadata(
     label_col: str,
     feature_names: list[str],
     leaf_table: dict,
+    selected_params: dict,
+    validation_metrics: dict,
 ) -> dict:
     """피처명, 총 사고 건수, 리프 통계, 하이퍼파라미터, 라벨 분포."""
     label_dist = dict(Counter(df[label_col].tolist()))
@@ -392,7 +538,9 @@ def _build_metadata(
         "leaf_min_samples": int(min(leaf_sizes)) if leaf_sizes else 0,
         "leaf_max_samples": int(max(leaf_sizes)) if leaf_sizes else 0,
         "tree_depth": int(tree.get_depth()),
-        "hyperparameters": TREE_PARAMS,
+        "tree_version": TREE_VERSION,
+        "hyperparameters": selected_params,
+        "validation": validation_metrics,
         "label_column": label_col,
         "label_distribution": label_dist,
     }
@@ -447,8 +595,12 @@ def train_source(source: str) -> None:
     print(f"  피처: {len(feature_names)}개, 라벨: {label_col} ({y.nunique()}종)")
     print(f"  라벨 분포: {dict(Counter(y.tolist()))}")
 
-    # ── Decision Tree 학습 ──
-    tree = DecisionTreeClassifier(**TREE_PARAMS)
+    # ── Decision Tree 튜닝 + 최종 학습 ──
+    selected_params, validation_metrics = _tune_tree(X, y)
+    print(f"  선택 하이퍼파라미터: {selected_params}")
+    print(f"  검증 지표: {validation_metrics['best']['metrics']}")
+
+    tree = DecisionTreeClassifier(**selected_params)
     tree.fit(X, y)
 
     depth = tree.get_depth()
@@ -467,7 +619,15 @@ def train_source(source: str) -> None:
     print(f"  → leaf_table.json ({len(leaf_table)} 리프)")
 
     # ── 2. metadata.json ──
-    metadata = _build_metadata(tree, df, label_col, feature_names, leaf_table)
+    metadata = _build_metadata(
+        tree,
+        df,
+        label_col,
+        feature_names,
+        leaf_table,
+        selected_params,
+        validation_metrics,
+    )
     _dump_json(metadata, out_dir / "metadata.json")
     print(f"  → metadata.json")
 
@@ -484,24 +644,35 @@ def train_source(source: str) -> None:
     _dump_json(siblings, out_dir / "siblings.json")
     print(f"  → siblings.json ({len(siblings)} 내부 노드)")
 
-    # ── 5. leaf_type_counts.json ──
+    # ── 5. tree_rules.json ──
+    tree_rules = _export_tree_rules(
+        tree,
+        feature_names,
+        source,
+        selected_params,
+        validation_metrics["best"]["metrics"],
+    )
+    _dump_json(tree_rules, out_dir / "tree_rules.json")
+    print(f"  → tree_rules.json")
+
+    # ── 6. leaf_type_counts.json ──
     leaf_type_counts = _build_leaf_type_counts(leaf_table, label_col)
     _dump_json(leaf_type_counts, out_dir / "leaf_type_counts.json")
     print(f"  → leaf_type_counts.json")
 
-    # ── 6. tree.pkl ──
-    with open(out_dir / "tree.pkl", "wb") as f:
-        pickle.dump(tree, f)
-    print(f"  → tree.pkl")
-
-    # ── 7. encoder.pkl ──
-    with open(out_dir / "encoder.pkl", "wb") as f:
-        pickle.dump(encoder, f)
-    print(f"  → encoder.pkl")
+    # ── 7. incident_index.json ──
+    incident_index = _build_incident_index(
+        df,
+        tree.apply(X),
+        label_col,
+        case_cols,
+    )
+    _dump_json(incident_index, out_dir / "incident_index.json")
+    print(f"  → incident_index.json")
 
     # ── 검증 ──
     print(f"\n  [검증]")
-    print(f"    트리 깊이: {depth} (max_depth={TREE_PARAMS['max_depth']})")
+    print(f"    트리 깊이: {depth} (max_depth={selected_params['max_depth']})")
     min_samples = min(v["summary"]["total"] for v in leaf_table.values())
     max_samples = max(v["summary"]["total"] for v in leaf_table.values())
     print(f"    리프 사례 수: 최소 {min_samples} / 최대 {max_samples}")
@@ -509,9 +680,9 @@ def train_source(source: str) -> None:
     print(f"    incidents 크기(샘플링 후): 최소 {min(incident_sizes)} / 최대 {max(incident_sizes)}")
     has_incidents = all(s > 0 for s in incident_sizes)
     print(f"    모든 리프에 incidents 포함: {has_incidents}")
-    assert depth <= TREE_PARAMS["max_depth"], f"트리 깊이 초과: {depth}"
+    assert depth <= selected_params["max_depth"], f"트리 깊이 초과: {depth}"
     # EMP는 데이터량(약 448건) 제약으로 리프 최소 15건까지 허용
-    min_required = 15 if source == "emp" else TREE_PARAMS["min_samples_leaf"]
+    min_required = 15 if source == "emp" else selected_params["min_samples_leaf"]
     assert min_samples >= min_required, (
         f"최소 사례 수 미달: {min_samples} (기대: {min_required}, 소스: {source})"
     )
@@ -519,6 +690,11 @@ def train_source(source: str) -> None:
     assert max(incident_sizes) <= 50, (
         f"incidents 크기 상한 초과: {max(incident_sizes)} (기대: 50 이하)"
     )
+    assert set(str(k) for k in leaf_table.keys()) == {
+        node_id
+        for node_id, node in tree_rules["nodes"].items()
+        if node.get("type") == "leaf"
+    }, "leaf_table과 tree_rules 리프 불일치"
     # 리프 수 목표 범위 확인 (실패해도 경고만)
     if not (10 <= n_leaves <= 60):
         print(f"  ⚠️ 리프 수 {n_leaves} — 목표 범위(10~60) 밖. max_depth 재조정 고려.")

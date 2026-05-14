@@ -72,9 +72,10 @@ def _load_stores() -> list[dict]:
     return _load_json_s3("stores.json")
 
 
-def _load_model_files(source: str) -> tuple[dict, dict, dict, dict]:
+def _load_model_files(source: str) -> tuple[dict, dict, dict, dict, dict]:
     prefix = f"models/{source}"
     return (
+        _load_json_s3(f"{prefix}/tree_rules.json"),
         _load_json_s3(f"{prefix}/leaf_table.json"),
         _load_json_s3(f"{prefix}/metadata.json"),
         _load_json_s3(f"{prefix}/encoder_map.json"),
@@ -119,7 +120,9 @@ def _generate_store_guide(store: dict, date_str: str) -> dict:
     results: dict[str, Any] = {}
     for source in SOURCES:
         try:
-            leaf_table, metadata, encoder_map, siblings = _load_model_files(source)
+            tree_rules, leaf_table, metadata, encoder_map, siblings = _load_model_files(
+                source
+            )
         except Exception as e:
             results[source] = {"error": str(e)}
             continue
@@ -128,7 +131,7 @@ def _generate_store_guide(store: dict, date_str: str) -> dict:
         total_incidents = metadata.get("total_incidents", 0)
         features = _build_features(weather, store, encoder_map)
         leaf_id, leaf_data, fallback_level = match_with_fallback(
-            features, leaf_table, siblings, metadata
+            features, tree_rules, leaf_table, siblings, metadata
         )
         if leaf_data is None:
             results[source] = {"error": "리프 매칭 실패"}

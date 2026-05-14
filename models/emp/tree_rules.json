@@ -1,0 +1,175 @@
+{
+  "tree_version": "2026-05-tree-rules-v1",
+  "source": "emp",
+  "root": 0,
+  "feature_names": [
+    "temperature_2m_min",
+    "temperature_2m_max",
+    "precipitation_sum",
+    "snowfall_sum",
+    "rain_sum",
+    "wind_speed_10m_max",
+    "relative_humidity_2m_mean",
+    "soil_temperature_0_to_7cm_mean",
+    "평수",
+    "실평수",
+    "진열평수",
+    "창고",
+    "계약면적(㎡)",
+    "매장인원",
+    "입고도우미PO",
+    "일평균매출",
+    "일평균물동량",
+    "형태"
+  ],
+  "selected_params": {
+    "class_weight": "balanced",
+    "random_state": 42,
+    "criterion": "gini",
+    "max_depth": 6,
+    "min_samples_leaf": 30
+  },
+  "validation_metrics": {
+    "accuracy": 0.06666666666666667,
+    "f1_macro": 0.050704135905374294,
+    "tree_depth": 5,
+    "n_leaves": 8
+  },
+  "nodes": {
+    "0": {
+      "type": "split",
+      "feature": "wind_speed_10m_max",
+      "threshold": 2.3249999284744263,
+      "left": 1,
+      "right": 2,
+      "samples": 448
+    },
+    "1": {
+      "type": "leaf",
+      "leaf_id": 1,
+      "samples": 30
+    },
+    "2": {
+      "type": "split",
+      "feature": "일평균매출",
+      "threshold": 7575187.5,
+      "left": 3,
+      "right": 4,
+      "samples": 418
+    },
+    "3": {
+      "type": "leaf",
+      "leaf_id": 3,
+      "samples": 43
+    },
+    "4": {
+      "type": "split",
+      "feature": "창고",
+      "threshold": 13.150000095367432,
+      "left": 5,
+      "right": 10,
+      "samples": 375
+    },
+    "5": {
+      "type": "split",
+      "feature": "temperature_2m_max",
+      "threshold": 11.350000381469727,
+      "left": 6,
+      "right": 7,
+      "samples": 103
+    },
+    "6": {
+      "type": "leaf",
+      "leaf_id": 6,
+      "samples": 31
+    },
+    "7": {
+      "type": "split",
+      "feature": "실평수",
+      "threshold": 152.5,
+      "left": 8,
+      "right": 9,
+      "samples": 72
+    },
+    "8": {
+      "type": "leaf",
+      "leaf_id": 8,
+      "samples": 41
+    },
+    "9": {
+      "type": "leaf",
+      "leaf_id": 9,
+      "samples": 31
+    },
+    "10": {
+      "type": "split",
+      "feature": "창고",
+      "threshold": 35.5,
+      "left": 11,
+      "right": 16,
+      "samples": 272
+    },
+    "11": {
+      "type": "split",
+      "feature": "wind_speed_10m_max",
+      "threshold": 3.34499990940094,
+      "left": 12,
+      "right": 13,
+      "samples": 167
+    },
+    "12": {
+      "type": "leaf",
+      "leaf_id": 12,
+      "samples": 44
+    },
+    "13": {
+      "type": "split",
+      "feature": "일평균물동량",
+      "threshold": 233.5,
+      "left": 14,
+      "right": 15,
+      "samples": 123
+    },
+    "14": {
+      "type": "leaf",
+      "leaf_id": 14,
+      "samples": 31
+    },
+    "15": {
+      "type": "leaf",
+      "leaf_id": 15,
+      "samples": 92
+    },
+    "16": {
+      "type": "split",
+      "feature": "temperature_2m_min",
+      "threshold": 12.700000286102295,
+      "left": 17,
+      "right": 20,
+      "samples": 105
+    },
+    "17": {
+      "type": "split",
+      "feature": "soil_temperature_0_to_7cm_mean",
+      "threshold": 5.950000047683716,
+      "left": 18,
+      "right": 19,
+      "samples": 73
+    },
+    "18": {
+      "type": "leaf",
+      "leaf_id": 18,
+      "samples": 30
+    },
+    "19": {
+      "type": "leaf",
+      "leaf_id": 19,
+      "samples": 43
+    },
+    "20": {
+      "type": "leaf",
+      "leaf_id": 20,
+      "samples": 32
+    }
+  }
+}

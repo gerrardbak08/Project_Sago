@@ -117,15 +117,17 @@ echo "=== [6/7] 모델 파일 → S3 업로드 ==="
 MODELS_BUCKET=$(terraform -chdir="$INFRA_DIR" output -raw models_bucket)
 echo "  모델 버킷: $MODELS_BUCKET"
 
-# models/cust/ — JSON + pkl 파일
+# models/cust/ — 배포용 JSON 규칙/리프 인덱스
 aws s3 sync models/cust/ "s3://$MODELS_BUCKET/models/cust/" \
   --region ap-northeast-2 \
+  --delete \
   --exclude ".gitkeep"
 echo "  ✓ models/cust/ 업로드"
 
-# models/emp/ — JSON + pkl 파일
+# models/emp/ — 배포용 JSON 규칙/리프 인덱스
 aws s3 sync models/emp/ "s3://$MODELS_BUCKET/models/emp/" \
   --region ap-northeast-2 \
+  --delete \
   --exclude ".gitkeep"
 echo "  ✓ models/emp/ 업로드"
 

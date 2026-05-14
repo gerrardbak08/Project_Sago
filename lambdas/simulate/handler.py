@@ -106,9 +106,12 @@ def _load_stores() -> list[dict]:
     return _load_json("stores.json", Path("stores.json"))
 
 
-def _load_model_files(source: str) -> tuple[dict, dict, dict, dict]:
-    """모델 파일 4종을 로드한다 (leaf_table, metadata, encoder_map, siblings)."""
+def _load_model_files(source: str) -> tuple[dict, dict, dict, dict, dict]:
+    """모델 파일 5종을 로드한다 (tree_rules, leaf_table, metadata, encoder_map, siblings)."""
     prefix = f"models/{source}"
+    tree_rules = _load_json(
+        f"{prefix}/tree_rules.json", Path(f"models/{source}/tree_rules.json")
+    )
     leaf_table = _load_json(
         f"{prefix}/leaf_table.json", Path(f"models/{source}/leaf_table.json")
     )
@@ -121,7 +124,7 @@ def _load_model_files(source: str) -> tuple[dict, dict, dict, dict]:
     siblings = _load_json(
         f"{prefix}/siblings.json", Path(f"models/{source}/siblings.json")
     )
-    return leaf_table, metadata, encoder_map, siblings
+    return tree_rules, leaf_table, metadata, encoder_map, siblings
 
 
 # ──────────────────────────────────────────────
@@ -337,7 +340,9 @@ def lambda_handler(event: dict, context: Any) -> dict:
 
     for source in SOURCES:
         try:
-            leaf_table, metadata, encoder_map, siblings = _load_model_files(source)
+            tree_rules, leaf_table, metadata, encoder_map, siblings = _load_model_files(
+                source
+            )
         except FileNotFoundError as e:
             results[source] = {"error": str(e)}
             continue
@@ -349,7 +354,7 @@ def lambda_handler(event: dict, context: Any) -> dict:
 
         # 리프 매칭
         leaf_id, leaf_data, fallback_level = match_with_fallback(
-            features, leaf_table, siblings, metadata
+            features, tree_rules, leaf_table, siblings, metadata
         )
 
         if leaf_data is None:
