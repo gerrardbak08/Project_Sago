@@ -16,14 +16,13 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from collections import Counter, defaultdict
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import ParameterGrid, train_test_split
-from sklearn.preprocessing import OrdinalEncoder
 from sklearn.tree import DecisionTreeClassifier
 
 # ──────────────────────────────────────────────
@@ -438,7 +437,6 @@ def _build_leaf_type_counts(
 def _build_incident_index(
     df: pd.DataFrame,
     leaf_ids: np.ndarray,
-    label_col: str,
     case_cols: list[str],
 ) -> dict:
     """전체 사고 사례에 leaf_id를 부여한 조회용 인덱스를 만든다."""
@@ -464,7 +462,6 @@ def _build_incident_index(
 
     return {
         "tree_version": TREE_VERSION,
-        "label_column": label_col,
         "total_indexed": len(incidents),
         "incidents": incidents,
     }
@@ -579,13 +576,9 @@ def train_source(source: str) -> None:
     df = _fill_missing(df)
 
     # ── 범주형 인코딩 ──
-    encoder = OrdinalEncoder(
-        categories=[STORE_TYPE_ORDER],
-        handle_unknown="use_encoded_value",
-        unknown_value=-1,
-    )
+    type_mapping = {cat: i for i, cat in enumerate(STORE_TYPE_ORDER)}
     df["형태"] = df["형태"].astype(str).str.strip()
-    df[["형태"]] = encoder.fit_transform(df[["형태"]])
+    df["형태"] = df["형태"].map(type_mapping).fillna(-1).astype(float)
 
     # 피처 행렬 구성
     feature_names = WEATHER_FEATURES + STORE_NUM_FEATURES + STORE_CAT_FEATURES
@@ -664,7 +657,6 @@ def train_source(source: str) -> None:
     incident_index = _build_incident_index(
         df,
         tree.apply(X),
-        label_col,
         case_cols,
     )
     _dump_json(incident_index, out_dir / "incident_index.json")
