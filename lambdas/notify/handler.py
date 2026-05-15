@@ -26,7 +26,6 @@ import json
 import os
 import time
 from datetime import datetime, timezone, timedelta
-from pathlib import Path
 from typing import Any
 
 from core.weather import get_weather
@@ -213,9 +212,114 @@ def _build_message_body(store_name: str, date_str: str, results: dict) -> str:
 
 
 # ──────────────────────────────────────────────
+# 카카오 메시지 구성/발송
+# ──────────────────────────────────────────────
+def _public_url(path_or_url: str | None) -> str | None:
+    if not path_or_url:
+        return None
+    value = str(path_or_url).strip()
+    if not value or value.lower() in {"nan", "none", "null"}:
+        return None
+    if value.startswith("http"):
+        return value
+
+    frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/")
+    clean_path = value.lstrip("/")
+    if frontend_url:
+        return f"{frontend_url}/{clean_path}"
+    return None
+
+
+def _guide_link(store_code: str, date_str: str) -> str:
+    frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/")
+    if not frontend_url:
+        return "https://www.daiso.co.kr"
+    return f"{frontend_url}/#tab=alert_monitor&store={store_code}&date={date_str}"
+
+
+def _select_kakao_case(results: dict) -> tuple[str, dict, dict]:
+    for source in ("emp", "cust"):
+        guide = results.get(source, {}).get("guide", {})
+        cases = guide.get("오늘의_주의사항") or []
+        if cases:
+            return source, guide, cases[0]
+    return "emp", results.get("emp", {}).get("guide", {}), {}
+
+
+def _build_kakao_template(store_name: str, date_str: str, store_code: str, results: dict) -> tuple[str, str]:
+    source, guide, case = _select_kakao_case(results)
+    title = f"{store_name} 매장 안전 가이드"
+    accident = case.get("사고내용") or guide.get("위험_요약") or "오늘의 안전가이드를 확인해주세요."
+    rule = case.get("수칙") or ""
+    description = accident if not rule else f"{accident}\n{rule}"
+    if len(description) > 180:
+        description = description[:177].rstrip() + "..."
+
+    image_url = _public_url(case.get("image_url")) or os.environ.get(
+        "KAKAO_FALLBACK_IMAGE_URL",
+        "https://developers.kakao.com/assets/img/about/logos/kakaolink/kakaolink_btn_medium.png",
+    )
+    link_url = _guide_link(store_code, date_str)
+
+    template = {
+        "object_type": "feed",
+        "content": {
+            "title": title,
+            "description": description,
+            "image_url": image_url,
+            "link": {
+                "web_url": link_url,
+                "mobile_web_url": link_url,
+            },
+        },
+        "buttons": [
+            {
+                "title": "안전가이드 확인",
+                "link": {
+                    "web_url": link_url,
+                    "mobile_web_url": link_url,
+                },
+            }
+        ],
+    }
+    return json.dumps(template, ensure_ascii=False, separators=(",", ":")), source
+
+
+def _send_kakao_friend_message(receiver_uuids: list[str], template_object: str) -> dict:
+    if not receiver_uuids:
+        return {"sent": [], "failed": []}
+
+    access_token = os.environ.get("KAKAO_ACCESS_TOKEN", "")
+    if not access_token:
+        raise ValueError("KAKAO_ACCESS_TOKEN 환경변수가 설정되지 않았습니다.")
+
+    import requests
+
+    resp = requests.post(
+        "https://kapi.kakao.com/v1/api/talk/friends/message/default/send",
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+        },
+        data={
+            "receiver_uuids": json.dumps(receiver_uuids, ensure_ascii=False, separators=(",", ":")),
+            "template_object": template_object,
+        },
+        timeout=15,
+    )
+    if not resp.ok:
+        raise ValueError(f"Kakao API 오류 HTTP {resp.status_code}: {resp.text}")
+
+    data = resp.json()
+    sent = data.get("successful_receiver_uuids", [])
+    failed = [uuid for uuid in receiver_uuids if uuid not in sent]
+    return {"sent": sent, "failed": failed, "raw": data}
+
+
+# ──────────────────────────────────────────────
 # 알림 현황 S3 기록
 # ──────────────────────────────────────────────
-def _record_alert(guide_result: dict, channel: str) -> None:
+def _record_alert(guide_result: dict, channel: str, delivery: dict | None = None) -> None:
     """발송 결과를 S3 daily 버킷의 alerts/{date}/index.json에 기록한다."""
     import boto3
 
@@ -240,6 +344,10 @@ def _record_alert(guide_result: dict, channel: str) -> None:
         "timestamp": datetime.now(KST).isoformat(timespec="seconds"),
         "trigger_type": f"manual_send_{channel}",
         "channel": channel,
+        "recipients": delivery.get("recipients", []) if delivery else [],
+        "sent_recipients": delivery.get("sent", []) if delivery else [],
+        "failed_recipients": delivery.get("failed", []) if delivery else [],
+        "delivery_status": delivery.get("status", "not_sent") if delivery else "not_sent",
         "주요_위험유형_cust": cust.get("guide", {}).get("주요_위험유형", ""),
         "주요_위험유형_emp": emp.get("guide", {}).get("주요_위험유형", ""),
         "detail_key": file_key,
@@ -302,13 +410,19 @@ def lambda_handler(event: dict, context: Any) -> dict:
         store_codes = body.get("store_codes", [])
         date_str = body.get("date")
         channel = body.get("channel") or os.environ.get("NOTIFY_CHANNEL", "mock")
+        receiver_uuids = body.get("receiver_uuids", [])
 
         if not store_codes or date_str is None:
             return _response(400, {"error": "store_codes(배열)와 date는 필수입니다."})
         if not isinstance(store_codes, list):
             return _response(400, {"error": "store_codes는 배열이어야 합니다."})
+        if receiver_uuids and not isinstance(receiver_uuids, list):
+            return _response(400, {"error": "receiver_uuids는 배열이어야 합니다."})
+        if channel == "kakao" and not receiver_uuids:
+            return _response(400, {"error": "카카오 발송에는 receiver_uuids가 필요합니다."})
 
         store_codes = [int(c) for c in store_codes]
+        receiver_uuids = [str(u).strip() for u in receiver_uuids if str(u).strip()]
     except (json.JSONDecodeError, ValueError, TypeError) as e:
         return _response(400, {"error": f"요청 파싱 실패: {e}"})
 
@@ -320,7 +434,7 @@ def lambda_handler(event: dict, context: Any) -> dict:
 
     store_map = {int(s["매장"]): s for s in all_stores if s.get("매장") is not None}
 
-    notifier = get_notifier(channel)
+    notifier = None if channel == "kakao" else get_notifier(channel)
 
     # 매장별 처리
     store_results = []
@@ -329,6 +443,7 @@ def lambda_handler(event: dict, context: Any) -> dict:
 
     for store_code in store_codes:
         store = store_map.get(store_code)
+        guide_result = None
         if store is None:
             store_results.append({
                 "store_code": str(store_code),
@@ -347,14 +462,43 @@ def lambda_handler(event: dict, context: Any) -> dict:
 
             store_name = guide_result.get("store_name", str(store_code))
 
-            # 발송 (프로토타입: recipients=[], 카카오 연동 후 직원 연락처 전달)
-            recipients: list[str] = []  # TODO: 직원 연락처 DB 연동
+            # 발송
+            delivery: dict[str, Any]
             subject = f"[다이소 안전가이드] {store_name} - {date_str}"
             msg_body = _build_message_body(store_name, date_str, guide_result.get("results", {}))
-            notifier.send(recipients, subject, msg_body)
+            if channel == "kakao":
+                template_object, kakao_source = _build_kakao_template(
+                    store_name,
+                    date_str,
+                    str(store_code),
+                    guide_result.get("results", {}),
+                )
+                send_result = _send_kakao_friend_message(receiver_uuids, template_object)
+                delivery = {
+                    "channel": "kakao",
+                    "source": kakao_source,
+                    "recipients": receiver_uuids,
+                    "sent": send_result.get("sent", []),
+                    "failed": send_result.get("failed", []),
+                    "status": "sent" if send_result.get("sent") else "failed",
+                    "raw": send_result.get("raw", {}),
+                }
+            else:
+                if notifier is None:
+                    raise ValueError(f"지원하지 않는 발송 채널입니다: {channel}")
+                send_result = notifier.send([], subject, msg_body)
+                delivery = {
+                    "channel": channel,
+                    "recipients": [],
+                    "sent": send_result.get("sent", []),
+                    "failed": send_result.get("failed", []),
+                    "status": "sent",
+                }
+
+            guide_result["delivery"] = delivery
 
             # 현황 기록
-            _record_alert(guide_result, channel)
+            _record_alert(guide_result, channel, delivery)
 
             cust = guide_result.get("results", {}).get("cust", {})
             emp = guide_result.get("results", {}).get("emp", {})
@@ -362,7 +506,11 @@ def lambda_handler(event: dict, context: Any) -> dict:
             store_results.append({
                 "store_code": str(store_code),
                 "store_name": store_name,
-                "status": "sent",
+                "status": delivery.get("status", "sent"),
+                "recipients": delivery.get("recipients", []),
+                "sent_recipients": delivery.get("sent", []),
+                "failed_recipients": delivery.get("failed", []),
+                "delivery_source": delivery.get("source", ""),
                 "주요_위험유형_cust": cust.get("guide", {}).get("주요_위험유형", ""),
                 "주요_위험유형_emp": emp.get("guide", {}).get("주요_위험유형", ""),
                 "guide_preview": {
@@ -370,14 +518,31 @@ def lambda_handler(event: dict, context: Any) -> dict:
                     "emp": emp.get("guide", {}).get("위험_요약", ""),
                 },
             })
-            success_count += 1
+            if delivery.get("status") == "sent":
+                success_count += 1
+            else:
+                failed_count += 1
             print(f"[notify] 완료: {store_name} ({store_code})")
 
         except Exception as e:
+            failed_delivery = {
+                "channel": channel,
+                "recipients": receiver_uuids,
+                "sent": [],
+                "failed": receiver_uuids,
+                "status": "failed",
+                "error": str(e),
+            }
+            if guide_result is not None:
+                guide_result["delivery"] = failed_delivery
+                _record_alert(guide_result, channel, failed_delivery)
             store_results.append({
                 "store_code": str(store_code),
                 "store_name": store.get("매장명", ""),
                 "status": "failed",
+                "recipients": receiver_uuids,
+                "sent_recipients": [],
+                "failed_recipients": receiver_uuids,
                 "error": str(e),
             })
             failed_count += 1
@@ -392,5 +557,5 @@ def lambda_handler(event: dict, context: Any) -> dict:
             "failed": failed_count,
         },
         "stores": store_results,
-        "note": "프로토타입: 실제 발송 없음. 카카오 연동 후 직원 연락처로 실제 발송됩니다.",
+        "note": "카카오 선택 시 입력한 친구 UUID로 실제 메시지를 발송합니다.",
     })

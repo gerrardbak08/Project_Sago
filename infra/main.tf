@@ -27,6 +27,13 @@ variable "project" {
   default     = "daiso-safety"
 }
 
+variable "kakao_access_token" {
+  description = "Kakao Talk Message API access token for test sends"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 provider "aws" {
   region = var.aws_region
 
@@ -250,10 +257,12 @@ resource "aws_lambda_function" "notify" {
 
   environment {
     variables = {
-      MODELS_BUCKET  = aws_s3_bucket.models.id
-      DAILY_BUCKET   = aws_s3_bucket.daily.id
-      NOTIFY_CHANNEL = "mock"
-      BEDROCK_REGION = "us-east-1"
+      MODELS_BUCKET      = aws_s3_bucket.models.id
+      DAILY_BUCKET       = aws_s3_bucket.daily.id
+      FRONTEND_URL       = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
+      NOTIFY_CHANNEL     = "mock"
+      KAKAO_ACCESS_TOKEN = var.kakao_access_token
+      BEDROCK_REGION     = "us-east-1"
     }
   }
 

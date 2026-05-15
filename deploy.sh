@@ -67,6 +67,12 @@ echo "  ✓ alerts.zip ($(du -sh "$DIST_DIR/alerts.zip" | cut -f1))"
 echo "=== [2/6] Terraform init (필요시) ==="
 terraform -chdir="$INFRA_DIR" init -input=false
 
+if [ -f ".env" ] && [ -z "${KAKAO_ACCESS_TOKEN:-}" ]; then
+  KAKAO_ACCESS_TOKEN=$(awk -F= '/^KAKAO_ACCESS_TOKEN=/ { value=substr($0, index($0, "=") + 1) } END { gsub(/^["'\''"]|["'\''"]$/, "", value); print value }' .env)
+  export KAKAO_ACCESS_TOKEN
+fi
+export TF_VAR_kakao_access_token="${TF_VAR_kakao_access_token:-${KAKAO_ACCESS_TOKEN:-}}"
+
 echo "=== [3/6] Terraform apply ==="
 terraform -chdir="$INFRA_DIR" apply -input=false -auto-approve
 

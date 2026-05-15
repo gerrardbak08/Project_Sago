@@ -28,6 +28,7 @@ function AlertSend() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedStores, setSelectedStores] = useState([]);
   const [date, setDate] = useState(today);
+  const [receiverText, setReceiverText] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -52,7 +53,11 @@ function AlertSend() {
     setSelectedStores(prev => prev.filter(s => s['매장'] !== code));
   };
 
-  const canSend = selectedStores.length > 0 && date && !loading;
+  const receiverUuids = receiverText
+    .split(/[\n,]+/)
+    .map(v => v.trim())
+    .filter(Boolean);
+  const canSend = selectedStores.length > 0 && date && receiverUuids.length > 0 && !loading;
 
   const handleSend = async () => {
     if (!canSend) return;
@@ -68,6 +73,8 @@ function AlertSend() {
         body: JSON.stringify({
           store_codes: selectedStores.map(s => parseInt(s['매장'], 10)),
           date,
+          channel: 'kakao',
+          receiver_uuids: receiverUuids,
         }),
       });
 
@@ -100,7 +107,7 @@ function AlertSend() {
       <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 flex items-start gap-2.5">
         <MessageCircle size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />
         <div className="text-xs text-amber-700">
-          <span className="font-semibold">프로토타입 모드 —</span> 현재는 실제 발송 없이 기록만 남깁니다. 카카오 비즈니스 채널 연동 후 매장 직원 전체에게 실제 발송됩니다.
+          <span className="font-semibold">카카오 테스트 발송 —</span> 입력한 친구 UUID로 실제 안전가이드 메시지를 발송하고 성공/실패 결과를 기록합니다.
         </div>
       </div>
 
@@ -189,6 +196,26 @@ function AlertSend() {
             />
           </div>
 
+          {/* 카카오 수신자 UUID */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-stone-600">카카오 친구 UUID</label>
+              {receiverUuids.length > 0 && (
+                <span className="text-xs text-stone-400">{receiverUuids.length}명 입력됨</span>
+              )}
+            </div>
+            <textarea
+              value={receiverText}
+              onChange={e => setReceiverText(e.target.value)}
+              placeholder="friends 결과의 uuid를 입력하세요. 여러 명은 줄바꿈 또는 쉼표로 구분"
+              rows={3}
+              className="w-full px-3 py-2 rounded-lg border border-stone-200 text-sm text-stone-700 bg-white focus:outline-none focus:border-stone-400 resize-none font-mono"
+            />
+            <div className="text-[11px] text-stone-400">
+              현재는 테스트 단계이므로 친구 UUID를 직접 입력합니다.
+            </div>
+          </div>
+
           {/* 발송 버튼 */}
           <button
             onClick={handleSend}
@@ -197,7 +224,7 @@ function AlertSend() {
           >
             {loading
               ? <><RefreshCw size={14} className="animate-spin" /> 가이드 생성 중 ({selectedStores.length}개 매장)...</>
-              : <><Send size={14} /> {selectedStores.length}개 매장 안전 가이드 발송</>
+              : <><Send size={14} /> {selectedStores.length}개 매장 · {receiverUuids.length}명 카카오 발송</>
             }
           </button>
         </div>
@@ -253,6 +280,16 @@ function AlertSend() {
                   </div>
                   {s.status === 'sent' && s.guide_preview && (
                     <div className="space-y-0.5">
+                      {s.sent_recipients?.length > 0 && (
+                        <div className="text-[11px] text-emerald-700">
+                          <span className="font-medium">성공:</span> {s.sent_recipients.join(', ')}
+                        </div>
+                      )}
+                      {s.failed_recipients?.length > 0 && (
+                        <div className="text-[11px] text-red-600">
+                          <span className="font-medium">실패:</span> {s.failed_recipients.join(', ')}
+                        </div>
+                      )}
                       {s.guide_preview.cust && (
                         <div className="text-[11px] text-stone-600">
                           <span className="font-medium text-sky-700">고객:</span> {s.guide_preview.cust}
@@ -270,7 +307,14 @@ function AlertSend() {
                     </div>
                   )}
                   {s.status === 'failed' && (
-                    <div className="text-[11px] text-red-600">{s.error}</div>
+                    <div className="space-y-0.5">
+                      {s.failed_recipients?.length > 0 && (
+                        <div className="text-[11px] text-red-600">
+                          <span className="font-medium">실패:</span> {s.failed_recipients.join(', ')}
+                        </div>
+                      )}
+                      <div className="text-[11px] text-red-600">{s.error}</div>
+                    </div>
                   )}
                 </div>
               ))}
@@ -288,9 +332,9 @@ function AlertSend() {
         <div className="rounded-xl bg-stone-50 border border-stone-200 p-4 text-xs text-stone-500 space-y-1">
           <div className="font-semibold text-stone-600 mb-2">📌 발송 흐름</div>
           <div>1. 매장 검색 → 여러 매장 추가 → 날짜 선택</div>
-          <div>2. 발송 버튼 클릭 → 매장별 안전 가이드 자동 생성</div>
-          <div>3. 발송 기록이 알림 현황 탭에 저장됨</div>
-          <div className="pt-1 text-amber-600">※ 카카오 연동 후 매장 직원 전체에게 실제 발송됩니다</div>
+          <div>2. 카카오 친구 UUID 입력 → 발송 버튼 클릭</div>
+          <div>3. 매장별 안전가이드 생성 후 카카오 발송 결과가 알림 현황 탭에 저장됨</div>
+          <div className="pt-1 text-amber-600">※ 현재는 테스트 단계라 UUID를 직접 입력합니다</div>
         </div>
       )}
     </div>
