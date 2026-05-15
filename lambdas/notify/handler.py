@@ -241,6 +241,46 @@ def _guide_link(store_code: str, date_str: str) -> str:
     return f"{frontend_url}/#tab=alert_monitor&store={store_code}&date={date_str}"
 
 
+def _extract_kakao_image_url(upload_result: dict) -> str | None:
+    for key in ("url", "image_url", "imageUrl"):
+        if upload_result.get(key):
+            return upload_result[key]
+
+    infos = upload_result.get("infos")
+    if isinstance(infos, dict):
+        for info in infos.values():
+            if isinstance(info, dict) and info.get("url"):
+                return info["url"]
+    return None
+
+
+def _upload_kakao_image(public_image_url: str) -> str:
+    access_token = os.environ.get("KAKAO_ACCESS_TOKEN", "")
+    if not access_token:
+        raise ValueError("KAKAO_ACCESS_TOKEN 환경변수가 설정되지 않았습니다.")
+
+    import requests
+
+    image_resp = requests.get(public_image_url, timeout=15)
+    if not image_resp.ok:
+        raise ValueError(f"Kakao 이미지 다운로드 실패 HTTP {image_resp.status_code}: {public_image_url}")
+
+    content_type = image_resp.headers.get("Content-Type") or "image/png"
+    upload_resp = requests.post(
+        "https://kapi.kakao.com/v2/api/talk/message/image/upload",
+        headers={"Authorization": f"Bearer {access_token}"},
+        files={"file": ("safety-guide.png", image_resp.content, content_type)},
+        timeout=20,
+    )
+    if not upload_resp.ok:
+        raise ValueError(f"Kakao 이미지 업로드 실패 HTTP {upload_resp.status_code}: {upload_resp.text}")
+
+    uploaded_url = _extract_kakao_image_url(upload_resp.json())
+    if not uploaded_url:
+        raise ValueError(f"Kakao 이미지 업로드 응답에서 URL을 찾지 못했습니다: {upload_resp.text}")
+    return uploaded_url
+
+
 def _select_kakao_case(results: dict) -> tuple[str, dict, dict]:
     for source in ("emp", "cust"):
         guide = results.get(source, {}).get("guide", {})
@@ -259,10 +299,14 @@ def _build_kakao_template(store_name: str, date_str: str, store_code: str, resul
     if len(description) > 180:
         description = description[:177].rstrip() + "..."
 
-    image_url = _public_url(case.get("image_url")) or os.environ.get(
-        "KAKAO_FALLBACK_IMAGE_URL",
-        "https://developers.kakao.com/assets/img/about/logos/kakaolink/kakaolink_btn_medium.png",
-    )
+    public_image_url = _public_url(case.get("image_url"))
+    if public_image_url:
+        image_url = _upload_kakao_image(public_image_url)
+    else:
+        image_url = os.environ.get(
+            "KAKAO_FALLBACK_IMAGE_URL",
+            "https://developers.kakao.com/assets/img/about/logos/kakaolink/kakaolink_btn_medium.png",
+        )
     link_url = _guide_link(store_code, date_str)
 
     template = {

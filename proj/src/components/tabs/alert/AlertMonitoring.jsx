@@ -9,18 +9,30 @@ const FRONTEND_BASE = import.meta.env.VITE_FRONTEND_URL
 
 function resolveImageUrl(url) {
   if (!url) return null;
-  if (url.startsWith('http')) return url;
-  return FRONTEND_BASE ? `${FRONTEND_BASE}/${url}` : `/${url}`;
+  const value = String(url).trim();
+  if (!value || ['nan', 'none', 'null'].includes(value.toLowerCase())) return null;
+  if (value.startsWith('http')) return value;
+
+  let path = value.replace(/^\/+/, '');
+  if (path.startsWith('frontend/')) path = path.replace(/^frontend\//, '');
+  if (!path.startsWith('images/')) path = `images/${path}`;
+  return FRONTEND_BASE ? `${FRONTEND_BASE}/${path}` : `/${path}`;
 }
 
 // ─── 카카오톡 채팅창 스타일 ──────────────────────────────
 function KakaoChat({ channelName, channelEmail, storeName, date, cases, showImages = true }) {
   const [idx, setIdx] = useState(0);
   const hasCases = cases && cases.length > 0;
-  const current = hasCases ? cases[idx] : null;
+  const currentIdx = hasCases ? Math.min(idx, cases.length - 1) : 0;
+  const current = hasCases ? cases[currentIdx] : null;
   const imgUrl = showImages && current ? resolveImageUrl(current.image_url) : null;
-  const canPrev = idx > 0;
-  const canNext = hasCases && idx < cases.length - 1;
+  const canPrev = currentIdx > 0;
+  const canNext = hasCases && currentIdx < cases.length - 1;
+
+  useEffect(() => {
+    if (!hasCases || idx < cases.length) return;
+    setIdx(0);
+  }, [cases, hasCases, idx]);
 
   // 날짜 한글 포맷
   const dateObj = date ? new Date(date) : new Date();
@@ -118,7 +130,7 @@ function KakaoChat({ channelName, channelEmail, storeName, date, cases, showImag
 
                   {/* 페이지 인디케이터 */}
                   <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] font-bold rounded-full px-2 py-0.5">
-                    {idx + 1} / {cases.length}
+                    {currentIdx + 1} / {cases.length}
                   </div>
                 </div>
               )}
@@ -136,13 +148,38 @@ function KakaoChat({ channelName, channelEmail, storeName, date, cases, showImag
                       {current["수칙"]}
                     </div>
                   )}
+                  {!showImages && cases.length > 1 && (
+                    <div className="flex items-center justify-between pt-1">
+                      <button
+                        onClick={() => setIdx(i => Math.max(0, i - 1))}
+                        disabled={!canPrev}
+                        className="w-8 h-8 rounded-full border border-stone-200 flex items-center justify-center text-stone-700 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-stone-50"
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+                      <div className="text-[12px] font-bold text-stone-500">{currentIdx + 1} / {cases.length}</div>
+                      <button
+                        onClick={() => setIdx(i => Math.min(cases.length - 1, i + 1))}
+                        disabled={!canNext}
+                        className="w-8 h-8 rounded-full border border-stone-200 flex items-center justify-center text-stone-700 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-stone-50"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* 하단 버튼 */}
               <div className="border-t border-stone-100">
-                <button className="w-full py-3 text-[13px] font-bold text-stone-800 hover:bg-stone-50">
-                  사례 더 보기
+                <button
+                  onClick={() => {
+                    if (!hasCases || cases.length < 2) return;
+                    setIdx(i => (i + 1) % cases.length);
+                  }}
+                  className="w-full py-3 text-[13px] font-bold text-stone-800 hover:bg-stone-50"
+                >
+                  {hasCases && cases.length > 1 ? '다음 사례 보기' : '사례 더 보기'}
                 </button>
               </div>
             </div>
@@ -225,7 +262,7 @@ function DetailModal({ item, onClose }) {
             </div>
           )}
           {detail && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 justify-items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 justify-items-center items-start">
               {detail.results?.cust && (
                 <KakaoChat
                   channelName="다이소 고객 안전 알림"
