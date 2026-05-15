@@ -419,7 +419,7 @@ def build_parser() -> argparse.ArgumentParser:
     guide = argparse.ArgumentParser(add_help=False)
     guide.add_argument("--uuid", required=True, help="friends 명령 결과의 uuid")
     guide.add_argument("--link-url", required=True)
-    guide.add_argument("--image-path", default="images/300_냉난방기물떨어짐_넘어짐_수정.png")
+    guide.add_argument("--image-path", default="images/300_냉난방기물떨어짐_넘어짐_수정_kakao.png")
     guide.add_argument("--image-url")
     guide.add_argument("--title", default="오늘 주의! 매장 안전 가이드")
     guide.add_argument("--description")
