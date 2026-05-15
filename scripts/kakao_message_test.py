@@ -49,6 +49,14 @@ def _env(name: str, default: str | None = None) -> str:
     return value
 
 
+def _mask(value: str | None) -> str:
+    if not value:
+        return "(not set)"
+    if len(value) <= 10:
+        return "*" * len(value)
+    return f"{value[:6]}...{value[-4:]}"
+
+
 def _request(
     method: str,
     url: str,
@@ -116,6 +124,19 @@ def auth_url(args: argparse.Namespace) -> None:
     print(f"{AUTH_HOST}/oauth/authorize?{urllib.parse.urlencode(params)}")
 
 
+def config(args: argparse.Namespace) -> None:
+    rest_api_key = os.environ.get("KAKAO_REST_API_KEY")
+    redirect_uri = os.environ.get("KAKAO_REDIRECT_URI", "http://localhost:3000/oauth")
+    client_secret = os.environ.get("KAKAO_CLIENT_SECRET")
+
+    print("Kakao test config")
+    print(f"- KAKAO_REST_API_KEY: {_mask(rest_api_key)}")
+    print(f"- KAKAO_REDIRECT_URI: {redirect_uri}")
+    print(f"- KAKAO_CLIENT_SECRET: {'set' if client_secret else 'not set'}")
+    print("")
+    print("주의: auth-url 생성과 token 교환은 같은 REST API 키와 같은 redirect_uri를 사용해야 합니다.")
+
+
 def token(args: argparse.Namespace) -> None:
     data = {
         "grant_type": "authorization_code",
@@ -146,6 +167,15 @@ def refresh(args: argparse.Namespace) -> None:
 def friends(args: argparse.Namespace) -> None:
     url = f"{API_HOST}/v1/api/talk/friends"
     result = _request("GET", url, access_token=_env("KAKAO_ACCESS_TOKEN"))
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+
+def scopes(args: argparse.Namespace) -> None:
+    result = _request(
+        "GET",
+        f"{API_HOST}/v2/user/scopes",
+        access_token=_env("KAKAO_ACCESS_TOKEN"),
+    )
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
@@ -183,6 +213,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--scope", default="talk_message,friends")
     p.set_defaults(func=auth_url)
 
+    p = sub.add_parser("config", help=".env에서 읽은 Kakao 설정 확인")
+    p.set_defaults(func=config)
+
     p = sub.add_parser("token", help="인가 code를 access token으로 교환")
     p.add_argument("--code", required=True)
     p.set_defaults(func=token)
@@ -193,6 +226,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("friends", help="친구 목록 조회")
     p.set_defaults(func=friends)
+
+    p = sub.add_parser("scopes", help="현재 access token 동의항목 조회")
+    p.set_defaults(func=scopes)
 
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--link-url", required=True)
