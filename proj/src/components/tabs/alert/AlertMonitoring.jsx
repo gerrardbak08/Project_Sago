@@ -14,11 +14,11 @@ function resolveImageUrl(url) {
 }
 
 // ─── 카카오톡 채팅창 스타일 ──────────────────────────────
-function KakaoChat({ channelName, channelEmail, storeName, date, cases }) {
+function KakaoChat({ channelName, channelEmail, storeName, date, cases, showImages = true }) {
   const [idx, setIdx] = useState(0);
   const hasCases = cases && cases.length > 0;
   const current = hasCases ? cases[idx] : null;
-  const imgUrl = current ? resolveImageUrl(current.image_url) : null;
+  const imgUrl = showImages && current ? resolveImageUrl(current.image_url) : null;
   const canPrev = idx > 0;
   const canNext = hasCases && idx < cases.length - 1;
 
@@ -86,7 +86,7 @@ function KakaoChat({ channelName, channelEmail, storeName, date, cases }) {
               </div>
 
               {/* 이미지 캐러셀 (원본 그대로, 오버레이 텍스트 없음) */}
-              {hasCases && (
+              {hasCases && showImages && (
                 <div className="relative w-full bg-stone-100 aspect-[4/3]">
                   {imgUrl ? (
                     <img
@@ -233,6 +233,7 @@ function DetailModal({ item, onClose }) {
                   storeName={detail.store_name}
                   date={detail.date}
                   cases={detail.results.cust.guide?.["오늘의_주의사항"] || []}
+                  showImages={false}
                 />
               )}
 

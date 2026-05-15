@@ -225,6 +225,10 @@ def _public_url(path_or_url: str | None) -> str | None:
 
     frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/")
     clean_path = value.lstrip("/")
+    if clean_path.startswith("frontend/"):
+        clean_path = clean_path.removeprefix("frontend/")
+    if not clean_path.startswith("images/"):
+        clean_path = f"images/{clean_path}"
     if frontend_url:
         return f"{frontend_url}/{clean_path}"
     return None
