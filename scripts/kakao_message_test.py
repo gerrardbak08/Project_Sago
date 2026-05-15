@@ -82,13 +82,82 @@ def _request(
         raise SystemExit(f"HTTP {e.code}: {raw}") from e
 
 
-def _default_feed_template(title: str, description: str, link_url: str) -> str:
+def _request_multipart_file(
+    url: str,
+    *,
+    access_token: str,
+    field_name: str,
+    file_path: Path,
+) -> dict[str, Any]:
+    boundary = "----sago-ai-kakao-boundary"
+    filename = file_path.name
+    file_bytes = file_path.read_bytes()
+    body = b"".join([
+        f"--{boundary}\r\n".encode("utf-8"),
+        (
+            f'Content-Disposition: form-data; name="{field_name}"; '
+            f'filename="{filename}"\r\n'
+        ).encode("utf-8"),
+        b"Content-Type: image/png\r\n\r\n",
+        file_bytes,
+        f"\r\n--{boundary}--\r\n".encode("utf-8"),
+    ])
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": f"multipart/form-data; boundary={boundary}",
+    }
+    req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            raw = resp.read().decode("utf-8")
+            return json.loads(raw) if raw else {}
+    except urllib.error.HTTPError as e:
+        raw = e.read().decode("utf-8", errors="replace")
+        raise SystemExit(f"HTTP {e.code}: {raw}") from e
+
+
+def _extract_uploaded_image_url(result: dict[str, Any]) -> str:
+    candidates = [
+        result.get("url"),
+        result.get("image_url"),
+        result.get("infos", {}).get("original", {}).get("url"),
+        result.get("infos", {}).get("small", {}).get("url"),
+        result.get("infos", {}).get("large", {}).get("url"),
+    ]
+    for value in candidates:
+        if isinstance(value, str) and value.startswith("http"):
+            return value
+    raise SystemExit(f"업로드 응답에서 이미지 URL을 찾지 못했습니다: {json.dumps(result, ensure_ascii=False)}")
+
+
+def _resolve_image_url(args: argparse.Namespace) -> str:
+    if getattr(args, "image_url", None):
+        return args.image_url
+    if getattr(args, "image_path", None):
+        image_path = Path(args.image_path).expanduser()
+        if not image_path.is_absolute():
+            image_path = REPO_ROOT / image_path
+        result = _request_multipart_file(
+            f"{API_HOST}/v2/api/talk/message/image/upload",
+            access_token=_env("KAKAO_ACCESS_TOKEN"),
+            field_name="file",
+            file_path=image_path,
+        )
+        return _extract_uploaded_image_url(result)
+    return os.environ.get(
+        "KAKAO_MESSAGE_IMAGE_URL",
+        "https://developers.kakao.com/assets/img/about/logos/kakaolink/kakaolink_btn_medium.png",
+    )
+
+
+def _default_feed_template(title: str, description: str, link_url: str, image_url: str | None = None) -> str:
     template = {
         "object_type": "feed",
         "content": {
             "title": title,
             "description": description,
-            "image_url": os.environ.get(
+            "image_url": image_url or os.environ.get(
                 "KAKAO_MESSAGE_IMAGE_URL",
                 "https://developers.kakao.com/assets/img/about/logos/kakaolink/kakaolink_btn_medium.png",
             ),
@@ -192,8 +261,28 @@ def scopes(args: argparse.Namespace) -> None:
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
+def upload_image(args: argparse.Namespace) -> None:
+    image_path = Path(args.image_path).expanduser()
+    if not image_path.is_absolute():
+        image_path = REPO_ROOT / image_path
+    result = _request_multipart_file(
+        f"{API_HOST}/v2/api/talk/message/image/upload",
+        access_token=_env("KAKAO_ACCESS_TOKEN"),
+        field_name="file",
+        file_path=image_path,
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    print("")
+    print(f"image_url={_extract_uploaded_image_url(result)}")
+
+
 def send_me(args: argparse.Namespace) -> None:
-    template_object = _default_feed_template(args.title, args.description, args.link_url)
+    template_object = _default_feed_template(
+        args.title,
+        args.description,
+        args.link_url,
+        _resolve_image_url(args),
+    )
     result = _request(
         "POST",
         f"{API_HOST}/v2/api/talk/memo/default/send",
@@ -215,7 +304,12 @@ def send_me_text(args: argparse.Namespace) -> None:
 
 
 def send_friend(args: argparse.Namespace) -> None:
-    template_object = _default_feed_template(args.title, args.description, args.link_url)
+    template_object = _default_feed_template(
+        args.title,
+        args.description,
+        args.link_url,
+        _resolve_image_url(args),
+    )
     receiver_uuids = json.dumps([args.uuid], ensure_ascii=False, separators=(",", ":"))
     result = _request(
         "POST",
@@ -231,6 +325,30 @@ def send_friend(args: argparse.Namespace) -> None:
 
 def send_friend_text(args: argparse.Namespace) -> None:
     template_object = _default_text_template(args.text, args.link_url)
+    receiver_uuids = json.dumps([args.uuid], ensure_ascii=False, separators=(",", ":"))
+    result = _request(
+        "POST",
+        f"{API_HOST}/v1/api/talk/friends/message/default/send",
+        access_token=_env("KAKAO_ACCESS_TOKEN"),
+        data={
+            "receiver_uuids": receiver_uuids,
+            "template_object": template_object,
+        },
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+
+def send_friend_guide(args: argparse.Namespace) -> None:
+    description = args.description or (
+        "하역·입고 작업 시 바닥 물기와 이동 동선을 먼저 확인하고, "
+        "PDA 스캔 중에는 발밑 단차를 반드시 확인하십시오."
+    )
+    template_object = _default_feed_template(
+        args.title,
+        description,
+        args.link_url,
+        _resolve_image_url(args),
+    )
     receiver_uuids = json.dumps([args.uuid], ensure_ascii=False, separators=(",", ":"))
     result = _request(
         "POST",
@@ -269,10 +387,16 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("scopes", help="현재 access token 동의항목 조회")
     p.set_defaults(func=scopes)
 
+    p = sub.add_parser("upload-image", help="로컬 이미지를 카카오 메시지 이미지로 업로드")
+    p.add_argument("--image-path", required=True)
+    p.set_defaults(func=upload_image)
+
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--link-url", required=True)
     common.add_argument("--title", default="다이소 매장 안전가이드")
     common.add_argument("--description", default="오늘 생성된 안전가이드를 확인해주세요.")
+    common.add_argument("--image-url")
+    common.add_argument("--image-path")
 
     p = sub.add_parser("send-me", parents=[common], help="나에게 메시지 발송")
     p.set_defaults(func=send_me)
@@ -291,6 +415,17 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("send-friend-text", parents=[text_common], help="친구에게 텍스트 메시지 발송")
     p.add_argument("--uuid", required=True, help="friends 명령 결과의 uuid")
     p.set_defaults(func=send_friend_text)
+
+    guide = argparse.ArgumentParser(add_help=False)
+    guide.add_argument("--uuid", required=True, help="friends 명령 결과의 uuid")
+    guide.add_argument("--link-url", required=True)
+    guide.add_argument("--image-path", default="images/300_냉난방기물떨어짐_넘어짐_수정.png")
+    guide.add_argument("--image-url")
+    guide.add_argument("--title", default="오늘 주의! 매장 안전 가이드")
+    guide.add_argument("--description")
+
+    p = sub.add_parser("send-friend-guide", parents=[guide], help="샘플 이미지와 안전가이드 멘트 발송")
+    p.set_defaults(func=send_friend_guide)
 
     return parser
 
