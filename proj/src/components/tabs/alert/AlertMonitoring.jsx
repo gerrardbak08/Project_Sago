@@ -1,27 +1,5 @@
 import { useState, useEffect } from 'react';
-import {
-  Bell,
-  Calendar,
-  AlertCircle,
-  ChevronRight,
-  ChevronLeft,
-  RefreshCw,
-  X,
-  AlertTriangle,
-  Search,
-  Menu,
-  ArrowLeft,
-  Home,
-  ChevronDown,
-  Calculator,
-  CalendarCheck,
-  FileCheck,
-  FileText,
-  MessageCircle,
-  ClipboardCheck,
-  ShieldCheck,
-  UserCircle,
-} from 'lucide-react';
+import { Bell, Calendar, AlertCircle, ChevronRight, ChevronLeft, RefreshCw, X, AlertTriangle, Search, Menu, ArrowLeft, Home, ChevronDown } from 'lucide-react';
 import { Card } from '../../shared/Card.jsx';
 
 // 이미지 URL 변환
@@ -236,157 +214,6 @@ function KakaoChat({ channelName, channelEmail, storeName, date, cases, careless
   );
 }
 
-// ─── 모바일 HR 앱 팝업 스타일 ─────────────────────────────
-function HrSafetyPopup({ storeName, date, cases, carelessNotes }) {
-  const [idx, setIdx] = useState(0);
-  const hasCases = cases && cases.length > 0;
-  const current = hasCases ? cases[idx] : null;
-  const canPrev = idx > 0;
-  const canNext = hasCases && idx < cases.length - 1;
-
-  const dateObj = date ? new Date(date) : new Date();
-  const timeLabel = dateObj.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
-  const cleanedNotes = (carelessNotes || [])
-    .map(cleanCarelessNote)
-    .filter(Boolean)
-    .slice(0, 2);
-
-  const menuItems = [
-    { label: '급여명세서', Icon: Calculator },
-    { label: '근태현황(연차)', Icon: CalendarCheck },
-    { label: '계출원신청', Icon: FileCheck },
-    { label: '제증명서신청', Icon: FileText },
-    { label: '공지사항', Icon: ClipboardCheck },
-    { label: 'FAQ', Icon: MessageCircle },
-    { label: '휴직/복직신청', Icon: RefreshCw },
-    { label: '건강검진 결과등록', Icon: ShieldCheck },
-    { label: 'TBM활동', Icon: AlertTriangle },
-  ];
-
-  return (
-    <div className="w-full max-w-[380px] mx-auto">
-      <div className="rounded-[30px] overflow-hidden shadow-xl border border-stone-200 bg-white">
-        <div className="relative min-h-[680px] bg-white">
-          <div className="px-8 pt-5 flex items-center justify-between text-stone-950">
-            <div className="text-[15px] font-extrabold">9:00</div>
-            <div className="flex items-center gap-1 text-[11px] font-bold">
-              <span className="w-4 h-2.5 rounded-sm bg-stone-900 inline-block" />
-              <span>LTE</span>
-              <span className="rounded-md bg-stone-900 px-1.5 py-0.5 text-white">98</span>
-            </div>
-          </div>
-
-          <div className="mt-10 text-center text-[30px] font-black tracking-normal">
-            <span className="text-[#244a9b]">ASUNG</span>
-            <span className="text-stone-950"> HR</span>
-          </div>
-
-          <div className="mt-12 grid grid-cols-3 gap-x-5 gap-y-7 px-7">
-            {menuItems.map(({ label, Icon }) => (
-              <div key={label} className="min-w-0 text-center">
-                <div className="mx-auto flex h-[82px] w-[82px] items-center justify-center rounded-2xl border border-stone-200 bg-stone-50 shadow-sm">
-                  <Icon size={38} className="text-[#244a9b]" strokeWidth={1.9} />
-                </div>
-                <div className="mt-2 text-[14px] font-medium leading-tight text-stone-700 break-keep">
-                  {label}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="absolute inset-x-5 top-[160px] z-10">
-            <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-2xl">
-              <div className="bg-[#244a9b] px-4 py-3 text-white">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-[11px] font-semibold text-white/75">{timeLabel} 고객 안전 알림</div>
-                    <div className="text-[17px] font-extrabold leading-tight">매장 안전 가이드</div>
-                  </div>
-                  <Bell size={22} />
-                </div>
-              </div>
-
-              <div className="px-4 py-4">
-                <div className="flex items-center gap-2.5 rounded-xl bg-stone-50 px-3 py-2.5">
-                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white text-[#244a9b] shadow-sm">
-                    <Home size={18} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="truncate text-[13px] font-extrabold text-stone-900">{storeName}</div>
-                    <div className="text-[11px] font-medium text-stone-500">{date} · 고객 사고 예방 안내</div>
-                  </div>
-                </div>
-
-                <div className="mt-4 space-y-2.5">
-                  <div className="text-[11px] font-bold text-[#244a9b]">유사 사고 기반 주의사항</div>
-                  <div
-                    className="text-[14px] font-extrabold leading-snug text-stone-950"
-                    style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
-                  >
-                    {current?.["사고내용"] || '오늘 조건과 유사한 고객 사고 사례를 기준으로 안전 가이드를 확인하세요.'}
-                  </div>
-                  {current?.["수칙"] && (
-                    <div
-                      className="rounded-xl bg-amber-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-stone-800"
-                      style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
-                    >
-                      {current["수칙"]}
-                    </div>
-                  )}
-                </div>
-
-                {cleanedNotes.length > 0 && (
-                  <div className="mt-4 space-y-2">
-                    <div className="text-[11px] font-bold text-stone-500">상시 확인</div>
-                    {cleanedNotes.map((note, i) => (
-                      <div key={i} className="flex items-start gap-2 text-[11px] leading-relaxed text-stone-700">
-                        <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-stone-800 text-[9px] font-bold text-white">
-                          {i + 1}
-                        </span>
-                        <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                          {note}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {hasCases && (
-                  <div className="mt-4 flex items-center justify-between border-t border-stone-100 pt-3">
-                    <button
-                      onClick={() => setIdx(i => i - 1)}
-                      disabled={!canPrev}
-                      className="flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 text-stone-600 disabled:opacity-30"
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
-                    <div className="text-[11px] font-bold text-stone-500">{idx + 1} / {cases.length}</div>
-                    <button
-                      onClick={() => setIdx(i => i + 1)}
-                      disabled={!canNext}
-                      className="flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 text-stone-600 disabled:opacity-30"
-                    >
-                      <ChevronRight size={16} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="absolute inset-x-0 bottom-0 flex h-20 items-center justify-around bg-[#2f3d73] px-8 text-white">
-            <ChevronLeft size={36} strokeWidth={2.4} />
-            <ChevronRight size={36} strokeWidth={2.4} />
-            <Home size={36} fill="white" strokeWidth={2.1} />
-            <RefreshCw size={34} strokeWidth={2.2} />
-            <UserCircle size={38} strokeWidth={2.1} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── 상세보기 모달 ───────────────────────────────────────
 function DetailModal({ item, onClose }) {
   const [detail, setDetail] = useState(null);
@@ -439,7 +266,9 @@ function DetailModal({ item, onClose }) {
           {detail && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 justify-items-center">
               {detail.results?.cust && (
-                <HrSafetyPopup
+                <KakaoChat
+                  channelName="다이소 고객 안전 알림"
+                  channelEmail="safety@daiso.co.kr"
                   storeName={detail.store_name}
                   date={detail.date}
                   cases={detail.results.cust.guide?.["오늘의_주의사항"] || []}
