@@ -13,17 +13,8 @@ function resolveImageUrl(url) {
   return FRONTEND_BASE ? `${FRONTEND_BASE}/${url}` : `/${url}`;
 }
 
-// "사고 5건 발생했습니다" 같은 문구 제거 (부주의 가이드 정리)
-function cleanCarelessNote(text) {
-  if (!text) return text;
-  return text
-    .replace(/사고가?\s*\d+건\s*발생했습니다\.?\s*/g, '')
-    .replace(/\d+건\s*발생했습니다\.?\s*/g, '')
-    .trim();
-}
-
 // ─── 카카오톡 채팅창 스타일 ──────────────────────────────
-function KakaoChat({ channelName, channelEmail, storeName, date, cases, carelessNotes }) {
+function KakaoChat({ channelName, channelEmail, storeName, date, cases }) {
   const [idx, setIdx] = useState(0);
   const hasCases = cases && cases.length > 0;
   const current = hasCases ? cases[idx] : null;
@@ -35,12 +26,6 @@ function KakaoChat({ channelName, channelEmail, storeName, date, cases, careless
   const dateObj = date ? new Date(date) : new Date();
   const days = ['일', '월', '화', '수', '목', '금', '토'];
   const dateLabel = `${dateObj.getFullYear()}년 ${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일 ${days[dateObj.getDay()]}요일`;
-
-  // 부주의 주의사항: 최대 3개 + "사고 N건 발생" 문구 제거
-  const cleanedNotes = (carelessNotes || [])
-    .map(cleanCarelessNote)
-    .filter(Boolean)
-    .slice(0, 3);
 
   return (
     <div className="w-full max-w-[380px] mx-auto rounded-[28px] overflow-hidden shadow-xl" style={{ background: '#9DC6C2' }}>
@@ -75,8 +60,8 @@ function KakaoChat({ channelName, channelEmail, storeName, date, cases, careless
       <div className="bg-[#9DC6C2] px-3 pb-4">
         <div className="flex items-start gap-2">
           {/* 봉투 아이콘 */}
-          <div className="w-10 h-10 rounded-2xl bg-amber-300 flex-shrink-0 flex items-center justify-center text-xl shadow-sm">
-            📮
+          <div className="w-10 h-10 rounded-2xl bg-[#f7d24b] flex-shrink-0 flex items-center justify-center shadow-sm">
+            <Bell size={19} className="text-stone-900" strokeWidth={2.4} />
           </div>
 
           <div className="flex-1 min-w-0">
@@ -85,11 +70,18 @@ function KakaoChat({ channelName, channelEmail, storeName, date, cases, careless
             {/* 하나의 카드 말풍선 */}
             <div className="bg-white rounded-2xl overflow-hidden shadow-md">
               {/* 제목 */}
-              <div className="px-4 pt-4 pb-3">
-                <div className="text-[16px] font-extrabold text-stone-900 flex items-center gap-1.5">
-                  <span>오늘 주의!</span>
-                  <span className="text-lg">🚨</span>
-                  <span>매장 안전 가이드</span>
+              <div className="px-4 pt-4 pb-3 border-b border-stone-100">
+                <div className="text-[17px] font-extrabold text-stone-950 leading-tight">
+                  매장 안전 가이드
+                </div>
+                <div className="mt-3 flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-lg bg-stone-100 flex items-center justify-center flex-shrink-0">
+                    <Home size={17} className="text-stone-700" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-extrabold text-stone-900 truncate">{storeName}</div>
+                    <div className="text-[11px] font-medium text-stone-500">{dateLabel}</div>
+                  </div>
                 </div>
               </div>
 
@@ -133,55 +125,24 @@ function KakaoChat({ channelName, channelEmail, storeName, date, cases, careless
 
               {/* 사고 내용 + 안전 수칙 (이미지 아래) */}
               {hasCases && (
-                <div className="px-4 py-3 space-y-2">
-                  <div className="text-[13px] font-bold text-stone-900 leading-snug">
+                <div className="px-4 py-4 space-y-3">
+                  <div className="text-[11px] font-bold text-stone-500">유사 사고 사례</div>
+                  <div className="text-[16px] font-extrabold text-stone-950 leading-snug">
                     {current["사고내용"]}
                   </div>
                   {current["수칙"] && (
-                    <div className="text-[12px] text-stone-800 leading-relaxed">
-                      <span className="font-bold">✅ </span>
+                    <div className="rounded-xl bg-stone-50 px-3 py-3 text-[13px] font-medium text-stone-800 leading-relaxed border border-stone-100">
+                      <span className="block mb-1 text-[11px] font-extrabold text-stone-500">안전 조치</span>
                       {current["수칙"]}
                     </div>
                   )}
                 </div>
               )}
 
-              {/* 매장 + 오늘 정보 */}
-              <div className="px-4 py-3 border-t border-stone-100">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-lg bg-stone-100 flex items-center justify-center text-base flex-shrink-0">
-                    🏪
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[12px] font-bold text-stone-900">{storeName}</div>
-                    <div className="text-[10px] text-stone-500">{date} · 오늘의 안전 알림</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 부주의 주의사항 (최대 3개) */}
-              {cleanedNotes.length > 0 && (
-                <div className="px-4 py-3 border-t border-stone-100 space-y-2.5">
-                  <div className="text-[11px] font-bold text-stone-800 flex items-center gap-1">
-                    📌 상시 주의사항
-                  </div>
-                  {cleanedNotes.map((note, i) => (
-                    <div key={i} className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-stone-700 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
-                        {i + 1}
-                      </div>
-                      <div className="flex-1 text-[11px] text-stone-700 leading-relaxed">
-                        {note}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
               {/* 하단 버튼 */}
               <div className="border-t border-stone-100">
-                <button className="w-full py-3 text-[13px] font-semibold text-stone-700 hover:bg-stone-50">
-                  자세히 보기
+                <button className="w-full py-3 text-[13px] font-bold text-stone-800 hover:bg-stone-50">
+                  사례 더 보기
                 </button>
               </div>
             </div>
@@ -272,7 +233,6 @@ function DetailModal({ item, onClose }) {
                   storeName={detail.store_name}
                   date={detail.date}
                   cases={detail.results.cust.guide?.["오늘의_주의사항"] || []}
-                  carelessNotes={detail.results.cust.guide?.["부주의_주의사항"] || []}
                 />
               )}
 
@@ -283,7 +243,6 @@ function DetailModal({ item, onClose }) {
                   storeName={detail.store_name}
                   date={detail.date}
                   cases={detail.results.emp.guide?.["오늘의_주의사항"] || []}
-                  carelessNotes={detail.results.emp.guide?.["부주의_주의사항"] || []}
                 />
               )}
             </div>
