@@ -110,6 +110,19 @@ def _default_feed_template(title: str, description: str, link_url: str) -> str:
     return json.dumps(template, ensure_ascii=False, separators=(",", ":"))
 
 
+def _default_text_template(text: str, link_url: str) -> str:
+    template = {
+        "object_type": "text",
+        "text": text,
+        "link": {
+            "web_url": link_url,
+            "mobile_web_url": link_url,
+        },
+        "button_title": "안전가이드 확인",
+    }
+    return json.dumps(template, ensure_ascii=False, separators=(",", ":"))
+
+
 def auth_url(args: argparse.Namespace) -> None:
     rest_api_key = _env("KAKAO_REST_API_KEY")
     redirect_uri = _env("KAKAO_REDIRECT_URI", "http://localhost:3000/oauth")
@@ -190,8 +203,34 @@ def send_me(args: argparse.Namespace) -> None:
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
+def send_me_text(args: argparse.Namespace) -> None:
+    template_object = _default_text_template(args.text, args.link_url)
+    result = _request(
+        "POST",
+        f"{API_HOST}/v2/api/talk/memo/default/send",
+        access_token=_env("KAKAO_ACCESS_TOKEN"),
+        data={"template_object": template_object},
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+
 def send_friend(args: argparse.Namespace) -> None:
     template_object = _default_feed_template(args.title, args.description, args.link_url)
+    receiver_uuids = json.dumps([args.uuid], ensure_ascii=False, separators=(",", ":"))
+    result = _request(
+        "POST",
+        f"{API_HOST}/v1/api/talk/friends/message/default/send",
+        access_token=_env("KAKAO_ACCESS_TOKEN"),
+        data={
+            "receiver_uuids": receiver_uuids,
+            "template_object": template_object,
+        },
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+
+def send_friend_text(args: argparse.Namespace) -> None:
+    template_object = _default_text_template(args.text, args.link_url)
     receiver_uuids = json.dumps([args.uuid], ensure_ascii=False, separators=(",", ":"))
     result = _request(
         "POST",
@@ -241,6 +280,17 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("send-friend", parents=[common], help="친구에게 메시지 발송")
     p.add_argument("--uuid", required=True, help="friends 명령 결과의 uuid")
     p.set_defaults(func=send_friend)
+
+    text_common = argparse.ArgumentParser(add_help=False)
+    text_common.add_argument("--link-url", required=True)
+    text_common.add_argument("--text", required=True)
+
+    p = sub.add_parser("send-me-text", parents=[text_common], help="나에게 텍스트 메시지 발송")
+    p.set_defaults(func=send_me_text)
+
+    p = sub.add_parser("send-friend-text", parents=[text_common], help="친구에게 텍스트 메시지 발송")
+    p.add_argument("--uuid", required=True, help="friends 명령 결과의 uuid")
+    p.set_defaults(func=send_friend_text)
 
     return parser
 
