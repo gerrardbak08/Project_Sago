@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from pathlib import Path
 import sys
 import urllib.parse
 import urllib.request
@@ -22,6 +23,23 @@ from typing import Any
 
 AUTH_HOST = "https://kauth.kakao.com"
 API_HOST = "https://kapi.kakao.com"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _load_dotenv() -> None:
+    """Load simple KEY=VALUE pairs from .env files without overriding shell env."""
+    for path in (REPO_ROOT / ".env", REPO_ROOT / "proj" / ".env.local"):
+        if not path.exists():
+            continue
+        for raw_line in path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
 
 
 def _env(name: str, default: str | None = None) -> str:
@@ -192,6 +210,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    _load_dotenv()
     parser = build_parser()
     args = parser.parse_args()
     args.func(args)
