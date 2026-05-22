@@ -11,6 +11,38 @@ import { RISK_COLORS } from '../../../constants/riskColors.js';
 import MAP_STORES from '../../../data/storesData.js';
 import { requestAiGuide } from '../../../constants/ai.js';
 
+// ── 영업부별 경계선 색상 ──────────────────────────────────
+const DEPT_COLORS_MAP = {
+  '강남/구리영업부':    '#3B82F6',
+  '강북영업부':         '#10B981',
+  '강원영업부':         '#8B5CF6',
+  '경남영업부':         '#F59E0B',
+  '경북영업부':         '#EF4444',
+  '관악/평택/안산영업부': '#06B6D4',
+  '수원/용인영업부':    '#EC4899',
+  '인천영업부':         '#84CC16',
+  '충청영업부':         '#F97316',
+  '호남영업부':         '#6366F1',
+};
+
+// Andrew's Monotone Chain — O(n log n) convex hull
+function convexHull(pts) {
+  if (pts.length < 3) return pts;
+  const sorted = [...pts].sort((a, b) => a.lng !== b.lng ? a.lng - b.lng : a.lat - b.lat);
+  const cross = (o, a, b) => (a.lng - o.lng) * (b.lat - o.lat) - (a.lat - o.lat) * (b.lng - o.lng);
+  const lower = [], upper = [];
+  for (const p of sorted) {
+    while (lower.length >= 2 && cross(lower[lower.length-2], lower[lower.length-1], p) <= 0) lower.pop();
+    lower.push(p);
+  }
+  for (const p of [...sorted].reverse()) {
+    while (upper.length >= 2 && cross(upper[upper.length-2], upper[upper.length-1], p) <= 0) upper.pop();
+    upper.push(p);
+  }
+  lower.pop(); upper.pop();
+  return [...lower, ...upper];
+}
+
 // accidents[].date 는 정적 데이터(workerData.js)에서 ISO 문자열로 직렬화됨 — Date 로 안전 변환
 function toDate(d) {
   if (!d) return null;
@@ -28,6 +60,8 @@ function StoreRiskMap({ D = {}, yearFilter = "all", setYearFilter = () => {}, sy
   const [deptFilter, setDeptFilter] = useState("전체");
   const [teamFilter, setTeamFilter] = useState("전체");
   const [showMode, setShowMode] = useState("all");
+  const [showDeptBounds, setShowDeptBounds] = useState(false);
+  const deptPolygonsRef = useRef([]);
   const [selectedStore, setSelectedStore] = useState(() => {
     // F4: URL에서 초기 매장 복원
     if (initStore) {
@@ -232,6 +266,8 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
   const drawerOpen = !!selectedStore;
   const drawerMapRef = useRef(null);          // drawer 내부 미니맵 DOM
   const drawerMapInstanceRef = useRef(null);  // 미니맵 인스턴스
+  const drawerSkyRef = useRef(null);          // drawer 스카이뷰 DOM
+  const drawerSkyMapRef = useRef(null);       // 스카이뷰 인스턴스
   const drawerRvRef = useRef(null);           // drawer 내부 로드뷰 DOM
   const drawerRvInstanceRef = useRef(null);   // drawer 내부 로드뷰 인스턴스
   const [drawerRvStatus, setDrawerRvStatus] = useState("idle"); // idle/loading/ready/error
@@ -336,10 +372,16 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
       const bounds = new kakao.maps.LatLngBounds();
       MAP_STORES.forEach(s => bounds.extend(new kakao.maps.LatLng(s.lat, s.lng)));
       kakaoMapRef.current.setBounds(bounds, 40);
-      // 줌 레벨 추적 — hover 툴팁 활성화 결정
+      // 줌 레벨 추적 — hover 툴팁 + 매장명 라벨 제어
       setMapLevel(kakaoMapRef.current.getLevel());
       kakao.maps.event.addListener(kakaoMapRef.current, "zoom_changed", () => {
-        setMapLevel(kakaoMapRef.current.getLevel());
+        const lv = kakaoMapRef.current.getLevel();
+        setMapLevel(lv);
+        // 매장명 라벨: level ≤ 7이면 사고 매장 표시, ≤ 5면 전체
+        document.querySelectorAll('[data-slabel]').forEach(el => {
+          const forIncident = el.getAttribute('data-slabel') === 'inc';
+          el.style.display = (lv <= 5 || (lv <= 7 && forIncident)) ? 'block' : 'none';
+        });
       });
       setMapInited(true);
       setMapStatus("ready");
@@ -348,6 +390,26 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
       setMapStatus("error");
     }
   }
+
+  // ── Drawer 스카이뷰 초기화 ────────────────────────────────
+  useEffect(() => {
+    if (!drawerOpen || !selectedStore || !window.kakao?.maps) return;
+    if (typeof selectedStore.lat !== 'number' || !drawerSkyRef.current) return;
+    drawerSkyMapRef.current = null;
+    const { kakao } = window;
+    const pos = new kakao.maps.LatLng(selectedStore.lat, selectedStore.lng);
+    const skyMap = new kakao.maps.Map(drawerSkyRef.current, { center: pos, level: 3 });
+    skyMap.setMapTypeId(kakao.maps.MapTypeId.SKYVIEW);
+    skyMap.setDraggable(false);
+    skyMap.setZoomable(false);
+    new kakao.maps.CustomOverlay({
+      map: skyMap,
+      position: pos,
+      content: `<div style="width:14px;height:14px;border-radius:50%;background:#D70011;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,.4)"></div>`,
+      yAnchor: 0.5,
+    });
+    drawerSkyMapRef.current = skyMap;
+  }, [drawerOpen, selectedStore?.n]);
 
   // 로드뷰 열기
   function openRoadview(store) {
@@ -441,24 +503,37 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
             </div>
           </div>`;
       } else {
-        // ▶ 일반 마커: 라벨 없음. hover 시 별도 오버레이가 매장명 표시.
-        // hoverEnabled 조건이면 mouseover/mouseout 이벤트로 hover 오버레이 띄우기
+        // ▶ 일반 마커 + 줌 레벨 기반 매장명 라벨
         const hoverHandlers = hoverEnabled
           ? `onmouseover="window.__storeHover('${safeName}', ${store.lat}, ${store.lng}, ${cnt})"
              onmouseout="window.__storeHoverOut()"`
           : "";
         const opacity = cnt > 0 ? 1 : 0.55;
         const baseTransform = `transition:opacity .12s,transform .12s;opacity:${opacity};`;
+        // 라벨: level ≤ 7 = 사고 매장, level ≤ 5 = 전체. 초기 display는 현재 mapLevel 기준
+        const labelType = cnt > 0 ? 'inc' : 'all';
+        const labelInit = (mapLevel <= 5 || (mapLevel <= 7 && cnt > 0)) ? 'block' : 'none';
+        const htmlName = store.n.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+        const shortName = htmlName.length > 10 ? htmlName.slice(0,10) + "…" : htmlName;
+        const labelHtml = `<div data-slabel="${labelType}" style="
+          display:${labelInit};position:absolute;top:calc(100% + 3px);left:50%;
+          transform:translateX(-50%);
+          background:rgba(255,255,255,.95);border:1px solid ${color};border-radius:4px;
+          padding:1px 5px;font-size:10px;font-weight:600;color:#111827;
+          white-space:nowrap;pointer-events:none;
+          box-shadow:0 1px 4px rgba(0,0,0,.14);
+        ">${shortName}</div>`;
         content = `<div data-store="${safeName}"
           onclick="window.__storeClick('${safeName}')"
           ${hoverHandlers}
-          style="width:${sz}px;height:${sz}px;border-radius:50%;
+          style="position:relative;width:${sz}px;height:${sz}px;border-radius:50%;
             background:${color};
             border:${cnt > 0 ? "2px solid rgba(255,255,255,.92)" : "1px solid rgba(255,255,255,.6)"};
             box-shadow:${cnt > 0 ? "0 2px 6px rgba(0,0,0,.28)" : "none"};
             cursor:pointer;${baseTransform}"
           onmouseenter="this.style.transform='scale(1.4)';this.style.opacity='1'"
-          onmouseleave="this.style.transform='scale(1)';this.style.opacity='${opacity}'"></div>`;
+          onmouseleave="this.style.transform='scale(1)';this.style.opacity='${opacity}'"
+          >${labelHtml}</div>`;
       }
 
       const overlay = new kakao.maps.CustomOverlay({
@@ -560,6 +635,35 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
       }
     };
   }, [mapInited, mappableStores, yearFilter, getYearCount, selectedStore, bumFilter, deptFilter, teamFilter]);
+
+  // ── 영업부 경계 폴리곤 ────────────────────────────────────
+  useEffect(() => {
+    if (!mapInited || !kakaoMapRef.current || !window.kakao?.maps) return;
+    const { kakao } = window;
+    deptPolygonsRef.current.forEach(p => p.setMap(null));
+    deptPolygonsRef.current = [];
+    if (!showDeptBounds) return;
+    const groups = {};
+    mappableStores.forEach(s => {
+      if (!groups[s.dp]) groups[s.dp] = [];
+      groups[s.dp].push({ lat: s.lat, lng: s.lng });
+    });
+    Object.entries(groups).forEach(([dp, pts]) => {
+      if (pts.length < 3) return;
+      const hull = convexHull(pts);
+      const color = DEPT_COLORS_MAP[dp] || '#6B7280';
+      const polygon = new kakao.maps.Polygon({
+        map: kakaoMapRef.current,
+        path: hull.map(p => new kakao.maps.LatLng(p.lat, p.lng)),
+        strokeWeight: 2,
+        strokeColor: color,
+        strokeOpacity: 0.85,
+        fillColor: color,
+        fillOpacity: 0.07,
+      });
+      deptPolygonsRef.current.push(polygon);
+    });
+  }, [mapInited, showDeptBounds, mappableStores]);
 
   // ── 계층 데이터 ───────────────────────────────────────────
   const TREE = [
@@ -663,6 +767,11 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
             {l}
           </button>
         ))}
+        <div className="w-px h-4 bg-stone-200 mx-1" />
+        <button onClick={() => setShowDeptBounds(v => !v)}
+          className={`px-2.5 py-1 rounded-md text-xs border transition-colors flex items-center gap-1 ${showDeptBounds ? "bg-indigo-600 text-white border-indigo-600" : "bg-white border-stone-200 text-stone-600 hover:bg-stone-50"}`}>
+          영업부 경계
+        </button>
         {/* 모바일: 트리 토글 버튼 */}
         <button onClick={() => setTreeOpen(o => !o)}
           className="ml-auto lg:hidden px-2.5 py-1 rounded-md text-xs border border-stone-200 bg-white text-stone-600 flex items-center gap-1">
@@ -1059,6 +1168,11 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
               </div>
             </div>
 
+            {/* 스카이뷰 — 매장 위치 위성사진 */}
+            {typeof selectedStore.lat === 'number' && (
+              <div ref={drawerSkyRef} className="flex-shrink-0 border-b border-stone-100" style={{height:'130px'}} />
+            )}
+
             {/* 요약 카드 그리드 */}
             <div className="flex-shrink-0 grid grid-cols-4 divide-x divide-stone-100 border-b border-stone-100">
               {(() => {
@@ -1119,8 +1233,13 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                     {l:"부서/영업부", v:selectedStore.dp},
                     {l:"팀", v:selectedStore.tm},
                     {l:"매장 형태", v:selectedStore.fm || "-"},
-                    {l:"좌표", v:(typeof selectedStore.lat === "number" && typeof selectedStore.lng === "number")
-                      ? `${selectedStore.lat.toFixed(5)}, ${selectedStore.lng.toFixed(5)}` : "위치 정보 없음"},
+                    {l:"팀 인원 (참고)", v: (() => {
+                      const teamRow = (D.team_ir || []).find(t => t.team === selectedStore.tm);
+                      if (!teamRow?.workers) return "정보 없음";
+                      const teamStores = MAP_STORES.filter(s => s.tm === selectedStore.tm);
+                      const avg = teamStores.length > 0 ? Math.round(teamRow.workers / teamStores.length) : null;
+                      return avg ? `팀 ${teamRow.workers.toLocaleString()}명 · 매장 평균 ${avg}명` : `팀 ${teamRow.workers.toLocaleString()}명`;
+                    })()},
                     {l:"주요 재해유형", v:selectedStore.tp && selectedStore.tp !== "사고없음" ? selectedStore.tp : "사고 이력 없음"},
                   ].map(row => (
                     <div key={row.l} className="grid grid-cols-[110px_1fr] gap-3 items-start py-2 border-b border-stone-100 last:border-0">
