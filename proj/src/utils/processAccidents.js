@@ -37,6 +37,42 @@ function severityClass(dx) {
   return "기타";
 }
 
+function hashSensitive(value, prefix = "EMP") {
+  if (value == null || value === "") return null;
+  const SALT = "DAISO_EHS_2026_v1";
+  const x = String(value) + SALT;
+  let h = 0x811c9dc5 >>> 0;
+  for (let i = 0; i < x.length; i++) {
+    h ^= x.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return `${prefix}_${h.toString(16).padStart(8, "0")}`;
+}
+
+function maskName(name) {
+  if (name == null || name === "") return "익명";
+  const s = String(name).trim();
+  if (s.length === 0) return "익명";
+  return `${s[0]}**`;
+}
+
+function normalizeWorkerId(rawId, rawName) {
+  const id = rawId == null ? "" : String(rawId).trim();
+  if (id && !/^(사번\s*없음|없음|-|미상|null|nan)$/i.test(id)) {
+    return hashSensitive(`ID:${id}`);
+  }
+  const name = rawName == null ? "" : String(rawName).trim();
+  return name ? hashSensitive(`NAME:${name}`) : null;
+}
+
+function maskNameWithHash(name) {
+  if (name == null || name === "") return null;
+  const s = String(name).trim();
+  if (!s) return null;
+  const hashed = hashSensitive(`NAME:${s}`, "P").slice(-4);
+  return `${maskName(s)}-${hashed}`;
+}
+
 function cleanParjang(s) {
   if (!s) return null;
   return String(s).trim().replace(/\s+(사원|주임|대리|과장|차장|부장|선임|책임|수석|팀장|매니저|이사|팀)$/, "");
@@ -254,6 +290,8 @@ function processAccidents(rows, storesData, workersData) {
     const bum = categorizeBum(dept);
     const dt = parseDate(r["재해일자"]);
     const tenure = parseTenure(r["근속기간 (년)"]);
+    const rawWorkerId = r["사번"];
+    const rawWorkerName = r["재해자명"];
     ds.push({
       year: y, month: m, dept, team: r["팀명"], store: r["매장명"],
       bum, date: dt, wd: dt ? WD_NAMES[dt.getDay() === 0 ? 6 : dt.getDay() - 1] : null,
@@ -264,8 +302,10 @@ function processAccidents(rows, storesData, workersData) {
       cost: parseFloat(r["공상 비용 계"]) || null,
       loss_days: parseFloat(r["근로손실일수"]) || null,
       submitted: r["근로복지공단 제출"] != null && r["근로복지공단 제출"] !== "",
-      workerId: r["사번"], workerName: r["재해자명"],
-      parjang: r["파트장"], applyType: r["신청유형"],
+      workerId: normalizeWorkerId(rawWorkerId, rawWorkerName),
+      workerName: maskName(rawWorkerName),
+      parjang: maskNameWithHash(r["파트장"]),
+      applyType: r["신청유형"],
       dx: r["상병명"],
     });
   }
@@ -602,6 +642,15 @@ function processAccidents(rows, storesData, workersData) {
   // 근로자 KPI는 별도 노출 (매장DB 유무와 무관)
   if (workersData && workersData.kpis) {
     storeExtras.worker_kpis = workersData.kpis;
+  }
+
+  // 매장별 재직인원 (storeMap → { 매장명: workers } 객체로 직렬화)
+  if (workersData && workersData.storeMap) {
+    const storeWorkersObj = {};
+    for (const [name, rec] of workersData.storeMap.entries()) {
+      storeWorkersObj[name] = rec.workers;
+    }
+    storeExtras.store_workers = storeWorkersObj;
   }
 
   return {

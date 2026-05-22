@@ -26,7 +26,7 @@ import { processWorkers }     from './utils/processData.js';
 import { LayoutDashboard, Building, Building2, MapPin,
          TrendingUp, GitBranch, UserCircle, Users, Scale, Banknote,
          Stethoscope, Bell, ChevronRight, ShieldCheck, Store,
-         X, AlertCircle, Send } from 'lucide-react';
+         X, AlertCircle, Send, Lock } from 'lucide-react';
 import AlertMonitoring from './components/tabs/alert/AlertMonitoring.jsx';
 import AlertSend       from './components/tabs/alert/AlertSend.jsx';
 
@@ -82,10 +82,10 @@ const _INIT_HASH_PARAMS = (() => {
     if (typeof window === "undefined") return {};
     const h = window.location.hash.replace(/^#/, "");
     if (!h) return {};
-    const params = Object.fromEntries(
-      h.split("&").map(s => s.split("=")).filter(a => a.length === 2 && a[0] && a[1])
-    );
-    if (params.store) params.store = decodeURIComponent(params.store);
+    const params = Object.fromEntries(new URLSearchParams(h).entries());
+    if (params.store && /%[0-9A-Fa-f]{2}/.test(params.store)) {
+      try { params.store = decodeURIComponent(params.store); } catch {}
+    }
     return params;
   } catch { return {}; }
 })();
@@ -126,7 +126,7 @@ function App() {
   const syncStoreToUrl = (storeName) => {
     try {
       const p = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-      if (!storeName) p.delete("store"); else p.set("store", encodeURIComponent(storeName));
+      if (!storeName) p.delete("store"); else p.set("store", storeName);
       const s = p.toString();
       history.replaceState(null, "", s ? "#" + s : window.location.pathname + window.location.search);
     } catch {}
@@ -143,12 +143,6 @@ function App() {
   
   const isDefault = !accidentFileName && !storeFileName && !workerFileName;
   
-  // Fix Recharts initial render on mobile — force resize after mount
-  useEffect(() => {
-    const t = setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
-    const t2 = setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
-    return () => { clearTimeout(t); clearTimeout(t2); };
-  }, [tab, data]);
   
   const processUploaded = async (accRows, storeRows, workerRows, workerRefDate = null) => {
     try {

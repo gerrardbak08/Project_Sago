@@ -38,6 +38,28 @@ _DEFAULT_SYSTEM = (
 _MAX_PROMPT_CHARS = 20000
 
 
+def _headers(event: dict) -> dict[str, str]:
+    return {str(k).lower(): str(v) for k, v in (event.get("headers") or {}).items()}
+
+
+def _origin_allowed(event: dict) -> bool:
+    allowed = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+    if not allowed:
+        return True
+    origin = _headers(event).get("origin", "")
+    return origin in allowed
+
+
+def _token_allowed(event: dict) -> bool:
+    expected = os.environ.get("AI_API_TOKEN", "").strip()
+    if not expected:
+        return True
+    headers = _headers(event)
+    auth = headers.get("authorization", "")
+    bearer = auth.removeprefix("Bearer ").strip() if auth.startswith("Bearer ") else ""
+    return headers.get("x-api-key", "") == expected or bearer == expected
+
+
 def _response(status_code: int, body: Any) -> dict:
     return {
         "statusCode": status_code,
@@ -53,6 +75,10 @@ def lambda_handler(event: dict, context: Any) -> dict:
     )
     if method == "OPTIONS":
         return _response(200, {"message": "OK"})
+    if not _origin_allowed(event):
+        return _response(403, {"error": "허용되지 않은 호출 출처입니다."})
+    if not _token_allowed(event):
+        return _response(401, {"error": "인증 토큰이 필요합니다."})
 
     try:
         body = event.get("body", "{}")

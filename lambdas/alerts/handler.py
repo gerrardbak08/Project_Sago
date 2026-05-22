@@ -18,6 +18,18 @@ from typing import Any
 CORS_HEADERS = {}  # Function URL CORS 설정이 처리하므로 handler에서는 불필요
 
 
+def _headers(event: dict) -> dict[str, str]:
+    return {str(k).lower(): str(v) for k, v in (event.get("headers") or {}).items()}
+
+
+def _origin_allowed(event: dict) -> bool:
+    allowed = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+    if not allowed:
+        return True
+    origin = _headers(event).get("origin", "")
+    return origin in allowed
+
+
 def _response(status_code: int, body: Any) -> dict:
     # Lambda Function URL: statusCode와 body를 그대로 반환하면
     # Function URL이 자동으로 HTTP 응답으로 변환해줌
@@ -47,6 +59,8 @@ def lambda_handler(event: dict, context: Any) -> dict:
     )
     if method == "OPTIONS":
         return _response(200, {"message": "OK"})
+    if not _origin_allowed(event):
+        return _response(403, {"error": "허용되지 않은 호출 출처입니다."})
 
     # Function URL: rawPath = "/{date}" 또는 "/{date}/{filename}"
     raw_path = event.get("rawPath", "") or event.get("path", "")

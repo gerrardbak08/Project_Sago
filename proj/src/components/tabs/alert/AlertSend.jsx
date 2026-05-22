@@ -24,11 +24,13 @@ function RiskBadge({ grade }) {
 
 function AlertSend() {
   const today = new Date().toISOString().slice(0, 10);
+  const kakaoEnabled = import.meta.env.VITE_ENABLE_KAKAO_SEND === 'true';
   const [query, setQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedStores, setSelectedStores] = useState([]);
   const [date, setDate] = useState(today);
   const [receiverText, setReceiverText] = useState('');
+  const [sendToken, setSendToken] = useState(localStorage.getItem('MANUAL_SEND_TOKEN') || '');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -57,7 +59,7 @@ function AlertSend() {
     .split(/[\n,]+/)
     .map(v => v.trim())
     .filter(Boolean);
-  const canSend = selectedStores.length > 0 && date && receiverUuids.length > 0 && !loading;
+  const canSend = selectedStores.length > 0 && date && (!kakaoEnabled || receiverUuids.length > 0) && !loading;
 
   const handleSend = async () => {
     if (!canSend) return;
@@ -69,12 +71,12 @@ function AlertSend() {
       const url = import.meta.env.VITE_NOTIFY_URL ?? `${import.meta.env.VITE_API_BASE ?? ''}/api/notify`;
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(sendToken ? { 'x-api-key': sendToken } : {}) },
         body: JSON.stringify({
           store_codes: selectedStores.map(s => parseInt(s['매장'], 10)),
           date,
-          channel: 'kakao',
-          receiver_uuids: receiverUuids,
+          channel: kakaoEnabled ? 'kakao' : 'mock',
+          ...(kakaoEnabled ? { receiver_uuids: receiverUuids } : {}),
         }),
       });
 
@@ -107,7 +109,11 @@ function AlertSend() {
       <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 flex items-start gap-2.5">
         <MessageCircle size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />
         <div className="text-xs text-amber-700">
-          <span className="font-semibold">카카오 테스트 발송 —</span> 입력한 친구 UUID로 실제 안전가이드 메시지를 발송하고 성공/실패 결과를 기록합니다.
+          {kakaoEnabled ? (
+            <><span className="font-semibold">카카오 테스트 발송 —</span> 입력한 친구 UUID로 실제 안전가이드 메시지를 발송하고 성공/실패 결과를 기록합니다.</>
+          ) : (
+            <><span className="font-semibold">모의 발송 —</span> 실제 카카오 발송은 비활성화되어 있으며, 안전가이드 생성 결과만 기록합니다.</>
+          )}
         </div>
       </div>
 
@@ -196,25 +202,38 @@ function AlertSend() {
             />
           </div>
 
-          {/* 카카오 수신자 UUID */}
+          {/* 인증 토큰 */}
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-stone-600">카카오 친구 UUID</label>
-              {receiverUuids.length > 0 && (
-                <span className="text-xs text-stone-400">{receiverUuids.length}명 입력됨</span>
-              )}
-            </div>
-            <textarea
-              value={receiverText}
-              onChange={e => setReceiverText(e.target.value)}
-              placeholder="friends 결과의 uuid를 입력하세요. 여러 명은 줄바꿈 또는 쉼표로 구분"
-              rows={3}
-              className="w-full px-3 py-2 rounded-lg border border-stone-200 text-sm text-stone-700 bg-white focus:outline-none focus:border-stone-400 resize-none font-mono"
+            <label className="text-xs font-semibold text-stone-600">인증 토큰</label>
+            <input
+              type="password"
+              value={sendToken}
+              onChange={e => { setSendToken(e.target.value); localStorage.setItem('MANUAL_SEND_TOKEN', e.target.value); }}
+              placeholder="MANUAL_SEND_TOKEN 입력 (저장됨)"
+              className="w-full h-9 px-3 rounded-lg border border-stone-200 text-sm text-stone-700 bg-white focus:outline-none focus:border-stone-400 font-mono"
             />
-            <div className="text-[11px] text-stone-400">
-              현재는 테스트 단계이므로 친구 UUID를 직접 입력합니다.
-            </div>
           </div>
+
+          {kakaoEnabled && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-stone-600">카카오 친구 UUID</label>
+                {receiverUuids.length > 0 && (
+                  <span className="text-xs text-stone-400">{receiverUuids.length}명 입력됨</span>
+                )}
+              </div>
+              <textarea
+                value={receiverText}
+                onChange={e => setReceiverText(e.target.value)}
+                placeholder="friends 결과의 uuid를 입력하세요. 여러 명은 줄바꿈 또는 쉼표로 구분"
+                rows={3}
+                className="w-full px-3 py-2 rounded-lg border border-stone-200 text-sm text-stone-700 bg-white focus:outline-none focus:border-stone-400 resize-none font-mono"
+              />
+              <div className="text-[11px] text-stone-400">
+                현재는 테스트 단계이므로 친구 UUID를 직접 입력합니다.
+              </div>
+            </div>
+          )}
 
           {/* 발송 버튼 */}
           <button
@@ -224,7 +243,7 @@ function AlertSend() {
           >
             {loading
               ? <><RefreshCw size={14} className="animate-spin" /> 가이드 생성 중 ({selectedStores.length}개 매장)...</>
-              : <><Send size={14} /> {selectedStores.length}개 매장 · {receiverUuids.length}명 카카오 발송</>
+              : <><Send size={14} /> {selectedStores.length}개 매장 · {kakaoEnabled ? `${receiverUuids.length}명 카카오 발송` : '모의 발송'}</>
             }
           </button>
         </div>
@@ -332,9 +351,9 @@ function AlertSend() {
         <div className="rounded-xl bg-stone-50 border border-stone-200 p-4 text-xs text-stone-500 space-y-1">
           <div className="font-semibold text-stone-600 mb-2">📌 발송 흐름</div>
           <div>1. 매장 검색 → 여러 매장 추가 → 날짜 선택</div>
-          <div>2. 카카오 친구 UUID 입력 → 발송 버튼 클릭</div>
-          <div>3. 매장별 안전가이드 생성 후 카카오 발송 결과가 알림 현황 탭에 저장됨</div>
-          <div className="pt-1 text-amber-600">※ 현재는 테스트 단계라 UUID를 직접 입력합니다</div>
+          <div>2. 발송 버튼 클릭{kakaoEnabled ? " (카카오 친구 UUID 필요)" : ""}</div>
+          <div>3. 매장별 안전가이드 생성 후 발송 결과가 알림 현황 탭에 저장됨</div>
+          <div className="pt-1 text-amber-600">※ 실제 카카오 발송은 배포 환경에서 별도 활성화가 필요합니다</div>
         </div>
       )}
     </div>

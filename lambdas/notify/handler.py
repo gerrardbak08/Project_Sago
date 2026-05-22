@@ -56,6 +56,29 @@ STORE_NUM_FEATURES = [
     "매장인원", "입고도우미PO", "일평균매출", "일평균물동량",
 ]
 
+
+def _headers(event: dict) -> dict[str, str]:
+    return {str(k).lower(): str(v) for k, v in (event.get("headers") or {}).items()}
+
+
+def _origin_allowed(event: dict) -> bool:
+    allowed = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+    if not allowed:
+        return True
+    origin = _headers(event).get("origin", "")
+    return origin in allowed
+
+
+def _token_allowed(event: dict, env_name: str) -> bool:
+    expected = os.environ.get(env_name, "").strip()
+    if not expected:
+        return False
+    headers = _headers(event)
+    auth = headers.get("authorization", "")
+    bearer = auth.removeprefix("Bearer ").strip() if auth.startswith("Bearer ") else ""
+    return headers.get("x-api-key", "") == expected or bearer == expected
+
+
 # ──────────────────────────────────────────────
 # 응답 헬퍼
 # ──────────────────────────────────────────────
@@ -448,6 +471,8 @@ def lambda_handler(event: dict, context: Any) -> dict:
     )
     if method == "OPTIONS":
         return _response(200, {"message": "OK"})
+    if not _origin_allowed(event):
+        return _response(403, {"error": "허용되지 않은 호출 출처입니다."})
 
     # Body 파싱
     try:
@@ -457,17 +482,26 @@ def lambda_handler(event: dict, context: Any) -> dict:
 
         store_codes = body.get("store_codes", [])
         date_str = body.get("date")
-        channel = body.get("channel") or os.environ.get("NOTIFY_CHANNEL", "mock")
+        channel = str(body.get("channel") or os.environ.get("NOTIFY_CHANNEL", "mock")).strip()
         receiver_uuids = body.get("receiver_uuids", [])
+        allowed_channels = {
+            c.strip()
+            for c in os.environ.get("NOTIFY_ALLOWED_CHANNELS", os.environ.get("NOTIFY_CHANNEL", "mock")).split(",")
+            if c.strip()
+        }
 
         if not store_codes or date_str is None:
             return _response(400, {"error": "store_codes(배열)와 date는 필수입니다."})
         if not isinstance(store_codes, list):
             return _response(400, {"error": "store_codes는 배열이어야 합니다."})
+        if channel not in allowed_channels:
+            return _response(403, {"error": f"허용되지 않은 발송 채널입니다: {channel}"})
         if receiver_uuids and not isinstance(receiver_uuids, list):
             return _response(400, {"error": "receiver_uuids는 배열이어야 합니다."})
         if channel == "kakao" and not receiver_uuids:
             return _response(400, {"error": "카카오 발송에는 receiver_uuids가 필요합니다."})
+        if channel == "kakao" and not _token_allowed(event, "MANUAL_SEND_TOKEN"):
+            return _response(401, {"error": "카카오 발송에는 서버 설정 인증 토큰이 필요합니다."})
 
         store_codes = [int(c) for c in store_codes]
         receiver_uuids = [str(u).strip() for u in receiver_uuids if str(u).strip()]
@@ -596,6 +630,12 @@ def lambda_handler(event: dict, context: Any) -> dict:
             failed_count += 1
             print(f"[notify] 실패: {store_code} — {e}")
 
+    note = (
+        "카카오 선택 시 입력한 친구 UUID로 실제 메시지를 발송합니다."
+        if channel == "kakao"
+        else "모의 발송 채널입니다. 실제 메시지는 발송하지 않고 결과만 기록합니다."
+    )
+
     return _response(200, {
         "date": date_str,
         "channel": channel,
@@ -605,5 +645,5 @@ def lambda_handler(event: dict, context: Any) -> dict:
             "failed": failed_count,
         },
         "stores": store_results,
-        "note": "카카오 선택 시 입력한 친구 UUID로 실제 메시지를 발송합니다.",
+        "note": note,
     })

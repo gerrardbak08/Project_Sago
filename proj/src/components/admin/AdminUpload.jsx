@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import * as XLSX from 'xlsx';
-import { Upload, FileText, CheckCircle2, AlertCircle, Download, X } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, AlertCircle, Download, X, Lock, Unlock, Users, ClipboardList } from 'lucide-react';
 import { DAISO_RED, ALERT_RED, SAFE_GREEN } from '../../constants/colors.js';
 import UploadPanel from '../shared/UploadPanel.jsx';
+import { Card } from '../shared/Card.jsx';
 import { SCHEMA_ACCIDENT, SCHEMA_STORE, SCHEMA_WORKER } from '../../constants/schemas.js';
 import { downloadTemplate, validateSchema } from '../../utils/validation.js';
 
@@ -110,7 +111,7 @@ function AdminUpload({ onAccidentFile, onStoreFile, onWorkerFile, accidentFileNa
           )}
           <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900">
             <div className="font-semibold mb-1 flex items-center gap-1"><Lock size={12} /> PII 처리 정책</div>
-            <div>사번·성명은 브라우저 메모리 내에서만 처리되며 어떤 외부 서버로도 전송되지 않습니다. 다운로드·내보내기 시 사번은 SHA형 해시(EMP_xxxxxxxx), 성명은 마스킹(예: 김**)으로 변환됩니다.</div>
+            <div>사번·성명은 브라우저 메모리 내에서만 처리되며 어떤 외부 서버로도 전송되지 않습니다. 다운로드·내보내기 시 사번은 해시(EMP_xxxxxxxx), 성명은 마스킹(예: 김**)으로 변환됩니다.</div>
           </div>
         </Card>
       )}

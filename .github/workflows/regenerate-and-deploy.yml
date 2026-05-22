@@ -1,0 +1,91 @@
+name: Regenerate Data + Deploy
+
+# 트리거:
+#  1) DB 폴더의 엑셀 변경 push → 자동으로 데이터 재생성 + 빌드 + S3 배포
+#  2) main에 push → 빌드 + S3 배포
+#  3) 수동 실행 가능 (workflow_dispatch)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'DB/**'
+      - 'proj/src/**'
+      - 'proj/scripts/**'
+      - 'proj/index.html'
+      - 'proj/package.json'
+      - 'proj/vite.config.js'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write     # 갱신된 workerData.js / snapshots.js 자동 commit
+      id-token: write     # AWS OIDC 인증용
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: proj/package-lock.json
+
+      - name: Install dependencies
+        working-directory: proj
+        env:
+          NODE_ENV: development
+        run: npm ci --include=dev
+
+      - name: Regenerate data from DB/*.xlsx
+        working-directory: proj
+        run: npm run data
+
+      - name: Commit regenerated data (if changed)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet proj/src/data/workerData.js proj/src/data/snapshots.js; then
+            git add proj/src/data/workerData.js proj/src/data/snapshots.js
+            git commit -m "chore: regenerate workerData.js + snapshots.js from DB [skip ci]"
+            git push
+          else
+            echo "데이터 변경 없음 — commit skip"
+          fi
+
+      - name: Build
+        working-directory: proj
+        env:
+          NODE_ENV: development
+        run: npm run build
+
+      # AWS 배포 — OIDC 권장 (Access Key 노출 방지). 대안으로 Secrets 사용 가능.
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-northeast-2
+
+      - name: Sync to S3
+        run: |
+          aws s3 sync proj/dist/ s3://${{ secrets.S3_BUCKET }}/ \
+            --delete \
+            --cache-control "public, max-age=300" \
+            --exclude "*.html" --exclude "og-image.png" --exclude "favicon*.png"
+          # HTML/OG/favicon은 짧은 cache (변경 자주 됨)
+          aws s3 cp proj/dist/index.html s3://${{ secrets.S3_BUCKET }}/index.html \
+            --cache-control "no-cache, max-age=0"
+          aws s3 cp proj/dist/og-image.png s3://${{ secrets.S3_BUCKET }}/og-image.png \
+            --cache-control "public, max-age=3600"
+          aws s3 cp proj/dist/favicon.png s3://${{ secrets.S3_BUCKET }}/favicon.png \
+            --cache-control "public, max-age=86400"
+
+      # CloudFront 사용 시 cache invalidation (선택)
+      - name: Invalidate CloudFront (optional)
+        if: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID != '' }}
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/index.html" "/og-image.png" "/favicon.png"

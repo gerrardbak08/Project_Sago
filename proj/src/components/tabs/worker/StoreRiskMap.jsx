@@ -1180,14 +1180,14 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                 // 최근 사고일
                 const recent = ymd(storeAccidents[0]?.date, ".")
                   || (storeAccidents[0]?.year ? `${storeAccidents[0].year}` : "-");
-                // 팀 인원수 (근로자DB)
-                const teamRow = (D.team_ir || []).find(t => t.team === selectedStore.tm);
-                const teamWorkers = teamRow?.workers != null ? `${teamRow.workers.toLocaleString()}명` : "정보 없음";
+                // 매장 인원수 (근로자DB store_workers)
+                const storeWorkers = D.store_workers?.[selectedStore.n];
+                const storeWorkersStr = storeWorkers != null ? `${storeWorkers}명` : "정보 없음";
                 return [
                   {l:"전체 사고", v:`${tot}건`, c: tot>=3?"text-[#D70011]":tot>=1?"text-amber-700":"text-stone-700"},
                   {l:"최근 사고", v:recent, c:"text-stone-700", small:true},
                   {l:"매장 면적", v:selectedStore.ar ? `${selectedStore.ar}평` : "-", c:"text-stone-700"},
-                  {l:"팀 인원", v:teamWorkers, c:"text-stone-700", small:true},
+                  {l:"매장 인원", v:storeWorkersStr, c:"text-stone-700", small:true},
                 ];
               })().map(k => (
                 <div key={k.l} className="py-3 px-2 text-center">
@@ -1233,12 +1233,12 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                     {l:"부서/영업부", v:selectedStore.dp},
                     {l:"팀", v:selectedStore.tm},
                     {l:"매장 형태", v:selectedStore.fm || "-"},
-                    {l:"팀 인원 (참고)", v: (() => {
+                    {l:"매장 인원", v: (() => {
+                      const sw = D.store_workers?.[selectedStore.n];
+                      if (sw == null) return "정보 없음";
                       const teamRow = (D.team_ir || []).find(t => t.team === selectedStore.tm);
-                      if (!teamRow?.workers) return "정보 없음";
-                      const teamStores = MAP_STORES.filter(s => s.tm === selectedStore.tm);
-                      const avg = teamStores.length > 0 ? Math.round(teamRow.workers / teamStores.length) : null;
-                      return avg ? `팀 ${teamRow.workers.toLocaleString()}명 · 매장 평균 ${avg}명` : `팀 ${teamRow.workers.toLocaleString()}명`;
+                      const teamWorkers = teamRow?.workers;
+                      return teamWorkers != null ? `${sw}명 (팀 전체 ${teamWorkers.toLocaleString()}명)` : `${sw}명`;
                     })()},
                     {l:"주요 재해유형", v:selectedStore.tp && selectedStore.tp !== "사고없음" ? selectedStore.tp : "사고 이력 없음"},
                   ].map(row => (
@@ -1266,10 +1266,11 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                     ))}
                   </div>
 
-                  {/* 팀 단위 인원 정보 — 근로자DB 있을 때만 */}
+                  {/* 매장 인원 정보 — 근로자DB 있을 때만 */}
                   {(() => {
+                    const storeWorkers = D.store_workers?.[selectedStore.n];
                     const teamRow = (D.team_ir || []).find(t => t.team === selectedStore.tm);
-                    if (!teamRow || teamRow.workers == null) {
+                    if (storeWorkers == null && (!teamRow || teamRow.workers == null)) {
                       return (
                         <div className="rounded-lg border border-stone-200 bg-stone-50/50 p-4 text-center">
                           <div className="text-2xl mb-1.5 text-stone-300">👥</div>
@@ -1279,23 +1280,27 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                       );
                     }
                     const teamStores = MAP_STORES.filter(s => s.tm === selectedStore.tm);
-                    const avgPerStore = teamStores.length > 0 ? (teamRow.workers / teamStores.length).toFixed(1) : "-";
+                    const avgPerStore = (teamRow?.workers && teamStores.length > 0) ? (teamRow.workers / teamStores.length).toFixed(1) : "-";
                     return (
                       <div className="rounded-lg border border-stone-200 overflow-hidden">
                         <div className="bg-stone-50 px-3 py-2 text-[11px] font-bold text-stone-700 border-b border-stone-200">
-                          팀 단위 인원 ({selectedStore.tm})
+                          인원 현황
                         </div>
                         <div className="divide-y divide-stone-100">
+                          <div className="flex items-center justify-between px-3 py-2.5 bg-sky-50/40">
+                            <span className="text-xs text-stone-600 font-semibold">이 매장 재직자</span>
+                            <span className="text-base font-bold text-sky-700 tabular-nums">{storeWorkers != null ? `${storeWorkers}명` : "-"}</span>
+                          </div>
                           <div className="flex items-center justify-between px-3 py-2.5">
-                            <span className="text-xs text-stone-500">팀 전체 재직자</span>
-                            <span className="text-sm font-bold text-stone-800 tabular-nums">{teamRow.workers.toLocaleString()}명</span>
+                            <span className="text-xs text-stone-500">팀 전체 재직자 ({selectedStore.tm})</span>
+                            <span className="text-sm font-bold text-stone-800 tabular-nums">{teamRow?.workers != null ? `${teamRow.workers.toLocaleString()}명` : "-"}</span>
                           </div>
                           <div className="flex items-center justify-between px-3 py-2.5">
                             <span className="text-xs text-stone-500">팀 매장 수</span>
                             <span className="text-sm font-bold text-stone-800 tabular-nums">{teamStores.length}개</span>
                           </div>
                           <div className="flex items-center justify-between px-3 py-2.5">
-                            <span className="text-xs text-stone-500">매장 평균 인원 (참고)</span>
+                            <span className="text-xs text-stone-500">팀 내 매장 평균 인원</span>
                             <span className="text-sm font-bold text-stone-800 tabular-nums">{avgPerStore}명</span>
                           </div>
                           {teamRow.ir_per100 != null && (

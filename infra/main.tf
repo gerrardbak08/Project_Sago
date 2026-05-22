@@ -45,6 +45,19 @@ variable "kakao_access_token" {
   sensitive   = true
 }
 
+variable "enable_kakao_manual_send" {
+  description = "브라우저 알림 발송 화면에서 실제 카카오 발송 채널을 허용할지 여부"
+  type        = bool
+  default     = false
+}
+
+variable "manual_send_token" {
+  description = "실제 카카오 수동 발송 요청에 필요한 서버 측 토큰"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 locals {
   resource_prefix = var.deploy_version == "" ? var.project : "${var.project}-${var.deploy_version}"
 }
@@ -291,8 +304,11 @@ resource "aws_lambda_function" "notify" {
       DAILY_BUCKET       = aws_s3_bucket.daily.id
       FRONTEND_URL       = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
       NOTIFY_CHANNEL     = "mock"
+      NOTIFY_ALLOWED_CHANNELS = var.enable_kakao_manual_send ? "mock,kakao" : "mock"
+      MANUAL_SEND_TOKEN  = var.manual_send_token
       KAKAO_ACCESS_TOKEN = var.kakao_access_token
       BEDROCK_REGION     = "us-east-1"
+      ALLOWED_ORIGINS    = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
     }
   }
 
@@ -308,9 +324,9 @@ resource "aws_lambda_function_url" "notify" {
 
   cors {
     allow_credentials = false
-    allow_origins     = ["*"]
+    allow_origins     = ["http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"]
     allow_methods     = ["*"]
-    allow_headers     = ["Content-Type"]
+    allow_headers     = ["Content-Type", "Authorization", "X-Api-Key"]
     max_age           = 3600
   }
 }
@@ -321,13 +337,6 @@ resource "aws_lambda_permission" "notify_url_public" {
   function_name          = aws_lambda_function.notify.function_name
   principal              = "*"
   function_url_auth_type = "NONE"
-}
-
-resource "aws_lambda_permission" "notify_invoke_public" {
-  statement_id  = "AllowPublicInvokeFunction"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.notify.function_name
-  principal     = "*"
 }
 
 # ---------------------------------------------------------------------------
@@ -347,7 +356,8 @@ resource "aws_lambda_function" "alerts" {
 
   environment {
     variables = {
-      DAILY_BUCKET = aws_s3_bucket.daily.id
+      DAILY_BUCKET     = aws_s3_bucket.daily.id
+      ALLOWED_ORIGINS  = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
     }
   }
 
@@ -363,9 +373,9 @@ resource "aws_lambda_function_url" "alerts" {
 
   cors {
     allow_credentials = false
-    allow_origins     = ["*"]
+    allow_origins     = ["http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"]
     allow_methods     = ["*"]
-    allow_headers     = ["Content-Type"]
+    allow_headers     = ["Content-Type", "Authorization", "X-Api-Key"]
     max_age           = 3600
   }
 }
@@ -376,13 +386,6 @@ resource "aws_lambda_permission" "alerts_url_public" {
   function_name          = aws_lambda_function.alerts.function_name
   principal              = "*"
   function_url_auth_type = "NONE"
-}
-
-resource "aws_lambda_permission" "alerts_invoke_public" {
-  statement_id  = "AllowPublicInvokeFunction"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.alerts.function_name
-  principal     = "*"
 }
 
 # ---------------------------------------------------------------------------
@@ -404,6 +407,7 @@ resource "aws_lambda_function" "ai" {
     variables = {
       BEDROCK_REGION   = "us-east-1"
       BEDROCK_MODEL_ID = "us.anthropic.claude-sonnet-4-6"
+      ALLOWED_ORIGINS  = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
     }
   }
 
@@ -419,9 +423,9 @@ resource "aws_lambda_function_url" "ai" {
 
   cors {
     allow_credentials = false
-    allow_origins     = ["*"]
+    allow_origins     = ["http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"]
     allow_methods     = ["*"]
-    allow_headers     = ["Content-Type"]
+    allow_headers     = ["Content-Type", "Authorization", "X-Api-Key"]
     max_age           = 3600
   }
 }
@@ -432,13 +436,6 @@ resource "aws_lambda_permission" "ai_url_public" {
   function_name          = aws_lambda_function.ai.function_name
   principal              = "*"
   function_url_auth_type = "NONE"
-}
-
-resource "aws_lambda_permission" "ai_invoke_public" {
-  statement_id  = "AllowPublicInvokeFunction"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.ai.function_name
-  principal     = "*"
 }
 
 # ---------------------------------------------------------------------------

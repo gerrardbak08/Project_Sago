@@ -56,7 +56,7 @@ SITE_PKG="/tmp/core-layer-build/python/lib/python3.12/site-packages"
 mkdir -p "$SITE_PKG/core"
 
 # core 모듈 복사
-cp core/__init__.py core/llm.py core/rule_matcher.py core/weather.py core/notifier.py \
+cp core/__init__.py core/llm.py core/rule_matcher.py core/rule_enrichment.py core/weather.py core/notifier.py \
   "$SITE_PKG/core/"
 
 # 외부 패키지 설치 (requests, python-dotenv)
@@ -148,6 +148,7 @@ _upsert_env() {
 _upsert_env "VITE_NOTIFY_URL"   "$NOTIFY_URL"   "$ENV_PROD"
 _upsert_env "VITE_ALERTS_URL"   "$ALERTS_URL"   "$ENV_PROD"
 _upsert_env "VITE_AI_URL"       "$AI_URL"       "$ENV_PROD"
+_upsert_env "VITE_ENABLE_KAKAO_SEND" "${TF_VAR_enable_kakao_manual_send:-false}" "$ENV_PROD"
 
 # 프론트엔드 URL (이미지 경로 해석용)
 FRONTEND_URL=$(terraform -chdir="$INFRA_DIR" output -raw frontend_url)
