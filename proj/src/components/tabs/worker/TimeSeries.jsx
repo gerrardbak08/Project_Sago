@@ -70,7 +70,7 @@ function TimeSeries({ D, yearFilter }) {
         )}
       </div>
       {/* 연도별 요약 카드 */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {yearArr.map((y, i) => {
           const prev = i > 0 ? yearArr[i - 1].t : null;
           const diff = prev ? ((y.t - prev) / prev * 100).toFixed(1) : null;

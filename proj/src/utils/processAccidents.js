@@ -262,6 +262,7 @@ function processAccidents(rows, storesData, workersData) {
       kind: r["재해 종류"], type: r["재해 유형"], cause: r["기인물"],
       site: r["상해부위 (근골격계)"], content: r["사고 내용"],
       cost: parseFloat(r["공상 비용 계"]) || null,
+      loss_days: parseFloat(r["근로손실일수"]) || null,
       submitted: r["근로복지공단 제출"] != null && r["근로복지공단 제출"] !== "",
       workerId: r["사번"], workerName: r["재해자명"],
       parjang: r["파트장"], applyType: r["신청유형"],
@@ -284,6 +285,9 @@ function processAccidents(rows, storesData, workersData) {
     cost_total: Math.round(all.reduce((s,x) => s + (x.cost || 0), 0)),
     cost_count: all.filter(x => x.cost).length,
     cost_avg: 0,
+    loss_days_total: Math.round(all.reduce((s,x) => s + (x.loss_days || 0), 0)),
+    loss_days_count: all.filter(x => x.loss_days && x.loss_days > 0).length,
+    loss_days_avg: 0,
     submitted: all.filter(x => x.submitted).length,
     not_submitted: all.filter(x => !x.submitted).length,
     female: all.filter(x => x.gender === "여").length,
@@ -292,14 +296,23 @@ function processAccidents(rows, storesData, workersData) {
     unique_stores: new Set(sales.map(x => x.store).filter(Boolean)).size,
   };
   kpis.cost_avg = kpis.cost_count > 0 ? Math.round(kpis.cost_total / kpis.cost_count) : 0;
-  
+  kpis.loss_days_avg = kpis.loss_days_count > 0
+    ? Math.round(kpis.loss_days_total / kpis.loss_days_count * 10) / 10
+    : 0;
+
   // Yearly
-  const yearly = [2024, 2025, 2026].map(y => ({
-    year: y,
-    s: all.filter(x => x.year === y && x.bum === "수도권").length,
-    j: all.filter(x => x.year === y && x.bum === "지방").length,
-    e: all.filter(x => x.year === y && x.bum === "기타").length,
-  }));
+  const yearly = [2024, 2025, 2026].map(y => {
+    const yearRows = all.filter(x => x.year === y);
+    return {
+      year: y,
+      s: yearRows.filter(x => x.bum === "수도권").length,
+      j: yearRows.filter(x => x.bum === "지방").length,
+      e: yearRows.filter(x => x.bum === "기타").length,
+      loss_days: Math.round(yearRows.reduce((s, x) => s + (x.loss_days || 0), 0)),
+      loss_days_count: yearRows.filter(x => x.loss_days && x.loss_days > 0).length,
+      cost_total: Math.round(yearRows.reduce((s, x) => s + (x.cost || 0), 0)),
+    };
+  });
   
   // Monthly
   const monthly = [];
@@ -598,7 +611,7 @@ function processAccidents(rows, storesData, workersData) {
     costType, costDept: {}, risk, keywords, projection,
     injury, injury_s, injury_j, cause, cause_s, cause_j,
     age, age_s, age_j, tenure, tenure_s, tenure_j,
-    accidents: all,   // 매장 상세 패널 · Gemini 프롬프트용 원본 레코드
+    accidents: all,   // 매장 상세 패널 · AI 프롬프트용 원본 레코드
     ...storeExtras,
     ...v5Extras,
   };

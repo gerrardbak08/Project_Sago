@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client';
 import DEFAULT_DATA from './data/workerData.js';
 import MAP_STORES   from './data/storesData.js';
 import DAISO_LOGO   from './data/logo.js';
+import { STORE_SNAPSHOTS } from './data/snapshots.js';
 
 // ── 색상 + 상수 ────────────────────────────────────────
 import { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, DAISO_GRAY,
@@ -315,7 +316,7 @@ function App() {
   );
 
   return (
-    <div className="min-h-screen" style={{background:"linear-gradient(135deg, #F5F5F4 0%, #FAFAF9 40%, #F0F4FF 100%)"}}>
+    <div className="min-h-screen pb-14 lg:pb-0" style={{background:"linear-gradient(135deg, #F5F5F4 0%, #FAFAF9 40%, #F0F4FF 100%)"}}>
       {/* ═══ 헤더 (모바일 최적화) ═══ */}
       <div className="sticky top-0 z-40 shadow-sm">
 
@@ -325,11 +326,11 @@ function App() {
             {/* 다이소 CI 로고 */}
             <img src={DAISO_LOGO} alt="DAISO" className="flex-shrink-0" style={{height:32,width:"auto",objectFit:"contain"}} />
             {/* 제목 + 회사명 */}
-            <div className="flex flex-col justify-center min-w-0">
-              <span className="text-stone-900 font-extrabold leading-none tracking-tight whitespace-nowrap text-base sm:text-xl">
+            <div className="flex flex-col justify-center min-w-0 overflow-hidden">
+              <span className="text-stone-900 font-extrabold leading-none tracking-tight truncate text-base sm:text-xl">
                 근로자 사고 현황
               </span>
-              <span className="text-stone-400 text-[10px] sm:text-xs font-medium leading-none mt-0.5 whitespace-nowrap">
+              <span className="text-stone-400 text-[10px] sm:text-xs font-medium leading-none mt-0.5 truncate">
                 ㈜아성다이소 · 안전보건팀
               </span>
             </div>
@@ -376,11 +377,20 @@ function App() {
               {yearFilter === "all" ? "전체" : `${yearFilter}년`}&nbsp;
               <b className="text-stone-900 tabular-nums">{fmt(yearFilter === "all" ? data.kpis.total : yearFilter === "2024" ? data.kpis.y2024 : yearFilter === "2025" ? data.kpis.y2025 : yearFilter === "2026" ? data.kpis.y2026 : data.kpis.total)}건</b>
             </span>
-            {data.store_kpi && (
-              <span className="text-xs text-stone-500 hidden sm:inline flex-shrink-0">
-                · 영업매장 <b className="text-stone-900 tabular-nums">{fmt(data.store_kpi.total)}개</b>
-              </span>
-            )}
+            {data.store_kpi && (() => {
+              // yearFilter에 따라 해당 연도 5월 스냅샷의 매장수 표시 (없으면 현재 store_kpi.total fallback)
+              let storeCount = data.store_kpi.total;
+              let label = "영업매장";
+              if (yearFilter !== "all") {
+                const snap = STORE_SNAPSHOTS.find(s => s.ym === `${yearFilter}-05`);
+                if (snap) { storeCount = snap.count; label = `${yearFilter}-05 영업매장`; }
+              }
+              return (
+                <span className="text-xs text-stone-500 hidden sm:inline flex-shrink-0">
+                  · {label} <b className="text-stone-900 tabular-nums">{fmt(storeCount)}개</b>
+                </span>
+              );
+            })()}
             <div className="flex-1" />
             <select value={currentRole || ""} onChange={(e) => {
               const r = e.target.value || null;
@@ -401,8 +411,8 @@ function App() {
           </div>
         </div>
 
-        {/* ── 3행: 탭바 ── */}
-        <div className="bg-white border-b border-stone-200">
+        {/* ── 3행: 탭바 (데스크톱 — 모바일은 하단 내비) ── */}
+        <div className="bg-white border-b border-stone-200 hidden lg:block">
           <div className="max-w-[1400px] mx-auto px-2 sm:px-4 flex gap-0 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
             {TABS.map(t => (
               <button key={t.id} onClick={() => setTab(t.id)}
@@ -472,6 +482,20 @@ function App() {
       <div className="max-w-[1400px] mx-auto px-4 py-4 text-xs text-stone-400 border-t border-stone-100 mt-6 flex justify-between flex-wrap gap-2">
         <div>© ㈜아성다이소 안전보건팀 · v9 · {new Date().getFullYear()}.{String(new Date().getMonth()+1).padStart(2,"0")}</div>
       </div>
+
+      {/* ── 모바일 하단 탭 내비게이션 ── */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-stone-200 shadow-[0_-2px_10px_rgba(0,0,0,0.06)]"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <div className="flex overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+          {TABS.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`flex-1 min-w-[60px] flex flex-col items-center gap-0.5 pt-1.5 pb-1 border-t-2 transition cursor-pointer ${tab === t.id ? "border-[#D70011] text-stone-900" : "border-transparent text-stone-400"}`}>
+              <t.Icon size={18} strokeWidth={2} className="flex-shrink-0" />
+              <span className="text-[9px] font-semibold leading-tight whitespace-nowrap">{t.short}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 }

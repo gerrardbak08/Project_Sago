@@ -123,11 +123,11 @@ function StoreAnalysis({ D, yearFilter, setYearFilter }) {
             <button onClick={() => setMetric("ir_per100")} className={`px-3 py-1.5 rounded-full text-xs font-bold border transition cursor-pointer ${isPer100 ? "bg-rose-600 border-rose-600 text-white" : "bg-white border-stone-300 text-stone-600 hover:bg-stone-50"}`}>👥 100명당 IR</button>
           </div>
         )}
-        <ResponsiveContainer width="100%" height={420} debounce={50}>
-          <BarChart data={teamIrChartData} layout="vertical" margin={{ left: 30 }}>
+        <ResponsiveContainer width="100%" height={Math.max(420, teamIrChartData.length * 22)} debounce={50}>
+          <BarChart data={teamIrChartData} layout="vertical" margin={{ left: 30, right: 16, top: 4, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false} />
             <XAxis type="number" tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} tickFormatter={v => isPer100 ? v.toFixed(1) : `${v}%`} />
-            <YAxis type="category" dataKey="team" tick={{ fontSize: 10, fill: "#44403C" }} axisLine={false} tickLine={false} width={90} />
+            <YAxis type="category" dataKey="team" tick={{ fontSize: 10, fill: "#44403C" }} axisLine={false} tickLine={false} width={90} interval={0} />
             <Tooltip content={({ active, payload }) => {
               if (!active || !payload?.length) return null;
               const p = payload[0].payload;

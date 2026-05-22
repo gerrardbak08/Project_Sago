@@ -53,12 +53,16 @@ function CalcTip({ label, formula, example, note, citation }) {
 function HeatmapGrid({ rows, yearFilter }) {
   const months = [];
   for (let y of [2024, 2025, 2026]) for (let m = 1; m <= 12; m++) months.push(`${y}-${m < 10 ? "0" + m : m}`);
-  let valid = months.filter(ym => { const [y, m] = ym.split("-").map(Number); return y < 2026 || (y === 2026 && m <= 4); });
+  // 데이터가 있는 마지막 월까지만 표시 (이전 2026-04 하드코딩 제거)
+  const usedYms = new Set();
+  rows.forEach(r => Object.keys(r.hm || {}).forEach(k => usedYms.add(k)));
+  const lastYm = usedYms.size > 0 ? Array.from(usedYms).sort().pop() : "2026-12";
+  let valid = months.filter(ym => ym <= lastYm);
   if (yearFilter && yearFilter !== "all") valid = valid.filter(ym => ym.startsWith(yearFilter));
   const allV = rows.flatMap(r => valid.map(ym => r.hm[ym] || 0));
   const mx = Math.max(...allV, 1);
   return (
-    <div className="overflow-x-auto -mx-5 px-5 pb-2">
+    <div className="overflow-x-auto pb-2">
       <div style={{ minWidth: yearFilter && yearFilter !== "all" ? 480 : 980 }}>
         <div style={{ display: "grid", gridTemplateColumns: `132px repeat(${valid.length}, 26px)`, gap: 2 }}>
           <div />
@@ -106,27 +110,47 @@ function BarRank({ items, color, total }) {
 function Matrix({ data, rowKey, cols, rowLabels }) {
   const values = data.flatMap(r => cols.map(c => r[c] || 0));
   const mx = Math.max(...values, 1);
+  const CELL = 42;          // 정사각형 셀 한 변 (텍스트 길이와 무관하게 통일)
+  const LABEL_W = 84;       // 행 라벨 열 고정 폭
   return (
-    <div className="overflow-x-auto -mx-5 px-5 pb-2">
-      <table className="w-full text-xs" style={{ minWidth: 640 }}>
+    <div className="overflow-x-auto pb-2">
+      <table className="text-xs"
+             style={{ tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: 3 }}>
+        <colgroup>
+          <col style={{ width: LABEL_W }} />
+          {cols.map((_, i) => <col key={i} style={{ width: CELL }} />)}
+          <col style={{ width: 46 }} />
+        </colgroup>
         <thead><tr>
-          <th className="py-2 px-2 text-left text-stone-500 font-semibold whitespace-nowrap">-</th>
-          {cols.map(c => <th key={c} className="py-2 px-1 text-center text-stone-500 font-semibold whitespace-nowrap" style={{ fontSize: 10 }}>{c}</th>)}
-          <th className="py-2 px-2 text-right text-stone-500 font-semibold whitespace-nowrap">합계</th>
+          <th className="text-left text-stone-500 font-semibold align-bottom pb-1" style={{ fontSize: 10 }}>-</th>
+          {cols.map(c => (
+            <th key={c} className="text-center text-stone-500 font-semibold align-bottom pb-1 leading-tight"
+                style={{ fontSize: 9 }}>{c}</th>
+          ))}
+          <th className="text-right text-stone-500 font-semibold align-bottom pb-1" style={{ fontSize: 10 }}>합계</th>
         </tr></thead>
         <tbody>{data.map((r, i) => {
           const rowTotal = cols.reduce((s, c) => s + (r[c] || 0), 0);
           return (
             <tr key={i}>
-              <td className="py-1 px-2 font-bold text-stone-800 whitespace-nowrap">{rowLabels ? rowLabels[i] : r[rowKey]}</td>
+              <td className="font-bold text-stone-800 truncate pr-1" style={{ fontSize: 10 }}>
+                {rowLabels ? rowLabels[i] : r[rowKey]}
+              </td>
               {cols.map(c => {
                 const v = r[c] || 0;
                 const ratio = v / mx;
                 const bg = v === 0 ? "#FAFAF9" : `rgba(220,38,38,${0.08 + ratio * 0.7})`;
                 const clr = ratio > 0.45 ? "#fff" : "#292524";
-                return <td key={c} className="p-0.5 whitespace-nowrap"><div className="rounded flex items-center justify-center tabular-nums font-bold" style={{ height: 32, background: bg, color: clr, fontSize: 11 }}>{v || ""}</div></td>;
+                return (
+                  <td key={c} style={{ padding: 0 }}>
+                    <div className="rounded flex items-center justify-center tabular-nums font-bold"
+                         style={{ width: CELL, height: CELL, background: bg, color: clr, fontSize: 11 }}>
+                      {v || ""}
+                    </div>
+                  </td>
+                );
               })}
-              <td className="py-1 px-2 text-right tabular-nums font-bold text-stone-900 whitespace-nowrap">{rowTotal}</td>
+              <td className="text-right tabular-nums font-bold text-stone-900" style={{ fontSize: 11 }}>{rowTotal}</td>
             </tr>
           );
         })}</tbody>

@@ -185,6 +185,16 @@ data "aws_iam_policy_document" "lambda_permissions" {
     resources = ["*"]
   }
 
+  # AWS Marketplace — Bedrock(Marketplace 제공) 모델 최초 계정 구독.
+  # 첫 호출 시 계정 전체에 모델 구독이 활성화된다.
+  statement {
+    actions = [
+      "aws-marketplace:Subscribe",
+      "aws-marketplace:ViewSubscriptions",
+    ]
+    resources = ["*"]
+  }
+
   # CloudWatch Logs
   statement {
     actions = [
@@ -376,6 +386,62 @@ resource "aws_lambda_permission" "alerts_invoke_public" {
 }
 
 # ---------------------------------------------------------------------------
+# Lambda — ai (대시보드 AI 요약·안전가이드, Bedrock Claude)
+# ---------------------------------------------------------------------------
+
+resource "aws_lambda_function" "ai" {
+  function_name    = "${local.resource_prefix}-ai"
+  role             = aws_iam_role.lambda_exec.arn
+  handler          = "handler.lambda_handler"
+  runtime          = "python3.12"
+  filename         = "${path.module}/../dist/ai.zip"
+  source_code_hash = filebase64sha256("${path.module}/../dist/ai.zip")
+
+  memory_size = 256
+  timeout     = 60
+
+  environment {
+    variables = {
+      BEDROCK_REGION   = "us-east-1"
+      BEDROCK_MODEL_ID = "us.anthropic.claude-sonnet-4-6"
+    }
+  }
+
+  tags = {
+    Project       = var.project
+    DeployVersion = var.deploy_version
+  }
+}
+
+resource "aws_lambda_function_url" "ai" {
+  function_name      = aws_lambda_function.ai.function_name
+  authorization_type = "NONE"
+
+  cors {
+    allow_credentials = false
+    allow_origins     = ["*"]
+    allow_methods     = ["*"]
+    allow_headers     = ["Content-Type"]
+    max_age           = 3600
+  }
+}
+
+resource "aws_lambda_permission" "ai_url_public" {
+  statement_id           = "AllowPublicFunctionURL"
+  action                 = "lambda:InvokeFunctionUrl"
+  function_name          = aws_lambda_function.ai.function_name
+  principal              = "*"
+  function_url_auth_type = "NONE"
+}
+
+resource "aws_lambda_permission" "ai_invoke_public" {
+  statement_id  = "AllowPublicInvokeFunction"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.ai.function_name
+  principal     = "*"
+}
+
+# ---------------------------------------------------------------------------
 # Lambda — batch-orchestrator (EventBridge 배치)
 # ---------------------------------------------------------------------------
 
@@ -448,6 +514,11 @@ output "notify_url" {
 output "alerts_url" {
   description = "alerts Lambda Function URL"
   value       = aws_lambda_function_url.alerts.function_url
+}
+
+output "ai_url" {
+  description = "ai Lambda Function URL (대시보드 AI 요약·안전가이드)"
+  value       = aws_lambda_function_url.ai.function_url
 }
 
 output "frontend_url" {

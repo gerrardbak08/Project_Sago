@@ -63,11 +63,11 @@ function ParjangDashboard({ D, yearFilter }) {
       {/* 차트 2개: 사고건수 TOP 바차트 + 재해유형 파이 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card title="파트장별 사고 건수 TOP" titleIcon={ShieldCheck} sub="고위험 파트장 시각화 — 막대 높이 = 관할 매장 사고 집중도" className="lg:col-span-2">
-          <ResponsiveContainer width="100%" height={220} debounce={50}>
+          <ResponsiveContainer width="100%" height={Math.max(220, Math.min(p.top.length, 12) * 32)} debounce={50}>
             <BarChart data={[...p.top].slice(0,12)} layout="vertical" margin={{ left: 60 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="parjang" tick={{ fontSize: 10, fill: "#44403C" }} axisLine={false} tickLine={false} width={60} />
+              <YAxis type="category" dataKey="parjang" interval={0} tick={{ fontSize: 10, fill: "#44403C" }} axisLine={false} tickLine={false} width={60} />
               <Tooltip content={({ active, payload }) => {
                 if (!active || !payload?.length) return null;
                 const d = payload[0].payload;

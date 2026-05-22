@@ -62,7 +62,7 @@ function COverview({ D }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card title="연도별 현황" titleIcon={Calendar} sub="2024~2026 사고건수 비교">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {yearlyAll.map((y,i) => {
               const isFiltered = D._yr === String(y.y);
               const prev = i > 0 ? yearlyAll[i-1].t : null;

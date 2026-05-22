@@ -9,6 +9,19 @@ import { Card, EstimateBadge } from '../../../components/shared/Card.jsx';
 import { CalcTip, HeatmapGrid, BarRank, Matrix } from '../../../components/shared/ChartHelpers.jsx';
 import { RISK_COLORS } from '../../../constants/riskColors.js';
 import MAP_STORES from '../../../data/storesData.js';
+import { requestAiGuide } from '../../../constants/ai.js';
+
+// accidents[].date 는 정적 데이터(workerData.js)에서 ISO 문자열로 직렬화됨 — Date 로 안전 변환
+function toDate(d) {
+  if (!d) return null;
+  const dt = d instanceof Date ? d : new Date(d);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+function ymd(d, sep = "-") {
+  const dt = toDate(d);
+  if (!dt) return null;
+  return `${dt.getFullYear()}${sep}${String(dt.getMonth() + 1).padStart(2, "0")}${sep}${String(dt.getDate()).padStart(2, "0")}`;
+}
 
 function StoreRiskMap({ D = {}, yearFilter = "all", setYearFilter = () => {}, syncStoreToUrl, initStore }) {
   const [bumFilter, setBumFilter] = useState("전체");
@@ -30,7 +43,7 @@ function StoreRiskMap({ D = {}, yearFilter = "all", setYearFilter = () => {}, sy
   const overlaysRef = useRef([]);
   const [mapInited, setMapInited] = useState(false);
 
-  // Gemini 안전가이드 상태
+  // AI 안전가이드 상태
   const [guideText, setGuideText] = useState("");
   const [guideLoading, setGuideLoading] = useState(false);
   const [guideError, setGuideError] = useState(null);
@@ -41,7 +54,7 @@ function StoreRiskMap({ D = {}, yearFilter = "all", setYearFilter = () => {}, sy
     if (!selectedStore || !D.accidents) return [];
     return D.accidents
       .filter(a => a.store === selectedStore.n)
-      .sort((a, b) => (b.date || 0) - (a.date || 0));
+      .sort((a, b) => (toDate(b.date)?.getTime() || 0) - (toDate(a.date)?.getTime() || 0));
   }, [selectedStore, D.accidents]);
 
   const getYearCount = useCallback((s) => {
@@ -94,7 +107,7 @@ function StoreRiskMap({ D = {}, yearFilter = "all", setYearFilter = () => {}, sy
     }
   }, [filteredStores, selectedStore]);
 
-  // ── Gemini 안전가이드 ────────────────────────────────────
+  // ── AI 안전가이드 (Bedrock Claude) ───────────────────────
   function buildPrompt(store, accidents, teamIr, deptIr, workerRec) {
     const byType = {};
     accidents.forEach(a => { byType[a.type || "미상"] = (byType[a.type || "미상"] || 0) + 1; });
@@ -111,7 +124,7 @@ function StoreRiskMap({ D = {}, yearFilter = "all", setYearFilter = () => {}, sy
 
     const accLines = accidents.map(a =>
       [
-        a.date ? `${a.date.getFullYear()}-${String(a.date.getMonth()+1).padStart(2,"0")}-${String(a.date.getDate()).padStart(2,"0")}` : `${a.year}년`,
+        ymd(a.date) || `${a.year}년`,
         a.type || "유형미상",
         a.site || "부위미상",
         a.lossDay ? `${a.lossDay}일` : "손실일미상",
@@ -162,47 +175,8 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
     const prompt = buildPrompt(store, storeAccidents, D.team_ir, D.dept_ir, workerRec);
 
     try {
-      const res = await fetch(GEMINI_URL + "&alt=sse", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: abortRef.current.signal,
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.4, maxOutputTokens: 1024 },
-        }),
-      });
-
-      if (!res.ok) {
-        const errText = await res.text().catch(() => "");
-        let userMsg = "";
-        if (res.status === 429) userMsg = "Gemini API 무료 할당량을 초과했습니다. 잠시 후 다시 시도하거나 Google AI Studio에서 결제 설정을 확인해주세요.";
-        else if (res.status === 403) userMsg = "API 키 권한이 없습니다. Google AI Studio에서 키를 확인해주세요.";
-        else if (res.status === 400) userMsg = "요청 형식 오류입니다. 관리자에게 문의해주세요.";
-        else userMsg = `Gemini API 오류 (${res.status}). 네트워크 또는 API 키를 확인해주세요.`;
-        throw new Error(userMsg);
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        const lines = buf.split("\n");
-        buf = lines.pop();
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const json = line.slice(6).trim();
-          if (json === "[DONE]") continue;
-          try {
-            const obj = JSON.parse(json);
-            const delta = obj.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-            if (delta) setGuideText(prev => prev + delta);
-          } catch {}
-        }
-      }
+      const result = await requestAiGuide(prompt, { signal: abortRef.current.signal });
+      setGuideText(result);
     } catch (e) {
       if (e.name !== "AbortError") {
         setGuideError(e.message);
@@ -608,7 +582,10 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
   // 트리 열림 상태
   const [expandedBum, setExpandedBum] = useState(new Set(["수도권","지방"]));
   const [expandedDept, setExpandedDept] = useState(new Set());
-  const [treeOpen, setTreeOpen] = useState(true); // 모바일 토글
+  // 모바일(<1024px)에서는 조직 트리를 기본 접힘 — 지도가 전체폭을 쓰도록
+  const [treeOpen, setTreeOpen] = useState(
+    typeof window === "undefined" ? true : window.innerWidth >= 1024
+  );
   const [storeSearch, setStoreSearch] = useState(""); // 매장 검색어
   const storeSearchRef = useRef(null);
 
@@ -1087,9 +1064,8 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
               {(() => {
                 const tot = selectedStore.tot || 0;
                 // 최근 사고일
-                const recent = storeAccidents.length > 0 && storeAccidents[0].date
-                  ? `${storeAccidents[0].date.getFullYear()}.${String(storeAccidents[0].date.getMonth()+1).padStart(2,"0")}.${String(storeAccidents[0].date.getDate()).padStart(2,"0")}`
-                  : storeAccidents.length > 0 && storeAccidents[0].year ? `${storeAccidents[0].year}` : "-";
+                const recent = ymd(storeAccidents[0]?.date, ".")
+                  || (storeAccidents[0]?.year ? `${storeAccidents[0].year}` : "-");
                 // 팀 인원수 (근로자DB)
                 const teamRow = (D.team_ir || []).find(t => t.team === selectedStore.tm);
                 const teamWorkers = teamRow?.workers != null ? `${teamRow.workers.toLocaleString()}명` : "정보 없음";
@@ -1263,7 +1239,7 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                                 {a.site && <span className="text-[10px] px-1.5 py-0.5 rounded bg-stone-200 text-stone-700">{a.site}</span>}
                                 {a.lossDay > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">{a.lossDay}일 손실</span>}
                                 <span className="text-[10px] text-stone-400 ml-auto">
-                                  {a.date ? `${a.date.getFullYear()}-${String(a.date.getMonth()+1).padStart(2,"0")}-${String(a.date.getDate()).padStart(2,"0")}` : `${a.year}년`}
+                                  {ymd(a.date) || `${a.year}년`}
                                 </span>
                               </div>
                               {a.content && <div className="text-[11px] text-stone-600 mt-1 break-keep leading-relaxed">{a.content}</div>}
@@ -1368,7 +1344,7 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                   {!guideText && !guideError && !guideLoading && (
                     <div className="rounded-lg border border-stone-200 bg-stone-50/50 p-6 text-center">
                       <div className="text-3xl mb-2">✨</div>
-                      <div className="text-sm font-semibold text-stone-700">Gemini 안전가이드</div>
+                      <div className="text-sm font-semibold text-stone-700">AI 안전가이드</div>
                       <div className="text-xs text-stone-500 mt-1 leading-relaxed break-keep">
                         이 매장의 실제 사고 데이터를 분석하여<br />현장 관리자가 즉시 실행 가능한 예방 가이드를 생성합니다
                       </div>

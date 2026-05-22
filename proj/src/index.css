@@ -6,6 +6,16 @@
   font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
+/* 모바일 가로 오버플로우 방지 — body 밖으로 스크롤이 새지 않도록 */
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+#root {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 .overflow-x-auto::-webkit-scrollbar { display: none; }
 
 @media print {

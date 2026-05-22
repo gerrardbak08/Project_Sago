@@ -8,15 +8,17 @@ import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card, EstimateBadge } from '../../../components/shared/Card.jsx';
 import { CalcTip, HeatmapGrid, BarRank, Matrix } from '../../../components/shared/ChartHelpers.jsx';
 import { RISK_COLORS } from '../../../constants/riskColors.js';
-import { useGeminiStream } from '../../../hooks/useGeminiStream.js';
+import { useAiGuide } from '../../../hooks/useAiGuide.js';
 import { fmtShort } from '../../../utils/format.js';
-import { GeminiOutput } from '../../../components/shared/GeminiAiCard.jsx';
+import { AiOutput } from '../../../components/shared/AiOutput.jsx';
+import PeriodComparison from '../../../components/shared/PeriodComparison.jsx';
+import { STORE_SNAPSHOTS, WORKER_SNAPSHOTS } from '../../../data/snapshots.js';
 
 const WORKER_COUNT_ESTIMATE = 1337 * 5;
 const yoy = (cur, prev) => prev ? ((cur - prev) / prev * 100) : null;
 
 function Overview({ D, yearFilter, role, setTab }) {
-  const aiSummary = useGeminiStream();
+  const aiSummary = useAiGuide();
   const isCEO = role === "ceo";
   const isManager = role === "manager";
   const isTeam = role === "team";
@@ -61,18 +63,37 @@ function Overview({ D, yearFilter, role, setTab }) {
   const submitRate = pct(k.submitted, k.submitted + k.not_submitted);
   
   // === Executive KPIs: 재무손실, per-100 매장, per-100 인원, 중대사고 점유율, 취약점 집중도, YoY ===
-  // 재무손실 (연도별 최저시급 일급 × 추정 근로손실일수 × 간접비계수)
-  // 실제 근로손실일수 DB 연동 전까지는 상병명 기반 추정치 사용
+  // 재무손실 = 실제 근로손실일수 × 연도별 최저시급 일급 × (1 + 간접비계수)
+  // DB의 '근로손실일수' 컬럼을 직접 사용. 누락된 사고는 평균 81일(소매업)로 보충
   const periodIncidents = (function() {
-    // 추정용: 사고 샘플 재구성. 실제 구현 시 D.raw_incidents 사용
-    const count = periodCount;
-    const avgDays = 25; // 전체 평균 근로손실일수 (소매업 추정)
     const wage = MIN_WAGE_DAY[yearFilter === "all" ? CURRENT_YEAR : parseInt(yearFilter)] || MIN_WAGE_DAY[CURRENT_YEAR];
-    const totalDays = count * avgDays;
+    // 연도 필터에 따라 손실일수 집계
+    let recordedDays = 0;
+    let recordedCount = 0;
+    if (yearFilter === "all") {
+      recordedDays = D.kpis?.loss_days_total || 0;
+      recordedCount = D.kpis?.loss_days_count || 0;
+    } else {
+      const yr = D.yearly?.find(y => String(y.year) === yearFilter);
+      recordedDays = yr?.loss_days || 0;
+      recordedCount = yr?.loss_days_count || 0;
+    }
+    // 평균 손실일수 (DB 기록 기반). 0~과대값 방어로 5~120일 범위 클램프
+    const recordedAvg = recordedCount > 0 ? recordedDays / recordedCount : 25;
+    const fallbackAvg = Math.max(5, Math.min(120, recordedAvg));
+    // 손실일수 누락 사고 = periodCount - recordedCount → fallbackAvg로 추정
+    const missingCount = Math.max(0, periodCount - recordedCount);
+    const estimatedDays = missingCount * fallbackAvg;
+    const totalDays = Math.round(recordedDays + estimatedDays);
+    const avgDays = periodCount > 0 ? totalDays / periodCount : 0;
     const minLoss = totalDays * wage;
     const fullLoss = minLoss * (1 + INDIRECT_COST_MULTIPLIER);
     const equivalentSales = fullLoss / OPERATING_MARGIN;
-    return { totalDays, minLoss, fullLoss, equivalentSales, avgDays };
+    return {
+      totalDays, minLoss, fullLoss, equivalentSales, avgDays,
+      recordedDays, recordedCount, missingCount,
+      isDirectMeasured: recordedCount >= periodCount * 0.4,  // 기록률 40%+면 직접측정 표시
+    };
   })();
   
   // per-100 지표
@@ -123,39 +144,68 @@ function Overview({ D, yearFilter, role, setTab }) {
     <div className="space-y-3 sm:space-y-4">
 
 
-      {/* === 100명당 IR 배너 (근로자DB 업로드 시에만) === */}
-      {D.worker_ir_summary && D.worker_ir_summary.total && (
-        <div className="rounded-lg overflow-hidden" style={{ background: "linear-gradient(135deg, #FFF7ED 0%, #FEF3C7 50%, #FEE2E2 100%)", border: "1px solid #FECACA" }}>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
-            <div className="p-4 border-b lg:border-b-0 lg:border-r border-rose-200">
-              <div className="flex items-center gap-2 mb-1">
-                <Users size={14} style={{color: ALERT_RED}} />
-                <span className="text-[11px] font-bold uppercase tracking-wider" style={{color: ALERT_RED}}>영업부문 100명당 IR</span>
-              </div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-3xl lg:text-4xl font-bold tracking-tight tabular-nums" style={{color:"#1C1917"}}>{D.worker_ir_summary.total.ir_per100 != null ? D.worker_ir_summary.total.ir_per100.toFixed(2) : "—"}</span>
-                <span className="text-sm text-stone-500 font-medium">건/100명</span>
-              </div>
-              <div className="text-[11px] text-stone-600 mt-1.5 leading-tight">분자 사고 {D.worker_ir_summary.total.incidents.toLocaleString()}건 · 분모 재직 {D.worker_ir_summary.total.workers.toLocaleString()}명 · 매장 {D.worker_ir_summary.total.stores_count}개</div>
+      {/* === 100명당 IR 배너 (3개 독립 카드, yearFilter 연동) === */}
+      {D.worker_ir_summary && D.worker_ir_summary.total && (() => {
+        // 분자: yearFilter 적용 (전체 사고 → 연도별 사고로 동적)
+        const yr = yearFilter !== "all" ? D.yearly?.find(y => String(y.year) === yearFilter) : null;
+        const sudoBumun = D.worker_ir_summary.by_bumun.find(b => b.bum === "수도권");
+        const jibangBumun = D.worker_ir_summary.by_bumun.find(b => b.bum === "지방");
+        const totalIncidents = yr ? (yr.s + yr.j + yr.e) : D.worker_ir_summary.total.incidents;
+        const sudoIncidents = yr ? yr.s : (sudoBumun?.incidents ?? 0);
+        const jibangIncidents = yr ? yr.j : (jibangBumun?.incidents ?? 0);
+        const totalWorkers = D.worker_ir_summary.total.workers;
+        const totalStores = D.worker_ir_summary.total.stores_count;
+        const sudoWorkers = sudoBumun?.workers ?? 0;
+        const jibangWorkers = jibangBumun?.workers ?? 0;
+        const sudoStores = sudoBumun?.stores_count ?? 0;
+        const jibangStores = jibangBumun?.stores_count ?? 0;
+        const totalIr = totalWorkers ? (totalIncidents / totalWorkers * 100) : null;
+        const sudoIr = sudoWorkers ? (sudoIncidents / sudoWorkers * 100) : null;
+        const jibangIr = jibangWorkers ? (jibangIncidents / jibangWorkers * 100) : null;
+        const periodLabel = yearFilter === "all" ? "전체 기간" : `${yearFilter}년`;
+        const warmBg = "linear-gradient(135deg, #FEFCF7 0%, #FAF5EB 30%, #F1E5CC 70%, #E8D3A8 100%)";
+        const cards = [
+          { label: "영업부문 100명당 IR", labelColor: ALERT_RED, ir: totalIr, incidents: totalIncidents, workers: totalWorkers, stores: totalStores, valueColor: "#1C1917", icon: true },
+          { label: "수도권", labelColor: "#1D4ED8", ir: sudoIr, incidents: sudoIncidents, workers: sudoWorkers, stores: sudoStores, valueColor: "#1D4ED8" },
+          { label: "지방", labelColor: "#C2410C", ir: jibangIr, incidents: jibangIncidents, workers: jibangWorkers, stores: jibangStores, valueColor: "#C2410C" },
+        ];
+        // 좌→우로 흐르는 하나의 그라데이션 — 3개 분리 카드가 각자 전체의 1/3 구간을 배경으로
+        // (카드 N의 끝색 = 카드 N+1의 시작색 → gap이 있어도 연속처럼 보임)
+        const GRAD_STOPS = ["#FEFCF7", "#F7EFDA", "#EFE1C2", "#E6D0A0"];
+        return (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+              {cards.map((c, i) => (
+                <div key={c.label}
+                     className="rounded-lg p-3 sm:p-4"
+                     style={{
+                       background: `linear-gradient(to right, ${GRAD_STOPS[i]} 0%, ${GRAD_STOPS[i + 1]} 100%)`,
+                       border: "1px solid #E8D3A8",
+                     }}>
+                  <div className="flex items-center gap-2 mb-1">
+                    {c.icon && <Users size={14} style={{color: c.labelColor}} />}
+                    <span className="text-[11px] font-bold uppercase tracking-wider" style={{color: c.labelColor}}>{c.label}</span>
+                  </div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl lg:text-4xl font-bold tracking-tight tabular-nums" style={{color: c.valueColor}}>
+                      {c.ir != null ? c.ir.toFixed(2) : "—"}
+                    </span>
+                    <span className="text-sm text-stone-500 font-medium">건/100명</span>
+                  </div>
+                  <div className="text-[11px] text-stone-600 mt-1.5 leading-tight">
+                    사고 {c.incidents.toLocaleString()}건 · 재직 {c.workers.toLocaleString()}명 · 매장 {c.stores}개
+                  </div>
+                </div>
+              ))}
             </div>
-            {D.worker_ir_summary.by_bumun.map(b => (
-              <div key={b.bum} className="p-4 border-b lg:border-b-0 lg:border-r last:border-r-0 border-rose-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider" style={{color: b.bum==="수도권"?"#1D4ED8":"#C2410C"}}>{b.bum}</span>
-                </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl lg:text-4xl font-bold tracking-tight tabular-nums" style={{color: b.bum==="수도권"?"#1D4ED8":"#C2410C"}}>{b.ir_per100 != null ? b.ir_per100.toFixed(2) : "—"}</span>
-                  <span className="text-sm text-stone-500 font-medium">건/100명</span>
-                </div>
-                <div className="text-[11px] text-stone-600 mt-1.5 leading-tight">사고 {b.incidents}건 · 재직 {b.workers.toLocaleString()}명 · 매장 {b.stores_count}개</div>
-              </div>
-            ))}
-          </div>
-          <div className="px-4 py-2 text-[11px] break-keep" style={{ background: "rgba(255,255,255,0.5)", color: "#78716C" }}>
-            <b style={{color: ALERT_RED}}>지표 해석</b> · <b>100명당 IR</b>은 인원 노출량을 보정한 사고 강도. 분자는 사고DB(전체 기간 누적), 분모는 근로자DB 재직자 스냅샷({D.worker_kpis?.ref_date}). 시점이 다르므로 「매장 IR」 탭에서 연도 필터 사용 권장.
-          </div>
-        </div>
-      )}
+            <div className="rounded-lg px-4 py-2 text-[11px] break-keep" style={{ background: "rgba(255,251,240,0.7)", border: "1px solid #F1E5CC", color: "#78716C" }}>
+              <b style={{color: ALERT_RED}}>지표 해석</b> · <b>100명당 IR</b>은 인원 노출량을 보정한 사고 강도.
+              분자 사고는 <b>{periodLabel}</b> 기준 (연도 토글 연동).
+              분모(재직자)는 근로자DB 스냅샷({D.worker_kpis?.ref_date}) 고정 — 매년 5월 19일 시점. 연도별 정확한 분모는 추후 부문별 시계열 작업 시 갱신 예정.
+            </div>
+          </>
+        );
+      })()}
 
       {/* === 임계값 알림 배너 === */}
       {(() => {
@@ -215,8 +265,10 @@ function Overview({ D, yearFilter, role, setTab }) {
           warn:     { bg:"#FFF7ED", border:"#FED7AA", icon:"#C2410C", text:"#92400E" },
           info:     { bg:"#EFF6FF", border:"#BFDBFE", icon:"#1D4ED8", text:"#1E3A8A" },
         };
+        const _alertCols = alerts.length <= 3 ? alerts.length : 2;
+        const _alertGridCls = { 1: "lg:grid-cols-1", 2: "lg:grid-cols-2", 3: "lg:grid-cols-3" }[_alertCols];
         return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+          <div className={`grid gap-2 grid-cols-1 sm:grid-cols-2 ${_alertGridCls}`}>
             {alerts.map((a, i) => {
               const c = colors[a.level];
               return (
@@ -307,7 +359,14 @@ function Overview({ D, yearFilter, role, setTab }) {
           </div>
         ))}
       </div>
-      
+
+      {/* === 동기간 비교 === */}
+      <PeriodComparison
+        monthly={D.monthly}
+        storeSnapshots={STORE_SNAPSHOTS}
+        workerSnapshots={WORKER_SNAPSHOTS}
+      />
+
       {/* === 4-KPI 경영진 스트립 (임팩트 + 발생률 + 재무) === */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* 1. 추정 재무 손실액 */}
@@ -316,10 +375,10 @@ function Overview({ D, yearFilter, role, setTab }) {
             <span className="text-xs font-medium uppercase tracking-wide truncate" style={{ color: ALERT_RED }}>추정 재무손실</span>
             <CalcTip
               label="추정 재무손실액"
-              formula="근로손실일수 × 연도별 최저시급 일급 × (1 + 간접비계수 4배)"
-              example={`예: ${periodCount}건 × 평균 ${periodIncidents.avgDays}일 × 최저시급 일급 × 5배 = 약 ${fmtShort(periodIncidents.fullLoss)}원`}
-              note="간접비는 Heinrich (1931) 기준 직접:간접 = 1:4. 생산중단·교육·조사·사기저하 포함. 근로손실일수 DB 연동 전까지는 평균 추정치 사용."
-              citation="OSHA $afety Pays · Heinrich (1931) · 고용노동부 최저임금 고시"
+              formula="실제 근로손실일수 × 연도별 최저시급 일급 × (1 + 간접비계수 4배)"
+              example={`예: 기록 ${periodIncidents.recordedCount}건 ${fmt(periodIncidents.recordedDays)}일 + 미기록 ${periodIncidents.missingCount}건 × 평균 ${periodIncidents.avgDays.toFixed(1)}일 = ${fmt(periodIncidents.totalDays)}일 × 최저시급 일급 × 5배 = ${fmtShort(periodIncidents.fullLoss)}원`}
+              note={`DB의 '근로손실일수' 컬럼을 직접 사용 (568건 중 ${periodIncidents.recordedCount}건 기록). 미기록 사고는 기록된 사고의 평균(${periodIncidents.avgDays.toFixed(1)}일)으로 보충. 간접비는 Heinrich (1931) 기준 직접:간접 = 1:4.`}
+              citation="DB/근로자사고DB.xlsx '근로손실일수' · Heinrich (1931) · 고용노동부 최저임금 고시"
             />
           </div>
           <div className="flex items-baseline gap-1">
@@ -901,7 +960,7 @@ function Overview({ D, yearFilter, role, setTab }) {
         </Card>
       )}
 
-      <Card title="AI 사고 현황 요약" titleIcon={Lightbulb} sub="Gemini가 전체 사고 데이터를 분석해 핵심 패턴과 개선 포인트를 요약합니다">
+      <Card title="AI 사고 현황 요약" titleIcon={Lightbulb} sub="Claude AI가 전체 사고 데이터를 분석해 핵심 패턴과 개선 포인트를 요약합니다">
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <button
             onClick={() => {
@@ -949,7 +1008,7 @@ ${(D.dept_ir || []).slice(0,5).map(d => `- ${d.dept}: 사고 ${d.incidents}건 /
         {!aiSummary.text && !aiSummary.error && !aiSummary.loading && (
           <div className="text-xs text-stone-400 text-center py-4">위 버튼을 누르면 AI가 전체 사고 현황을 분석합니다</div>
         )}
-        <GeminiOutput text={aiSummary.text} loading={aiSummary.loading} />
+        <AiOutput text={aiSummary.text} loading={aiSummary.loading} />
       </Card>
     </div>
   );

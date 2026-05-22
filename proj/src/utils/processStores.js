@@ -10,18 +10,30 @@ function countBy(arr, keyFn) {
   return m;
 }
 
+// 매장수 카운팅 기준에서 제외할 형태 (가맹점은 본사 영업매장이 아님, 기타출고는 매장이 아님)
+const EXCLUDED_FORMS = new Set(["가맹점", "기타출고"]);
+
 function processStores(rows) {
   const stores = [];
-  const teamDept = {};
+  const today = new Date();
   for (const r of rows) {
-    if (r["폐점여부"] !== "영업") continue;
+    // 1) 폐점여부 = Y 제외
+    const closed = r["폐점여부"];
+    if (closed && ["Y", "TRUE", "1", "예"].includes(String(closed).trim().toUpperCase())) continue;
+    // 2) 형태 = 가맹점·기타출고 제외
+    const form = r["형태"];
+    if (form && EXCLUDED_FORMS.has(String(form).trim())) continue;
+    // 3) 오픈일 없음 또는 미래 오픈 제외 (아직 영업 시작 전)
     const openDt = parseDate(r["오픈일"]);
+    if (!openDt || openDt > today) continue;
     const area = parseFloat(r["평수"]) || null;
     const warehouse = parseFloat(r["창고"]) || null;
     const display = parseFloat(r["진열평수"]) || null;
     stores.push({
-      code: r["매장"], store: r["매장명"], team: r["지역"],
-      form: r["형태"], type: r["구분"],
+      // 엑셀 실제 헤더: 매장코드 / 매장명 / 팀 / 부서 / 부문 / 형태 / 폐점여부 / 단품관리 / 오픈일 / 평수 / 실평수 / 창고 / 계약면적(㎡) / 진열평수 / 신주소 / 출고물류센터
+      code: r["매장코드"], store: r["매장명"],
+      team: r["팀"], dept: r["부서"], bum: r["부문"],
+      form: r["형태"], type: r["단품관리"],
       area, size: sizeBucket(area),
       warehouse, display,
       warehouseRatio: (warehouse && area) ? Math.round(warehouse/area*1000)/10 : null,
@@ -88,10 +100,10 @@ function computeStoreMerged(accidentsSales, stores, workersData) {
     if (a.team && a.dept) teamDept[a.team] = a.dept;
   }
   
-  // Annotate stores with dept/bum
+  // Annotate stores with dept/bum — 매장DB가 이미 가진 값을 우선, 없으면 사고DB로 보완
   for (const s of stores) {
-    s.dept = teamDept[s.team] || null;
-    s.bum = s.dept ? categorizeBum(s.dept) : null;
+    if (!s.dept) s.dept = teamDept[s.team] || null;
+    if (!s.bum) s.bum = s.dept ? categorizeBum(s.dept) : null;
   }
 
   // 매장DB가 비어있으면 사고DB의 store 집합으로 대체 (근로자DB만 있는 경우)
