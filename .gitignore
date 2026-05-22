@@ -1,20 +1,70 @@
-# Build artifacts
-dist/
+# ── OS ──────────────────────────────────
+.DS_Store
+Thumbs.db
 
-# Python
+# ── Node ────────────────────────────────
+node_modules/
+**/node_modules/
+*.log
+npm-debug.log*
+
+# ── Build artifacts ─────────────────────
+dist/
+proj/dist/
+*.tgz
+
+# ── Python ──────────────────────────────
 __pycache__/
 *.pyc
 *.pyo
 *.egg-info/
+.venv/
+venv/
+.pytest_cache/
 
-# Terraform
+# ── Terraform (인프라 state는 절대 git에 올리지 말 것) ──
 .terraform/
 *.tfstate
-*.tfstate.backup
+*.tfstate.*
 .terraform.lock.hcl
+terraform.tfvars
+terraform.tfvars.json
+*.auto.tfvars
+crash.log
 
-# OS
-.DS_Store
-
-# Environment
+# ── Environment & secrets ───────────────
 .env
+.env.*
+proj/.env
+proj/.env.*
+!.env.example
+!proj/.env.example
+*.pem
+*.key
+secrets/
+credentials.json
+
+# ── Data — 원본 DB & 사고·사원 개인정보 포함 ──
+DB/
+processed/
+stores.json
+
+# ── 이미지 자산 (S3에 별도 저장) ──────────
+images/
+
+# ── Lambda zip (deploy.sh가 매번 새로 빌드) ──
+*.zip
+
+# ── IDE / tooling ───────────────────────
+.vscode/
+.idea/
+.cache/
+.playwright-mcp/
+.kiro/
+proj/.omc/
+
+# ── 포함 대상 (참고: 산출 JS는 git에 유지 — 대시보드 동작 필수) ──
+# proj/src/data/workerData.js
+# proj/src/data/snapshots.js
+# proj/src/data/storesData.js
+

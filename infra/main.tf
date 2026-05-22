@@ -27,11 +27,26 @@ variable "project" {
   default     = "daiso-safety"
 }
 
+variable "deploy_version" {
+  description = "리소스 이름 충돌 방지를 위한 배포 버전 접미사"
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.deploy_version == "" || can(regex("^[a-z0-9][a-z0-9-]*[a-z0-9]$", var.deploy_version))
+    error_message = "deploy_version은 비어 있거나, 소문자/숫자/하이픈만 사용하고 소문자 또는 숫자로 시작/종료해야 합니다."
+  }
+}
+
 variable "kakao_access_token" {
   description = "Kakao Talk Message API access token for test sends"
   type        = string
   default     = ""
   sensitive   = true
+}
+
+locals {
+  resource_prefix = var.deploy_version == "" ? var.project : "${var.project}-${var.deploy_version}"
 }
 
 provider "aws" {
@@ -50,11 +65,12 @@ provider "aws" {
 
 # 1) 정적 웹 호스팅 — Frontend
 resource "aws_s3_bucket" "frontend" {
-  bucket = "${var.project}-frontend"
+  bucket = "${local.resource_prefix}-frontend"
 
   tags = {
-    Project = var.project
-    Purpose = "static-web-hosting"
+    Project       = var.project
+    DeployVersion = var.deploy_version
+    Purpose       = "static-web-hosting"
   }
 }
 
@@ -100,21 +116,23 @@ resource "aws_s3_bucket_policy" "frontend" {
 
 # 2) 모델 산출물 + stores.json
 resource "aws_s3_bucket" "models" {
-  bucket = "${var.project}-models"
+  bucket = "${local.resource_prefix}-models"
 
   tags = {
-    Project = var.project
-    Purpose = "model-artifacts"
+    Project       = var.project
+    DeployVersion = var.deploy_version
+    Purpose       = "model-artifacts"
   }
 }
 
 # 3) 배치 결과 저장 (내부용, 퍼블릭 불필요)
 resource "aws_s3_bucket" "daily" {
-  bucket = "${var.project}-daily"
+  bucket = "${local.resource_prefix}-daily"
 
   tags = {
-    Project = var.project
-    Purpose = "batch-results"
+    Project       = var.project
+    DeployVersion = var.deploy_version
+    Purpose       = "batch-results"
   }
 }
 
@@ -133,11 +151,12 @@ data "aws_iam_policy_document" "lambda_assume" {
 }
 
 resource "aws_iam_role" "lambda_exec" {
-  name               = "${var.project}-lambda-exec"
+  name               = "${local.resource_prefix}-lambda-exec"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
 
   tags = {
-    Project = var.project
+    Project       = var.project
+    DeployVersion = var.deploy_version
   }
 }
 
@@ -178,7 +197,7 @@ data "aws_iam_policy_document" "lambda_permissions" {
 }
 
 resource "aws_iam_role_policy" "lambda_permissions" {
-  name   = "${var.project}-lambda-permissions"
+  name   = "${local.resource_prefix}-lambda-permissions"
   role   = aws_iam_role.lambda_exec.id
   policy = data.aws_iam_policy_document.lambda_permissions.json
 }
@@ -211,16 +230,17 @@ data "aws_iam_policy_document" "alerts_permissions" {
 }
 
 resource "aws_iam_role" "alerts_exec" {
-  name               = "${var.project}-alerts-exec"
+  name               = "${local.resource_prefix}-alerts-exec"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
 
   tags = {
-    Project = var.project
+    Project       = var.project
+    DeployVersion = var.deploy_version
   }
 }
 
 resource "aws_iam_role_policy" "alerts_permissions" {
-  name   = "${var.project}-alerts-permissions"
+  name   = "${local.resource_prefix}-alerts-permissions"
   role   = aws_iam_role.alerts_exec.id
   policy = data.aws_iam_policy_document.alerts_permissions.json
 }
@@ -230,7 +250,7 @@ resource "aws_iam_role_policy" "alerts_permissions" {
 # ---------------------------------------------------------------------------
 
 resource "aws_lambda_layer_version" "core" {
-  layer_name          = "${var.project}-core"
+  layer_name          = "${local.resource_prefix}-core"
   filename            = "${path.module}/../dist/core-layer.zip"
   source_code_hash    = filebase64sha256("${path.module}/../dist/core-layer.zip")
   compatible_runtimes = ["python3.11", "python3.12"]
@@ -243,7 +263,7 @@ resource "aws_lambda_layer_version" "core" {
 # ---------------------------------------------------------------------------
 
 resource "aws_lambda_function" "notify" {
-  function_name    = "${var.project}-notify"
+  function_name    = "${local.resource_prefix}-notify"
   role             = aws_iam_role.lambda_exec.arn
   handler          = "handler.lambda_handler"
   runtime          = "python3.12"
@@ -267,7 +287,8 @@ resource "aws_lambda_function" "notify" {
   }
 
   tags = {
-    Project = var.project
+    Project       = var.project
+    DeployVersion = var.deploy_version
   }
 }
 
@@ -304,7 +325,7 @@ resource "aws_lambda_permission" "notify_invoke_public" {
 # ---------------------------------------------------------------------------
 
 resource "aws_lambda_function" "alerts" {
-  function_name    = "${var.project}-alerts"
+  function_name    = "${local.resource_prefix}-alerts"
   role             = aws_iam_role.alerts_exec.arn
   handler          = "handler.lambda_handler"
   runtime          = "python3.12"
@@ -321,7 +342,8 @@ resource "aws_lambda_function" "alerts" {
   }
 
   tags = {
-    Project = var.project
+    Project       = var.project
+    DeployVersion = var.deploy_version
   }
 }
 
@@ -358,7 +380,7 @@ resource "aws_lambda_permission" "alerts_invoke_public" {
 # ---------------------------------------------------------------------------
 
 resource "aws_lambda_function" "batch_orchestrator" {
-  function_name    = "${var.project}-batch-orchestrator"
+  function_name    = "${local.resource_prefix}-batch-orchestrator"
   role             = aws_iam_role.lambda_exec.arn
   handler          = "handler.lambda_handler"
   runtime          = "python3.12"
@@ -381,7 +403,8 @@ resource "aws_lambda_function" "batch_orchestrator" {
   }
 
   tags = {
-    Project = var.project
+    Project       = var.project
+    DeployVersion = var.deploy_version
   }
 }
 
@@ -390,12 +413,13 @@ resource "aws_lambda_function" "batch_orchestrator" {
 # ---------------------------------------------------------------------------
 
 resource "aws_cloudwatch_event_rule" "daily_batch" {
-  name                = "${var.project}-daily-batch"
+  name                = "${local.resource_prefix}-daily-batch"
   description         = "매일 06:00 KST batch-orchestrator 트리거"
   schedule_expression = "cron(0 21 * * ? *)"
 
   tags = {
-    Project = var.project
+    Project       = var.project
+    DeployVersion = var.deploy_version
   }
 }
 
@@ -444,4 +468,14 @@ output "daily_bucket" {
 output "frontend_bucket_name" {
   description = "프론트엔드 S3 버킷 이름 (deploy.sh 참조용)"
   value       = aws_s3_bucket.frontend.id
+}
+
+output "deploy_version" {
+  description = "배포 버전"
+  value       = var.deploy_version
+}
+
+output "resource_prefix" {
+  description = "리소스 이름 접두사"
+  value       = local.resource_prefix
 }

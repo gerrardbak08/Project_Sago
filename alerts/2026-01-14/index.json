@@ -1,0 +1,17 @@
+[
+  {
+    "store_code": "71822",
+    "store_name": "GS슈퍼의정부민락점",
+    "region": "강북팀",
+    "date": "2026-01-14",
+    "timestamp": "2026-05-04T23:42:28+09:00",
+    "trigger_type": "manual",
+    "risk_cust": "low",
+    "risk_cust_score": 47,
+    "risk_emp": "low",
+    "risk_emp_score": 25,
+    "dominant_type_cust": "낙상",
+    "dominant_type_emp": "넘어짐",
+    "detail_key": "alerts/2026-01-14/71822_1777905748.json"
+  }
+]

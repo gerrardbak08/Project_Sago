@@ -5,13 +5,37 @@ set -euo pipefail
 
 INFRA_DIR="infra"
 AWS_REGION="${AWS_REGION:-ap-northeast-2}"
+PROJECT_NAME="${TF_VAR_project:-daiso-safety}"
+DEPLOY_VERSION="${DEPLOY_VERSION:-${TF_VAR_deploy_version:-v1}}"
+
+if [[ ! "$DEPLOY_VERSION" =~ ^[a-z0-9][a-z0-9-]*[a-z0-9]$ ]]; then
+  echo "DEPLOY_VERSION은 소문자/숫자/하이픈만 사용하고 소문자 또는 숫자로 시작/종료해야 합니다: $DEPLOY_VERSION" >&2
+  exit 1
+fi
+
+if [ "$DEPLOY_VERSION" = "legacy" ]; then
+  TF_WORKSPACE_NAME="default"
+  TF_DEPLOY_VERSION=""
+else
+  TF_WORKSPACE_NAME="${PROJECT_NAME}-${DEPLOY_VERSION}"
+  TF_DEPLOY_VERSION="$DEPLOY_VERSION"
+fi
+
+export TF_VAR_deploy_version="$TF_DEPLOY_VERSION"
 
 echo "=== [0/4] AWS 자격증명 갱신 ==="
 eval "$(aws configure export-credentials --format env)"
 echo "  ✓ 자격증명 갱신 완료"
+echo "  배포 버전: $DEPLOY_VERSION"
+echo "  Terraform workspace: $TF_WORKSPACE_NAME"
 
 echo "=== [1/4] Terraform init ==="
 terraform -chdir="$INFRA_DIR" init -input=false
+if ! terraform -chdir="$INFRA_DIR" workspace select "$TF_WORKSPACE_NAME" >/dev/null 2>&1; then
+  echo "Terraform workspace가 없습니다: $TF_WORKSPACE_NAME" >&2
+  echo "삭제할 배포 버전을 DEPLOY_VERSION으로 지정했는지 확인하세요." >&2
+  exit 1
+fi
 
 _tf_output() {
   local name="$1"

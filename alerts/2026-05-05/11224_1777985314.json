@@ -1,0 +1,68 @@
+{
+  "store_code": "11224",
+  "store_name": "스타시티건대점",
+  "region": "구리팀",
+  "date": "2026-05-05",
+  "weather": {
+    "temperature_2m_max": 20.2,
+    "temperature_2m_min": 6.7,
+    "precipitation_sum": 0.0,
+    "rain_sum": 0.0,
+    "snowfall_sum": 0.0,
+    "wind_speed_10m_max": 7.8,
+    "relative_humidity_2m_mean": 68,
+    "soil_temperature_0_to_7cm_mean": 14.7
+  },
+  "results": {
+    "cust": {
+      "leaf_id": "6",
+      "fallback_level": 0,
+      "risk": {
+        "score": 26,
+        "grade": "low",
+        "frequency_score": 0.0398,
+        "concentration_score": 0.4068,
+        "dominant_type": "재물",
+        "dominant_ratio": 0.4068
+      },
+      "guide": {
+        "위험_요약": "스타시티건대점: 위험등급 낮음, 주요 위험유형 재물",
+        "주요_위험유형": "재물",
+        "안전_수칙": [
+          "통로 정리정돈을 실시하고 장애물을 제거하세요.",
+          "중량물은 반드시 2인 1조로 운반하세요.",
+          "작업 시 안전 장비(안전화, 장갑 등)를 착용하세요."
+        ],
+        "과거_사례_인용": "탈취제 상품을 집어드는 순간 내용물이 새어 나와 \n의류에 이염되는 사고  / 쇼핑 중 남성고객이 코너를 돌다가 \n상품박스에 걸러 넘어짐 / 외부주차장에서 미끄러짐(블랙아이스추정)\n* CCTV사각지대",
+        "추가_참고": "[Mock 모드] 기상 조건 기반 규칙 생성 (최저기온: 6.7°C)"
+      },
+      "matched_rule": "soil_temperature_0_to_7cm_mean <= 26.55 & 평수 > 299.75 & 계약면적(㎡) <= 1329.0 & 일평균매출 <= 16275187.5 & 매장인원 <= 9.5",
+      "incident_count": 59
+    },
+    "emp": {
+      "leaf_id": "7",
+      "fallback_level": 0,
+      "risk": {
+        "score": 24,
+        "grade": "low",
+        "frequency_score": 0.0112,
+        "concentration_score": 0.4,
+        "dominant_type": "넘어짐",
+        "dominant_ratio": 0.4
+      },
+      "guide": {
+        "위험_요약": "스타시티건대점: 위험등급 낮음, 주요 위험유형 넘어짐",
+        "주요_위험유형": "넘어짐",
+        "안전_수칙": [
+          "통로 정리정돈을 실시하고 장애물을 제거하세요.",
+          "중량물은 반드시 2인 1조로 운반하세요.",
+          "작업 시 안전 장비(안전화, 장갑 등)를 착용하세요."
+        ],
+        "과거_사례_인용": "해당 조건의 과거 사고 기록 있음",
+        "추가_참고": "[Mock 모드] 기상 조건 기반 규칙 생성 (최저기온: 6.7°C)"
+      },
+      "matched_rule": "wind_speed_10m_max > 2.155 & 일평균매출 <= 7575187.5 & 실평수 > 273.1",
+      "incident_count": 5
+    }
+  }
+}

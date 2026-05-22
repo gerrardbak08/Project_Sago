@@ -7,6 +7,31 @@ INFRA_DIR="infra"
 PROJ_DIR="proj"
 ENV_PROD="$PROJ_DIR/.env.production"
 DIST_DIR="dist"
+AWS_REGION="${AWS_REGION:-ap-northeast-2}"
+PROJECT_NAME="${TF_VAR_project:-daiso-safety}"
+DEPLOY_VERSION="${DEPLOY_VERSION:-${TF_VAR_deploy_version:-v1}}"
+
+if [[ ! "$DEPLOY_VERSION" =~ ^[a-z0-9][a-z0-9-]*[a-z0-9]$ ]]; then
+  echo "DEPLOY_VERSION은 소문자/숫자/하이픈만 사용하고 소문자 또는 숫자로 시작/종료해야 합니다: $DEPLOY_VERSION" >&2
+  exit 1
+fi
+
+if [ "$DEPLOY_VERSION" = "legacy" ]; then
+  RESOURCE_PREFIX="$PROJECT_NAME"
+  TF_WORKSPACE_NAME="default"
+  TF_DEPLOY_VERSION=""
+else
+  RESOURCE_PREFIX="${PROJECT_NAME}-${DEPLOY_VERSION}"
+  TF_WORKSPACE_NAME="$RESOURCE_PREFIX"
+  TF_DEPLOY_VERSION="$DEPLOY_VERSION"
+fi
+
+if [ "${#RESOURCE_PREFIX}" -gt 49 ]; then
+  echo "S3 버킷명 길이 제한을 위해 PROJECT+DEPLOY_VERSION 접두사는 49자 이하여야 합니다: $RESOURCE_PREFIX" >&2
+  exit 1
+fi
+
+export TF_VAR_deploy_version="$TF_DEPLOY_VERSION"
 
 # ---------------------------------------------------------------------------
 # AWS 자격증명 갱신
@@ -14,6 +39,9 @@ DIST_DIR="dist"
 echo "=== [0/7] AWS 자격증명 갱신 ==="
 eval "$(aws configure export-credentials --format env)"
 echo "  ✓ 자격증명 갱신 완료"
+echo "  배포 버전: $DEPLOY_VERSION"
+echo "  리소스 접두사: $RESOURCE_PREFIX"
+echo "  Terraform workspace: $TF_WORKSPACE_NAME"
 
 # ---------------------------------------------------------------------------
 # Lambda zip 패키징
@@ -66,6 +94,8 @@ echo "  ✓ alerts.zip ($(du -sh "$DIST_DIR/alerts.zip" | cut -f1))"
 
 echo "=== [2/6] Terraform init (필요시) ==="
 terraform -chdir="$INFRA_DIR" init -input=false
+terraform -chdir="$INFRA_DIR" workspace select "$TF_WORKSPACE_NAME" >/dev/null 2>&1 \
+  || terraform -chdir="$INFRA_DIR" workspace new "$TF_WORKSPACE_NAME" >/dev/null
 
 if [ -f ".env" ] && [ -z "${KAKAO_ACCESS_TOKEN:-}" ]; then
   KAKAO_ACCESS_TOKEN=$(awk -F= '/^KAKAO_ACCESS_TOKEN=/ { value=substr($0, index($0, "=") + 1) } END { gsub(/^["'\''"]|["'\''"]$/, "", value); print value }' .env)
@@ -113,14 +143,14 @@ echo "  모델 버킷: $MODELS_BUCKET"
 
 # models/cust/ — 배포용 JSON 규칙/리프 인덱스
 aws s3 sync models/cust/ "s3://$MODELS_BUCKET/models/cust/" \
-  --region ap-northeast-2 \
+  --region "$AWS_REGION" \
   --delete \
   --exclude ".gitkeep"
 echo "  ✓ models/cust/ 업로드"
 
 # models/emp/ — 배포용 JSON 규칙/리프 인덱스
 aws s3 sync models/emp/ "s3://$MODELS_BUCKET/models/emp/" \
-  --region ap-northeast-2 \
+  --region "$AWS_REGION" \
   --delete \
   --exclude ".gitkeep"
 echo "  ✓ models/emp/ 업로드"
@@ -143,12 +173,12 @@ aws s3 sync "$PROJ_DIR/dist/assets/" "s3://$BUCKET/assets/" \
 # images/ — 사고 사례 이미지 (1일 캐시)
 aws s3 sync images/ "s3://$BUCKET/images/" \
   --cache-control "max-age=86400" \
-  --region ap-northeast-2
+  --region "$AWS_REGION"
 echo "  ✓ images/ 업로드"
 
 # stores.json — Lambda가 매장 정보를 로드하는 모델 버킷 산출물
 aws s3 cp stores.json "s3://$MODELS_BUCKET/stores.json" \
-  --region ap-northeast-2
+  --region "$AWS_REGION"
 echo "  ✓ stores.json 업로드"
 
 echo ""
