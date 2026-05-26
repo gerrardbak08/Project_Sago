@@ -263,6 +263,17 @@ function StoreAnalysis({ D, yearFilter, setYearFilter }) {
               <Line yAxisId="r" type="monotone" dataKey="rate" stroke={RD} strokeWidth={2.5} dot={{r:4}} name="IR%" />
             </BarChart>
           </ResponsiveContainer>
+          {D.size_stats.some(s => s.avg_workers != null) && (
+            <div className="mt-2 grid grid-cols-4 gap-1.5">
+              {D.size_stats.map(s => (
+                <div key={s.size} className="rounded bg-stone-50 border border-stone-200 px-2 py-1.5 text-center">
+                  <div className="text-[9px] text-stone-500 font-medium truncate">{s.size}</div>
+                  <div className="text-sm font-bold tabular-nums text-stone-900 mt-0.5">{s.avg_workers != null ? s.avg_workers : "—"}</div>
+                  <div className="text-[9px] text-stone-400">평균인원</div>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="mt-2 p-2 rounded bg-red-50 border border-red-200 text-xs text-red-700">
             <b>규모별 IR 관찰</b>: 특대(400평+) <b>{D.size_stats[3]?.rate}%</b> · 소형 <b>{D.size_stats[0]?.rate}%</b>. <span className="text-stone-500">큰 매장은 인력·고객·재고가 모두 많아 노출량 자체가 큼. 노출 단위(시간·인원) 정규화 후 비교 필요.</span>
           </div>

@@ -125,7 +125,7 @@ function Matrix({ data, rowKey, cols, rowLabels }) {
           <th className="text-left text-stone-500 font-semibold align-bottom pb-1" style={{ fontSize: 10 }}>-</th>
           {cols.map(c => (
             <th key={c} className="text-center text-stone-500 font-semibold align-bottom pb-1 leading-tight"
-                style={{ fontSize: 9 }}>{c}</th>
+                style={{ fontSize: 9, letterSpacing: "-0.05em" }}>{c}</th>
           ))}
           <th className="text-right text-stone-500 font-semibold align-bottom pb-1" style={{ fontSize: 10 }}>합계</th>
         </tr></thead>
@@ -160,5 +160,20 @@ function Matrix({ data, rowKey, cols, rowLabels }) {
 }
 
 
+function gradientCells(data, hexColor, maxTint = 0.55) {
+  const n = data.length;
+  return data.map((_, i) => {
+    const t = n <= 1 ? 0 : (i / (n - 1)) * maxTint;
+    const r = parseInt(hexColor.slice(1, 3), 16);
+    const g = parseInt(hexColor.slice(3, 5), 16);
+    const b = parseInt(hexColor.slice(5, 7), 16);
+    const nr = Math.round(r + (255 - r) * t);
+    const ng = Math.round(g + (255 - g) * t);
+    const nb = Math.round(b + (255 - b) * t);
+    const h = v => v.toString(16).padStart(2, '0');
+    return <Cell key={i} fill={`#${h(nr)}${h(ng)}${h(nb)}`} />;
+  });
+}
+
 // ========== TAB 1: Overview ==========
-export { CalcTip, HeatmapGrid, BarRank, Matrix };
+export { CalcTip, HeatmapGrid, BarRank, Matrix, gradientCells };

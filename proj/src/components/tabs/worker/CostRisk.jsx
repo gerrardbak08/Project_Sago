@@ -110,7 +110,7 @@ function CostRisk({ D, yearFilter }) {
         <Card title="부서별 공상비용" titleIcon={Building2} sub="비용 기록된 건의 부서별 집계 — 집중 부서 식별" right={<ExportBtn rows={costByDept} filename="부서별_비용.csv" />}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <ResponsiveContainer width="100%" height={200} debounce={50}>
-              <BarChart data={costByDept || []} layout="vertical" margin={{ left: 10 }}>
+              <BarChart data={costByDept || []} layout="vertical" margin={{ left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false}
                   tickFormatter={v => `${(v/10000).toFixed(0)}만`} />

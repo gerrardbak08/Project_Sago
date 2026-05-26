@@ -13,6 +13,35 @@ import CComp       from '../tabs/customer/CComp.jsx';
 import CWatch      from '../tabs/customer/CWatch.jsx';
 import CVictim     from '../tabs/customer/CVictim.jsx';
 
+// ── ErrorBoundary — 탭 단위 오류 격리 ──────────────────────
+class TabErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(e) { return { error: e }; }
+  componentDidCatch(e, info) { console.error("[TabErrorBoundary]", e, info); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex items-center justify-center py-16 px-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 max-w-md w-full text-center">
+            <div className="text-3xl mb-3">⚠️</div>
+            <div className="text-sm font-semibold text-amber-800 mb-2">이 탭에서 오류가 발생했습니다</div>
+            <div className="text-xs text-amber-700 bg-white rounded-lg p-2.5 border border-amber-100 font-mono text-left mb-3 break-all">
+              {this.state.error.message}
+            </div>
+            <button
+              onClick={() => this.setState({ error: null })}
+              className="px-4 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold cursor-pointer">
+              다시 시도
+            </button>
+            <div className="text-[10px] text-amber-600 mt-2">다른 탭은 정상 작동합니다</div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function CustomerDashboard({ onBack, onAlertClick }) {
   const [ctab, setCtab] = useState("cov");
   const [yearFilter, setYearFilter] = useState("all");
@@ -104,12 +133,14 @@ function CustomerDashboard({ onBack, onAlertClick }) {
 
       <main className="flex-1 px-4 md:px-6 py-4">
         <div className="max-w-screen-xl mx-auto">
-          {ctab === "cov"   && <COverview D={D}/>}
-          {ctab === "cdept" && <CDept D={D}/>}
-          {ctab === "ctype" && <CTypePlace D={D}/>}
-          {ctab === "ccomp" && <CComp D={D}/>}
-          {ctab === "cwatch"&& <CWatch D={D}/>}
-          {ctab === "cvic"  && <CVictim D={D}/>}
+          <TabErrorBoundary key={ctab}>
+            {ctab === "cov"   && <COverview D={D}/>}
+            {ctab === "cdept" && <CDept D={D}/>}
+            {ctab === "ctype" && <CTypePlace D={D}/>}
+            {ctab === "ccomp" && <CComp D={D}/>}
+            {ctab === "cwatch"&& <CWatch D={D}/>}
+            {ctab === "cvic"  && <CVictim D={D}/>}
+          </TabErrorBoundary>
         </div>
       </main>
 
@@ -121,35 +152,6 @@ function CustomerDashboard({ onBack, onAlertClick }) {
   );
 }
 
-
-// ── ErrorBoundary — 탭 단위 오류 격리 ──────────────────────
-class TabErrorBoundary extends Component {
-  constructor(props) { super(props); this.state = { error: null }; }
-  static getDerivedStateFromError(e) { return { error: e }; }
-  componentDidCatch(e, info) { console.error("[TabErrorBoundary]", e, info); }
-  render() {
-    if (this.state.error) {
-      return (
-        <div className="flex items-center justify-center py-16 px-4">
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 max-w-md w-full text-center">
-            <div className="text-3xl mb-3">⚠️</div>
-            <div className="text-sm font-semibold text-amber-800 mb-2">이 탭에서 오류가 발생했습니다</div>
-            <div className="text-xs text-amber-700 bg-white rounded-lg p-2.5 border border-amber-100 font-mono text-left mb-3 break-all">
-              {this.state.error.message}
-            </div>
-            <button
-              onClick={() => this.setState({ error: null })}
-              className="px-4 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold cursor-pointer">
-              다시 시도
-            </button>
-            <div className="text-[10px] text-amber-600 mt-2">다른 탭은 정상 작동합니다</div>
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 // ============================================================
 // APP (근로자 + 고객 통합 라우터)

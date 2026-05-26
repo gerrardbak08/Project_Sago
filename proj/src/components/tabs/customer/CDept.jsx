@@ -5,6 +5,7 @@ import { CUSTOMER_BLUE, DEEP_BLUE, DAISO_RED, ALERT_RED, SAFE_GREEN, BL, OR, GR,
 import { pct, fmt, fmtKrw, TT, EmptyState } from '../../../utils/uiHelpers.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card } from '../../../components/shared/Card.jsx';
+import { gradientCells } from '../../../components/shared/ChartHelpers.jsx';
 import { CUST_AMBER, CUST_BLUE, CUST_TEAL, TYPE_COLOR } from '../../../constants/customerColors.js';
 import { yearKey, compKey, cFilter } from '../../../utils/customerHelpers.js';
 import CUSTOMER_DATA from '../../../data/customerData.js';
@@ -59,7 +60,7 @@ function CDept({ D }) {
       <Card title={`영업부별 현황 ${selBumun!=="전체" ? `(${selBumun})` : ""}`} titleIcon={Building2} sub={`${yrLabel} 영업부 사고건수 + 보상금액`}
         right={<ExportBtn rows={filteredDepts.map(d=>({부문:d.bumun,영업부:d.dept,건수:d._show,보상:d._comp,보상건수:d._comp_count}))} filename={`고객사고_영업부_${yrLabel}.csv`}/>}>
         <ResponsiveContainer width="100%" height={Math.max(220, filteredDepts.length*30)} debounce={50}>
-          <BarChart data={filteredDepts} layout="vertical" margin={{left:40}}>
+          <BarChart data={filteredDepts} layout="vertical" margin={{left:0}}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false}/>
             <XAxis type="number" tick={{fontSize:11,fill:"#78716C"}} axisLine={false} tickLine={false}/>
             <YAxis type="category" dataKey="dept" tick={{fontSize:10,fill:"#44403C"}} axisLine={false} tickLine={false} width={140} interval={0} tickFormatter={d=>d.replace("영업부","")}/>
@@ -94,12 +95,13 @@ function CDept({ D }) {
           ))}
         </div>
         <ResponsiveContainer width="100%" height={Math.max(280, Math.min(filteredTeams.length, 15)*22)} debounce={50}>
-          <BarChart data={filteredTeams.slice(0,15)} layout="vertical" margin={{left:10}}>
+          <BarChart data={filteredTeams.slice(0,15)} layout="vertical" margin={{left:0}}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false}/>
             <XAxis type="number" tick={{fontSize:11,fill:"#78716C"}} axisLine={false} tickLine={false}/>
             <YAxis type="category" dataKey="team" tick={{fontSize:11,fill:"#44403C"}} axisLine={false} tickLine={false} width={80} interval={0}/>
             <Tooltip content={<TT/>}/>
             <Bar dataKey="_show" fill={CUST_TEAL} radius={[0,5,5,0]} name="사고건수">
+              {gradientCells(filteredTeams.slice(0,15), CUST_TEAL)}
               <LabelList dataKey="_show" position="right" style={{fontSize:11,fill:INK,fontWeight:700}}/>
             </Bar>
           </BarChart>

@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "comment": "카카오 알림 수신자 UUID. S3 MODELS_BUCKET/recipients.json 에 업로드 후 배치/알림 핸들러가 로드.",
+  "default": [],
+  "stores": {
+    "10130": [],
+    "10481": []
+  }
+}

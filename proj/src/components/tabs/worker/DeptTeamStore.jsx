@@ -6,7 +6,7 @@ import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN 
 import { pct, fmt, fmtKrw, TT, EmptyState } from '../../../utils/uiHelpers.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card, EstimateBadge } from '../../../components/shared/Card.jsx';
-import { CalcTip, HeatmapGrid, BarRank, Matrix } from '../../../components/shared/ChartHelpers.jsx';
+import { CalcTip, HeatmapGrid, BarRank, Matrix, gradientCells } from '../../../components/shared/ChartHelpers.jsx';
 import { RISK_COLORS } from '../../../constants/riskColors.js';
 
 const yoy = (cur, prev) => prev ? ((cur - prev) / prev * 100) : null;
@@ -35,6 +35,7 @@ function DeptTeamStore({ D, yearFilter }) {
   const teamsAll = transform(D.teams);
   
   const allD = [...deptsAll].sort((a, b) => b.total - a.total);
+  const deptsByPerStore = [...deptsAll].sort((a, b) => b.per_store - a.per_store);
   const depts = deptsAll.filter(d => d.bum === bum).sort((a, b) => b.total - a.total);
   const teams = teamsAll.filter(t => t.bum === bum && (!selDept || t.dept === selDept)).sort((a, b) => b.total - a.total);
   
@@ -58,7 +59,7 @@ function DeptTeamStore({ D, yearFilter }) {
 
       <Card title="영업부 전체 사고 랭킹" titleIcon={Building2} sub={`${isYearFilter ? `${yearFilter}년` : "전체 기간"} 10개 영업부 — ${bum} 부문 강조 · 막대 클릭 시 부문 전환`} right={<ExportBtn rows={allD.map(d => ({부문: d.bum, 부서: d.dept, 총: d.total, Y24: d.y24, Y25: d.y25, Y26: d.y26, 매장수: d.stores, 매장당: d.per_store}))} filename="부서별_사고현황.csv" />}>
         <ResponsiveContainer width="100%" height={360} debounce={50}>
-          <BarChart data={allD} layout="vertical" margin={{ left: 30 }} onClick={(e) => { if (e?.activePayload) { const p = e.activePayload[0].payload; setBum(p.bum); setSelDept(p.dept); } }}>
+          <BarChart data={allD} layout="vertical" margin={{ left: 0 }} onClick={(e) => { if (e?.activePayload) { const p = e.activePayload[0].payload; setBum(p.bum); setSelDept(p.dept); } }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false} />
             <XAxis type="number" tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
             <YAxis type="category" dataKey="dept" tick={{ fontSize: 10, fill: "#44403C" }} axisLine={false} tickLine={false} width={140} />
@@ -94,12 +95,15 @@ function DeptTeamStore({ D, yearFilter }) {
       <Card title="매장당 사고율 정규화" titleIcon={Target} sub="절대건수는 규모 반영 — 매장당 건수로 진짜 위험도 판단">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <ResponsiveContainer width="100%" height={220} debounce={50}>
-            <BarChart data={[...deptsAll].sort((a,b) => b.per_store - a.per_store)} layout="vertical" margin={{ left: 10 }}>
+            <BarChart data={deptsByPerStore} layout="vertical" margin={{ left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="dept" tick={{ fontSize: 10, fill: "#44403C" }} axisLine={false} tickLine={false} width={120} />
               <Tooltip content={<TT />} />
               <Bar dataKey="per_store" fill={PR} radius={[0, 6, 6, 0]} name="매장당 사고">
+                {deptsByPerStore.map((d, i) => (
+                  <Cell key={i} fill={PR} opacity={d.bum === bum ? 1 : 0.35} />
+                ))}
                 <LabelList dataKey="per_store" position="right" style={{ fontSize: 11, fill: NV, fontWeight: 700 }} />
               </Bar>
             </BarChart>

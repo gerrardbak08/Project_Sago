@@ -6,11 +6,15 @@ import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN 
 import { pct, fmt, fmtKrw, TT, EmptyState } from '../../../utils/uiHelpers.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card, EstimateBadge } from '../../../components/shared/Card.jsx';
-import { CalcTip, HeatmapGrid, BarRank, Matrix } from '../../../components/shared/ChartHelpers.jsx';
+import { CalcTip, HeatmapGrid, BarRank, Matrix, gradientCells } from '../../../components/shared/ChartHelpers.jsx';
 import { RISK_COLORS } from '../../../constants/riskColors.js';
 
 function StoreDeepDive({ D, yearFilter }) {
   const yrLabel = !yearFilter || yearFilter === "all" ? "전체 기간" : `${yearFilter}년`;
+  const sigunguData = (D.sigungu_top || []).map(d => ({
+    ...d,
+    label: `${d.시도 || ''} ${d.시군구 || ''}`.trim(),
+  }));
   return (
     <div className="space-y-3 sm:space-y-4">
       <div className="flex items-center gap-2 text-xs text-stone-500 -mb-1">
@@ -24,16 +28,17 @@ function StoreDeepDive({ D, yearFilter }) {
       {D.sigungu_top && (
         <Card title="시군구별 사고 밀도 TOP 30" titleIcon={MapIcon} sub={`전국 ${D.sigungu_total}개 시군구 중 사고 다발 지역 — 지역별 맞춤 관리`} right={<ExportBtn rows={D.sigungu_top} filename="시군구별.csv" />}>
           <ResponsiveContainer width="100%" height={500} debounce={50}>
-            <BarChart data={D.sigungu_top || []} layout="vertical" margin={{ left: 10 }}>
+            <BarChart data={sigunguData} layout="vertical" margin={{ left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="시군구" tick={{ fontSize: 10, fill: "#44403C" }} axisLine={false} tickLine={false} width={90} />
+              <YAxis type="category" dataKey="label" tick={{ fontSize: 10, fill: "#44403C" }} axisLine={false} tickLine={false} width={120} />
               <Tooltip content={({active, payload}) => {
                 if (!active || !payload?.length) return null;
                 const p = payload[0].payload;
                 return <div className="bg-white border border-stone-200 rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.06)] px-3 py-2 text-xs"><div className="font-bold">{p.시도} {p.시군구}</div><div>매장 {p.stores_count}개 · 사고 {p.incidents}건</div><div className="font-bold mt-0.5" style={{color: p.rate > 50 ? RD : OR}}>IR {p.rate}%</div></div>;
               }} />
               <Bar dataKey="incidents" fill={OR} radius={[0,5,5,0]} name="사고">
+                {gradientCells(sigunguData, OR)}
                 <LabelList dataKey="incidents" position="right" style={{ fontSize: 10, fill: NV, fontWeight: 700 }} />
               </Bar>
             </BarChart>

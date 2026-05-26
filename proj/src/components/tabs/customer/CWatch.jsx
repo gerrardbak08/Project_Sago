@@ -12,8 +12,8 @@ import CUSTOMER_DATA from '../../../data/customerData.js';
 function CWatch({ D }) {
   const [search, setSearch] = useState("");
   const yrLabel = D._yr ? `${D._yr}년` : "전체";
-  const list = D.store_watchlist.slice(0,30);
-  const filtered = list.filter(s => !search || s.store.includes(search) || s.dept.includes(search) || s.team.includes(search));
+  const filtered = D.store_watchlist.filter(s => !search || s.store.includes(search) || s.dept.includes(search) || s.team.includes(search));
+  const list = filtered.slice(0,30);
 
   return (
     <div className="space-y-3 sm:space-y-4">

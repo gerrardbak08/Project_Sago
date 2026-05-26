@@ -91,6 +91,13 @@ const _INIT_HASH_PARAMS = (() => {
 })();
 
 function App() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+
   const [dashMode, setDashMode] = useState("worker"); // "worker" | "customer" | "alert"
   // === 역할 기반 랜딩 ===
   const initialRole = (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("role")) || null;
@@ -405,8 +412,8 @@ function App() {
           </div>
         </div>
 
-        {/* ── 3행: 탭바 (데스크톱 — 모바일은 하단 내비) ── */}
-        <div className="bg-white border-b border-stone-200 hidden lg:block">
+        {/* ── 3행: 탭바 ── */}
+        <div className="bg-white border-b border-stone-200">
           <div className="max-w-[1400px] mx-auto px-2 sm:px-4 flex gap-0 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
             {TABS.map(t => (
               <button key={t.id} onClick={() => setTab(t.id)}
@@ -477,8 +484,8 @@ function App() {
         <div>© ㈜아성다이소 안전보건팀 · v9 · {new Date().getFullYear()}.{String(new Date().getMonth()+1).padStart(2,"0")}</div>
       </div>
 
-      {/* ── 모바일 하단 탭 내비게이션 ── */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-stone-200 shadow-[0_-2px_10px_rgba(0,0,0,0.06)]"
+      {/* ── 모바일 하단 탭 내비 (640px 미만 = 스마트폰만) ── */}
+      {isMobile && <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-stone-200 shadow-[0_-2px_10px_rgba(0,0,0,0.06)]"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div className="flex overflow-x-auto" style={{ scrollbarWidth: "none" }}>
           {TABS.map(t => (
@@ -489,7 +496,7 @@ function App() {
             </button>
           ))}
         </div>
-      </nav>
+      </nav>}
     </div>
   );
 }

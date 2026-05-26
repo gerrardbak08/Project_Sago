@@ -8,6 +8,7 @@ import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card, EstimateBadge } from '../../../components/shared/Card.jsx';
 import { CalcTip, HeatmapGrid, BarRank, Matrix } from '../../../components/shared/ChartHelpers.jsx';
 import { RISK_COLORS } from '../../../constants/riskColors.js';
+import APPROVAL_DATA from '../../../data/approvalData.js';
 
 function LegalReporting({ D, yearFilter }) {
   const yrLabel = !yearFilter || yearFilter === "all" ? "전체 기간" : `${yearFilter}년`;
@@ -38,14 +39,38 @@ function LegalReporting({ D, yearFilter }) {
         )}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* 산재 승인 현황 — APPROVAL_DATA 연동 시 자동 갱신 */}
         <div className="rounded-lg p-5 bg-white border border-indigo-100 relative overflow-hidden">
-          <div className="text-xs text-stone-500 font-medium uppercase tracking-wide">산재 제출 현황</div>
-          <div className="flex items-baseline gap-3 mt-2">
-            <div className="text-2xl sm:text-3xl font-bold tabular-nums">{submitRate}%</div>
-            <div className="text-xs opacity-80">제출률</div>
-          </div>
-          <div className="text-xs opacity-80 mt-1">제출 {k.submitted}건 · 미기록 {k.not_submitted}건</div>
-          <div className="mt-3 h-2 bg-stone-100 rounded-full overflow-hidden"><div className="h-full bg-indigo-400 rounded-full" style={{ width: `${submitRate}%` }} /></div>
+          <div className="text-xs text-stone-500 font-medium uppercase tracking-wide">산재 승인 현황</div>
+          {APPROVAL_DATA ? (
+            <>
+              <div className="flex items-baseline gap-3 mt-2">
+                <div className="text-2xl sm:text-3xl font-bold tabular-nums">{APPROVAL_DATA.approvalRate ?? "—"}%</div>
+                <div className="text-xs opacity-80">승인률</div>
+              </div>
+              <div className="text-xs opacity-80 mt-1">
+                승인 {APPROVAL_DATA.approved}건 · 불승인 {APPROVAL_DATA.rejected}건 · 심사중 {APPROVAL_DATA.pending}건
+              </div>
+              <div className="mt-3 h-2 bg-stone-100 rounded-full overflow-hidden">
+                <div className="h-full bg-indigo-400 rounded-full" style={{ width: `${APPROVAL_DATA.approvalRate ?? 0}%` }} />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mt-3">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold">
+                  DB 연동 전
+                </span>
+              </div>
+              <div className="text-xs text-stone-400 mt-2 leading-relaxed">
+                DB/산재승인현황.xlsx 배치 후<br />
+                <code className="font-mono text-[10px] bg-stone-100 px-1 rounded">node scripts/extract-approval.mjs</code> 실행
+              </div>
+              <div className="mt-3 h-2 bg-stone-100 rounded-full overflow-hidden">
+                <div className="h-full bg-indigo-200 rounded-full w-0" />
+              </div>
+            </>
+          )}
         </div>
         <div className="rounded-lg p-5 bg-white border border-red-200">
           <div className="text-xs text-red-600 font-bold">사고사망 (T10)</div>

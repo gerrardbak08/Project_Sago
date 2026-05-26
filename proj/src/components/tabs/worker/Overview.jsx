@@ -6,7 +6,7 @@ import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN 
 import { pct, fmt, fmtKrw, TT, EmptyState } from '../../../utils/uiHelpers.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card, EstimateBadge } from '../../../components/shared/Card.jsx';
-import { CalcTip, HeatmapGrid, BarRank, Matrix } from '../../../components/shared/ChartHelpers.jsx';
+import { CalcTip, HeatmapGrid, BarRank, Matrix, gradientCells } from '../../../components/shared/ChartHelpers.jsx';
 import { RISK_COLORS } from '../../../constants/riskColors.js';
 import { useAiGuide } from '../../../hooks/useAiGuide.js';
 import { fmtShort } from '../../../utils/format.js';
@@ -625,7 +625,7 @@ function Overview({ D, yearFilter, role, setTab }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {(isCEO || isSafety || !role) && (<Card title="재해유형별 재무 영향" titleIcon={Banknote} sub="Top 5 · 추정 재무손실 (빈도 기반)">
         <ResponsiveContainer width="100%" height={180} debounce={50}>
-          <BarChart data={typeFinance} layout="vertical" margin={{ left: 10, right: 30 }}>
+          <BarChart data={typeFinance} layout="vertical" margin={{ left: 0, right: 30 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false} />
             <XAxis type="number" tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
             <YAxis type="category" dataKey="type" tick={{ fontSize: 10, fill: "#44403C", fontWeight: 500 }} axisLine={false} tickLine={false} width={75} />
@@ -635,6 +635,7 @@ function Overview({ D, yearFilter, role, setTab }) {
               return <div className="bg-white border border-stone-200 rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.06)] px-3 py-2 text-xs"><div className="font-bold">{p.type}</div><div>사고 {p.freq}건</div><div className="font-bold mt-0.5" style={{color: DAISO_RED}}>추정 손실 {p.lossEok}억원</div></div>;
             }} />
             <Bar dataKey="lossEok" fill={DAISO_RED} radius={[0,4,4,0]}>
+              {gradientCells(typeFinance, DAISO_RED)}
               <LabelList dataKey="lossEok" position="right" formatter={(v) => `${v}억`} style={{ fontSize: 10, fill: "#44403C", fontWeight: 700 }} />
             </Bar>
           </BarChart>
@@ -759,7 +760,7 @@ function Overview({ D, yearFilter, role, setTab }) {
                 <div className="text-[10px] text-stone-500 mt-0.5">제출 처리 필요</div>
               </div>
               <div className="p-3 rounded-lg bg-stone-50 border border-stone-200">
-                <div className="text-[10px] text-stone-600 font-bold mb-1">산재 제출률</div>
+                <div className="text-[10px] text-stone-600 font-bold mb-1">산재 승인률</div>
                 <div className="text-2xl font-extrabold tabular-nums">{((k.submitted/(k.submitted+k.not_submitted))*100).toFixed(0)}%</div>
                 <div className="text-[10px] text-stone-500 mt-0.5">법적 의무 이행</div>
               </div>
@@ -806,7 +807,7 @@ function Overview({ D, yearFilter, role, setTab }) {
           </div>
           <div onClick={() => setTab && setTab("legal")} className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 cursor-pointer hover:shadow-md hover:border-emerald-300 transition">
             <div className="text-xs font-bold text-green-700 mb-1 flex items-center gap-1">보고 현황 <ChevronRight size={11} /></div>
-            <div className="text-sm text-stone-700">산재 제출률 <b>{submitRate}%</b> · 확인 필요</div>
+            <div className="text-sm text-stone-700">산재 승인률 <b>{submitRate}%</b> · 확인 필요</div>
           </div>
         </div>
       </Card>
@@ -841,7 +842,7 @@ function Overview({ D, yearFilter, role, setTab }) {
                 <div className="text-[10px] text-stone-500 mt-0.5">중대재해처벌법 지표</div>
               </div>
               <div className="rounded-lg p-3 bg-stone-50 border border-stone-200">
-                <div className="text-[10px] text-stone-500 font-bold mb-1">산재 제출률</div>
+                <div className="text-[10px] text-stone-500 font-bold mb-1">산재 승인률</div>
                 <div className="text-xl font-extrabold tabular-nums">
                   {((k.submitted/(k.submitted+k.not_submitted))*100).toFixed(0)}%
                 </div>
@@ -974,7 +975,7 @@ function Overview({ D, yearFilter, role, setTab }) {
 
 ## 주요 재해 패턴
 - 상위 재해 유형: ${Object.entries(D.kpis?.type_dist || {}).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([t,n])=>`${t} ${n}건`).join(", ") || "데이터 없음"}
-- 산재 제출률: ${submitRate}%
+- 산재 승인률: ${submitRate}%
 - 중상해 점유율: ${severeShare}%
 - 상위 2개 매장 집중도: ${top2Share}% (${top2Names})
 

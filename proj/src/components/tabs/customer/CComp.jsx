@@ -5,6 +5,7 @@ import { CUSTOMER_BLUE, DEEP_BLUE, DAISO_RED, ALERT_RED, SAFE_GREEN, BL, OR, GR,
 import { pct, fmt, fmtKrw, TT, EmptyState } from '../../../utils/uiHelpers.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card } from '../../../components/shared/Card.jsx';
+import { gradientCells } from '../../../components/shared/ChartHelpers.jsx';
 import { CUST_AMBER, CUST_PAL, CUST_ROSE, CUST_TEAL, TYPE_COLOR } from '../../../constants/customerColors.js';
 import { yearKey, compKey, cFilter } from '../../../utils/customerHelpers.js';
 import CUSTOMER_DATA from '../../../data/customerData.js';
@@ -16,7 +17,7 @@ function CComp({ D }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card title="처리과정 분포" titleIcon={ClipboardList} sub={`${yrLabel} 처리 유형`}>
           <ResponsiveContainer width="100%" height={200} debounce={50}>
-            <BarChart data={D.process} layout="vertical" margin={{left:10}}>
+            <BarChart data={D.process} layout="vertical" margin={{left:0}}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false}/>
               <XAxis type="number" tick={{fontSize:11,fill:"#78716C"}} axisLine={false} tickLine={false}/>
               <YAxis type="category" dataKey="p" tick={{fontSize:10,fill:"#44403C"}} axisLine={false} tickLine={false} width={90} interval={0}/>
@@ -37,6 +38,7 @@ function CComp({ D }) {
               <YAxis tick={{fontSize:11,fill:"#78716C"}} axisLine={false} tickLine={false}/>
               <Tooltip content={<TT/>}/>
               <Bar dataKey="_show" fill={CUST_AMBER} radius={[5,5,0,0]} name="건수">
+                {gradientCells(D.comp_bins, CUST_AMBER)}
                 <LabelList dataKey="_show" position="top" style={{fontSize:11,fill:INK,fontWeight:700}}/>
               </Bar>
             </BarChart>

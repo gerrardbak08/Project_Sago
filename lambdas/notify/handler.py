@@ -234,164 +234,15 @@ def _build_message_body(store_name: str, date_str: str, results: dict) -> str:
     return "\n".join(lines)
 
 
-# ──────────────────────────────────────────────
-# 카카오 메시지 구성/발송
-# ──────────────────────────────────────────────
-def _public_url(path_or_url: str | None) -> str | None:
-    if not path_or_url:
-        return None
-    value = str(path_or_url).strip()
-    if not value or value.lower() in {"nan", "none", "null"}:
-        return None
-    if value.startswith("http"):
-        return value
-
-    frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/")
-    clean_path = value.lstrip("/")
-    if clean_path.startswith("frontend/"):
-        clean_path = clean_path.removeprefix("frontend/")
-    if not clean_path.startswith("images/"):
-        clean_path = f"images/{clean_path}"
-    if frontend_url:
-        return f"{frontend_url}/{clean_path}"
-    return None
-
-
-def _guide_link(store_code: str, date_str: str) -> str:
-    frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/")
-    if not frontend_url:
-        return "https://www.daiso.co.kr"
-    return f"{frontend_url}/#tab=alert_monitor&store={store_code}&date={date_str}"
-
-
-def _extract_kakao_image_url(upload_result: dict) -> str | None:
-    for key in ("url", "image_url", "imageUrl"):
-        if upload_result.get(key):
-            return upload_result[key]
-
-    infos = upload_result.get("infos")
-    if isinstance(infos, dict):
-        for info in infos.values():
-            if isinstance(info, dict) and info.get("url"):
-                return info["url"]
-    return None
-
-
-def _upload_kakao_image(public_image_url: str) -> str:
-    access_token = os.environ.get("KAKAO_ACCESS_TOKEN", "")
-    if not access_token:
-        raise ValueError("KAKAO_ACCESS_TOKEN 환경변수가 설정되지 않았습니다.")
-
-    import requests
-
-    image_resp = requests.get(public_image_url, timeout=15)
-    if not image_resp.ok:
-        raise ValueError(f"Kakao 이미지 다운로드 실패 HTTP {image_resp.status_code}: {public_image_url}")
-
-    content_type = image_resp.headers.get("Content-Type") or "image/png"
-    upload_resp = requests.post(
-        "https://kapi.kakao.com/v2/api/talk/message/image/upload",
-        headers={"Authorization": f"Bearer {access_token}"},
-        files={"file": ("safety-guide.png", image_resp.content, content_type)},
-        timeout=20,
-    )
-    if not upload_resp.ok:
-        raise ValueError(f"Kakao 이미지 업로드 실패 HTTP {upload_resp.status_code}: {upload_resp.text}")
-
-    uploaded_url = _extract_kakao_image_url(upload_resp.json())
-    if not uploaded_url:
-        raise ValueError(f"Kakao 이미지 업로드 응답에서 URL을 찾지 못했습니다: {upload_resp.text}")
-    return uploaded_url
-
-
-def _select_kakao_case(results: dict) -> tuple[str, dict, dict]:
-    for source in ("emp", "cust"):
-        guide = results.get(source, {}).get("guide", {})
-        cases = guide.get("오늘의_주의사항") or []
-        if cases:
-            return source, guide, cases[0]
-    return "emp", results.get("emp", {}).get("guide", {}), {}
-
-
-def _build_kakao_template(store_name: str, date_str: str, store_code: str, results: dict) -> tuple[str, str]:
-    source, guide, case = _select_kakao_case(results)
-    title = f"{store_name} 매장 안전 가이드"
-    accident = case.get("사고내용") or guide.get("위험_요약") or "오늘의 안전가이드를 확인해주세요."
-    rule = case.get("수칙") or ""
-    description = accident if not rule else f"{accident}\n{rule}"
-    if len(description) > 180:
-        description = description[:177].rstrip() + "..."
-
-    public_image_url = _public_url(case.get("image_url"))
-    if public_image_url:
-        image_url = _upload_kakao_image(public_image_url)
-    else:
-        image_url = os.environ.get(
-            "KAKAO_FALLBACK_IMAGE_URL",
-            "https://developers.kakao.com/assets/img/about/logos/kakaolink/kakaolink_btn_medium.png",
-        )
-    link_url = _guide_link(store_code, date_str)
-
-    template = {
-        "object_type": "feed",
-        "content": {
-            "title": title,
-            "description": description,
-            "image_url": image_url,
-            "link": {
-                "web_url": link_url,
-                "mobile_web_url": link_url,
-            },
-        },
-        "buttons": [
-            {
-                "title": "안전가이드 확인",
-                "link": {
-                    "web_url": link_url,
-                    "mobile_web_url": link_url,
-                },
-            }
-        ],
-    }
-    return json.dumps(template, ensure_ascii=False, separators=(",", ":")), source
-
-
-def _send_kakao_friend_message(receiver_uuids: list[str], template_object: str) -> dict:
-    if not receiver_uuids:
-        return {"sent": [], "failed": []}
-
-    access_token = os.environ.get("KAKAO_ACCESS_TOKEN", "")
-    if not access_token:
-        raise ValueError("KAKAO_ACCESS_TOKEN 환경변수가 설정되지 않았습니다.")
-
-    import requests
-
-    resp = requests.post(
-        "https://kapi.kakao.com/v1/api/talk/friends/message/default/send",
-        headers={
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
-        },
-        data={
-            "receiver_uuids": json.dumps(receiver_uuids, ensure_ascii=False, separators=(",", ":")),
-            "template_object": template_object,
-        },
-        timeout=15,
-    )
-    if not resp.ok:
-        raise ValueError(f"Kakao API 오류 HTTP {resp.status_code}: {resp.text}")
-
-    data = resp.json()
-    sent = data.get("successful_receiver_uuids", [])
-    failed = [uuid for uuid in receiver_uuids if uuid not in sent]
-    return {"sent": sent, "failed": failed, "raw": data}
-
 
 # ──────────────────────────────────────────────
 # 알림 현황 S3 기록
 # ──────────────────────────────────────────────
 def _record_alert(guide_result: dict, channel: str, delivery: dict | None = None) -> None:
-    """발송 결과를 S3 daily 버킷의 alerts/{date}/index.json에 기록한다."""
+    """발송 결과를 S3 daily 버킷의 alerts/{date}/{store_code}.json 에 저장한다.
+
+    파일 1개 = 매장 1개. 같은 날 재발송 시 덮어씀 (멱등).
+    """
     import boto3
 
     daily_bucket = os.environ.get("DAILY_BUCKET", "")
@@ -401,20 +252,16 @@ def _record_alert(guide_result: dict, channel: str, delivery: dict | None = None
 
     store_code = guide_result.get("store_code", "unknown")
     date_str = guide_result.get("date", "unknown")
-    ts = int(time.time())
-    file_key = f"alerts/{date_str}/{store_code}_{ts}.json"
+    file_key = f"alerts/{date_str}/{store_code}.json"
 
     cust = guide_result.get("results", {}).get("cust", {})
     emp = guide_result.get("results", {}).get("emp", {})
 
-    summary_record = {
-        "store_code": store_code,
-        "store_name": guide_result.get("store_name", ""),
-        "region": guide_result.get("region", ""),
-        "date": date_str,
-        "timestamp": datetime.now(KST).isoformat(timespec="seconds"),
+    record = {
+        **guide_result,
         "trigger_type": f"manual_send_{channel}",
         "channel": channel,
+        "timestamp": datetime.now(KST).isoformat(timespec="seconds"),
         "recipients": delivery.get("recipients", []) if delivery else [],
         "sent_recipients": delivery.get("sent", []) if delivery else [],
         "failed_recipients": delivery.get("failed", []) if delivery else [],
@@ -425,35 +272,16 @@ def _record_alert(guide_result: dict, channel: str, delivery: dict | None = None
     }
 
     s3 = boto3.client("s3")
-
     try:
         s3.put_object(
             Bucket=daily_bucket,
             Key=file_key,
-            Body=json.dumps(guide_result, ensure_ascii=False, indent=2).encode("utf-8"),
+            Body=json.dumps(record, ensure_ascii=False, indent=2).encode("utf-8"),
             ContentType="application/json; charset=utf-8",
         )
+        print(f"[notify] 현황 기록: {store_code} → s3://{daily_bucket}/{file_key}")
     except Exception as e:
-        print(f"[notify] 상세 파일 저장 실패: {e}")
-
-    index_key = f"alerts/{date_str}/index.json"
-    try:
-        resp = s3.get_object(Bucket=daily_bucket, Key=index_key)
-        index_data = json.loads(resp["Body"].read().decode("utf-8"))
-    except Exception:
-        index_data = []
-
-    index_data.append(summary_record)
-    try:
-        s3.put_object(
-            Bucket=daily_bucket,
-            Key=index_key,
-            Body=json.dumps(index_data, ensure_ascii=False, indent=2).encode("utf-8"),
-            ContentType="application/json; charset=utf-8",
-        )
-        print(f"[notify] 현황 기록: {store_code} → s3://{daily_bucket}/{index_key}")
-    except Exception as e:
-        print(f"[notify] index.json 업데이트 실패: {e}")
+        print(f"[notify] 파일 저장 실패: {e}")
 
 
 # ──────────────────────────────────────────────
@@ -516,7 +344,7 @@ def lambda_handler(event: dict, context: Any) -> dict:
 
     store_map = {int(s["매장"]): s for s in all_stores if s.get("매장") is not None}
 
-    notifier = None if channel == "kakao" else get_notifier(channel)
+    notifier = get_notifier(channel)
 
     # 매장별 처리
     store_results = []
@@ -549,16 +377,15 @@ def lambda_handler(event: dict, context: Any) -> dict:
             subject = f"[다이소 안전가이드] {store_name} - {date_str}"
             msg_body = _build_message_body(store_name, date_str, guide_result.get("results", {}))
             if channel == "kakao":
-                template_object, kakao_source = _build_kakao_template(
+                send_result = notifier.send_guide(
+                    receiver_uuids,
                     store_name,
                     date_str,
                     str(store_code),
                     guide_result.get("results", {}),
                 )
-                send_result = _send_kakao_friend_message(receiver_uuids, template_object)
                 delivery = {
                     "channel": "kakao",
-                    "source": kakao_source,
                     "recipients": receiver_uuids,
                     "sent": send_result.get("sent", []),
                     "failed": send_result.get("failed", []),
@@ -566,8 +393,6 @@ def lambda_handler(event: dict, context: Any) -> dict:
                     "raw": send_result.get("raw", {}),
                 }
             else:
-                if notifier is None:
-                    raise ValueError(f"지원하지 않는 발송 채널입니다: {channel}")
                 send_result = notifier.send([], subject, msg_body)
                 delivery = {
                     "channel": channel,

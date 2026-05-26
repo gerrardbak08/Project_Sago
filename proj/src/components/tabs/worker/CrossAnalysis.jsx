@@ -58,7 +58,7 @@ function CrossAnalysis({ D, yearFilter }) {
         return `성별 특성별 재해 패턴 (기록된 ${total}건 기준)${D._isEstimated ? " · 추정" : ""}`;
       })()}>
         <ResponsiveContainer width="100%" height={220} debounce={50}>
-          <BarChart data={D.genderType} layout="vertical" margin={{ left: 10 }}>
+          <BarChart data={D.genderType} layout="vertical" margin={{ left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false} />
             <XAxis type="number" tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
             <YAxis type="category" dataKey="type" tick={{ fontSize: 10, fill: "#44403C" }} axisLine={false} tickLine={false} width={90} />

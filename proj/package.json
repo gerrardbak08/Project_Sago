@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "data": "node scripts/regenerate-data.mjs && node scripts/extract-snapshots.mjs",
     "data:accidents": "node scripts/regenerate-data.mjs",
-    "data:snapshots": "node scripts/extract-snapshots.mjs"
+    "data:snapshots": "node scripts/extract-snapshots.mjs",
+    "data:approval": "node scripts/extract-approval.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.11.0",

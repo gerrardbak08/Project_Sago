@@ -11,7 +11,7 @@ import { RISK_COLORS } from '../../../constants/riskColors.js';
 
 function HumanFactors({ D, yearFilter }) {
   const yrLabel = !yearFilter || yearFilter === "all" ? "전체 기간" : `${yearFilter}년`;
-  const ageOrder = ["10 대","20 대","30 대","40 대","50 대","60 대"];
+  const ageOrder = ["10대","20대","30대","40대","50대","60대"];
   const tenOrder = ["1년 미만","1-2년","3-4년","5-9년","10-14년","15년 이상"];
   
   const ageData = ageOrder.filter(a => D.age[a]).map(a => ({ name: a, value: D.age[a], 수도권: D.age_s[a] || 0, 지방: D.age_j[a] || 0 }));
@@ -104,7 +104,7 @@ function HumanFactors({ D, yearFilter }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="rounded-lg border border-stone-200 bg-white p-4">
             <div className="text-xs font-bold text-red-700 mb-1">연령 TOP</div>
-            <div className="text-lg font-extrabold">50대 · {D.age["50 대"]}건 ({pct(D.age["50 대"], totalAge)}%)</div>
+            <div className="text-lg font-extrabold">50대 · {D.age["50대"]}건 ({pct(D.age["50대"], totalAge)}%)</div>
             <div className="text-xs text-stone-600 mt-1">절대 건수 최다 — 50대 인력 비중과 비교 검토 필요</div>
           </div>
           <div className="rounded-lg border border-stone-200 bg-white p-4">

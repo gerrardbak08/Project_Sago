@@ -126,7 +126,7 @@ function getFilteredData(D, yearFilter) {
       ...D.repeat_workers,
       repeat_count: Math.round(D.repeat_workers.repeat_count * ratio),
       repeat_incidents: Math.round(D.repeat_workers.repeat_incidents * ratio),
-      // list 자체는 비례 적용 어려워 유지하되, 표시 시점에 안내
+      total_workers: Math.round(D.repeat_workers.total_workers * ratio),
     } : D.repeat_workers,
     // 사용자에게 추정임을 알리는 플래그
     _isEstimated: true,

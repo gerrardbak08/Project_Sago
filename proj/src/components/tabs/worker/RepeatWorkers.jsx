@@ -6,7 +6,7 @@ import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN 
 import { pct, fmt, fmtKrw, TT, EmptyState } from '../../../utils/uiHelpers.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card, EstimateBadge } from '../../../components/shared/Card.jsx';
-import { CalcTip, HeatmapGrid, BarRank, Matrix } from '../../../components/shared/ChartHelpers.jsx';
+import { CalcTip, HeatmapGrid, BarRank, Matrix, gradientCells } from '../../../components/shared/ChartHelpers.jsx';
 import { RISK_COLORS } from '../../../constants/riskColors.js';
 
 function RepeatWorkers({ D, yearFilter }) {
@@ -15,7 +15,7 @@ function RepeatWorkers({ D, yearFilter }) {
     return <div className="bg-amber-50 border border-amber-200 rounded-lg p-8 text-center"><div className="text-sm text-stone-600">재발 재해자 데이터 미집계</div></div>;
   }
   const rw = D.repeat_workers;
-  const pctRepeat = (rw.repeat_incidents / (D.kpis?.total || 538) * 100).toFixed(1);
+  const pctRepeat = D.kpis?.total ? (rw.repeat_incidents / D.kpis.total * 100).toFixed(1) : "—";
   const dist = rw.list.reduce((m, w) => { m[w.count] = (m[w.count] || 0) + 1; return m; }, {});
   const distArr = Object.entries(dist).map(([k, v]) => ({ count: `${k}회`, workers: v })).sort((a,b) => parseInt(a.count) - parseInt(b.count));
   
@@ -50,7 +50,7 @@ function RepeatWorkers({ D, yearFilter }) {
         </div>
         <div className="rounded-lg p-5 bg-white border border-stone-200">
           <div className="text-xs text-stone-600 font-bold">평균 재발 횟수</div>
-          <div className="text-3xl sm:text-4xl font-bold text-stone-900 tracking-tight tabular-nums mt-1">{(rw.repeat_incidents / rw.repeat_count).toFixed(1)}<span className="text-sm text-stone-500 font-normal ml-1">회</span></div>
+          <div className="text-3xl sm:text-4xl font-bold text-stone-900 tracking-tight tabular-nums mt-1">{rw.repeat_count > 0 ? (rw.repeat_incidents / rw.repeat_count).toFixed(1) : "—"}<span className="text-sm text-stone-500 font-normal ml-1">회</span></div>
           <div className="text-xs text-stone-500 mt-1">재발자 1인당</div>
         </div>
       </div>
@@ -63,6 +63,7 @@ function RepeatWorkers({ D, yearFilter }) {
             <YAxis tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
             <Tooltip content={<TT />} />
             <Bar dataKey="workers" fill={RD} radius={[5,5,0,0]}>
+              {gradientCells(distArr, RD)}
               <LabelList dataKey="workers" position="top" style={{ fontSize: 11, fill: NV, fontWeight: 700 }} />
             </Bar>
           </BarChart>
@@ -70,31 +71,31 @@ function RepeatWorkers({ D, yearFilter }) {
       </Card>
       
       <Card title="재발 재해자 워치리스트" titleIcon={Target} sub="사고 2회 이상 발생자 — 개별 맞춤 관리 대상" right={<ExportBtn rows={rw.list} filename="재발재해자_워치리스트.csv" />}>
-        <div className="overflow-x-auto -mx-5 px-5 pb-2">
-          <table className="w-full min-w-[560px] text-sm">
-            <thead><tr className="border-b-2 border-stone-200 text-xs text-stone-500 uppercase">
-              <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">#</th>
-              <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">재해자명</th>
-              <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">사번</th>
-              <th className="text-center py-2 px-3 font-semibold whitespace-nowrap">재발</th>
-              <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">소속팀</th>
-              <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">소속부서</th>
-              <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">주 재해유형</th>
-              <th className="text-center py-2 px-3 font-semibold whitespace-nowrap">위험도</th>
+        <div className="overflow-x-auto max-w-full -mx-5 px-5 pb-1">
+          <table className="w-full min-w-[480px] text-xs">
+            <thead><tr className="border-b-2 border-stone-200 text-[10px] text-stone-500 uppercase">
+              <th className="text-left py-1.5 px-2 font-semibold whitespace-nowrap">#</th>
+              <th className="text-left py-1.5 px-2 font-semibold whitespace-nowrap">재해자명</th>
+              <th className="text-center py-1.5 px-2 font-semibold whitespace-nowrap">재발</th>
+              <th className="text-left py-1.5 px-2 font-semibold whitespace-nowrap">소속팀</th>
+              <th className="text-left py-1.5 px-2 font-semibold whitespace-nowrap">소속부서</th>
+              <th className="text-left py-1.5 px-2 font-semibold whitespace-nowrap">재해유형</th>
+              <th className="text-center py-1.5 px-2 font-semibold whitespace-nowrap">위험도</th>
             </tr></thead>
             <tbody>{rw.list.map((w, i) => {
               const risk = w.count >= 3 ? "고위험" : "관찰";
               const riskC = w.count >= 3 ? "text-stone-900 font-semibold" : "text-stone-700";
+              const types = Array.isArray(w.types) ? w.types : (w.types ? [w.types] : []);
+              const typeLabel = types.length === 0 ? "-" : types.length === 1 ? types[0] : `${types[0]} 등`;
               return (
                 <tr key={w.id + i} className="border-b border-stone-100 hover:bg-stone-50/60">
-                  <td className="py-2 px-3 text-xs font-bold text-stone-400 whitespace-nowrap">{i + 1}</td>
-                  <td className="py-2 px-3 font-semibold text-stone-900 whitespace-nowrap">{w.name}</td>
-                  <td className="py-2 px-3 text-xs text-stone-500 font-mono whitespace-nowrap">{w.id}</td>
-                  <td className="py-2 px-3 text-center whitespace-nowrap"><span className="font-extrabold text-red-600 text-lg tabular-nums">{w.count}회</span></td>
-                  <td className="py-2 px-3 text-xs text-stone-600 whitespace-nowrap">{Array.isArray(w.teams) ? w.teams.join(", ") : w.teams}</td>
-                  <td className="py-2 px-3 text-xs text-stone-600 whitespace-nowrap">{Array.isArray(w.depts) ? w.depts.join(", ") : w.depts}</td>
-                  <td className="py-2 px-3 text-xs text-stone-700 whitespace-nowrap">{Array.isArray(w.types) ? w.types.join(", ") : w.types}</td>
-                  <td className="py-2 px-3 text-center whitespace-nowrap"><span className={`text-xs font-bold px-2 py-0.5 rounded-full ${riskC}`}>{risk}</span></td>
+                  <td className="py-1.5 px-2 font-bold text-stone-400 whitespace-nowrap">{i + 1}</td>
+                  <td className="py-1.5 px-2 font-semibold text-stone-900 whitespace-nowrap">{w.name}</td>
+                  <td className="py-1.5 px-2 text-center whitespace-nowrap"><span className="font-extrabold text-red-600 tabular-nums">{w.count}회</span></td>
+                  <td className="py-1.5 px-2 text-stone-600 whitespace-nowrap">{Array.isArray(w.teams) ? w.teams.join(", ") : w.teams}</td>
+                  <td className="py-1.5 px-2 text-stone-600 whitespace-nowrap">{Array.isArray(w.depts) ? w.depts.join(", ") : w.depts}</td>
+                  <td className="py-1.5 px-2 text-stone-700 whitespace-nowrap">{typeLabel}</td>
+                  <td className="py-1.5 px-2 text-center whitespace-nowrap"><span className={`font-bold px-1.5 py-0.5 rounded-full ${riskC}`}>{risk}</span></td>
                 </tr>
               );
             })}</tbody>

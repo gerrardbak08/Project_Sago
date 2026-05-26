@@ -5,6 +5,7 @@ import { CUSTOMER_BLUE, DEEP_BLUE, DAISO_RED, ALERT_RED, SAFE_GREEN, BL, OR, GR,
 import { pct, fmt, fmtKrw, TT, EmptyState } from '../../../utils/uiHelpers.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card } from '../../../components/shared/Card.jsx';
+import { gradientCells } from '../../../components/shared/ChartHelpers.jsx';
 import { CUST_AMBER, CUST_PAL, CUST_GRAY, CUST_TEAL, TYPE_COLOR } from '../../../constants/customerColors.js';
 import { yearKey, compKey, cFilter } from '../../../utils/customerHelpers.js';
 import CUSTOMER_DATA from '../../../data/customerData.js';
@@ -52,7 +53,7 @@ function CTypePlace({ D }) {
         </div>
         <div className="mt-4">
           <ResponsiveContainer width="100%" height={180} debounce={50}>
-            <BarChart data={visibleTypes} layout="vertical" margin={{left:10}}>
+            <BarChart data={visibleTypes} layout="vertical" margin={{left:0}}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false}/>
               <XAxis type="number" tick={{fontSize:11,fill:"#78716C"}} axisLine={false} tickLine={false}/>
               <YAxis type="category" dataKey="type" tick={{fontSize:11,fill:"#44403C"}} axisLine={false} tickLine={false} width={50} interval={0}/>
@@ -69,12 +70,13 @@ function CTypePlace({ D }) {
       <Card title="발생 장소" titleIcon={MapIcon} sub={`${yrLabel} 장소별 사고 분포`}
         right={<ExportBtn rows={D.places.map(p=>({장소:p.place,건수:p._show,보상:p._comp}))} filename={`고객사고_장소_${yrLabel}.csv`}/>}>
         <ResponsiveContainer width="100%" height={Math.max(220, D.places.length*30)} debounce={50}>
-          <BarChart data={D.places.slice(0,10)} layout="vertical" margin={{left:30}}>
+          <BarChart data={D.places.slice(0,10)} layout="vertical" margin={{left:0}}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false}/>
             <XAxis type="number" tick={{fontSize:11,fill:"#78716C"}} axisLine={false} tickLine={false}/>
             <YAxis type="category" dataKey="place" tick={{fontSize:11,fill:"#44403C"}} axisLine={false} tickLine={false} width={70} interval={0}/>
             <Tooltip content={<TT/>}/>
             <Bar dataKey="_show" fill={CUST_TEAL} radius={[0,4,4,0]} name="건수">
+              {gradientCells(D.places.slice(0,10), CUST_TEAL)}
               <LabelList dataKey="_show" position="right" style={{fontSize:11,fill:INK,fontWeight:700}}/>
             </Bar>
           </BarChart>
@@ -89,12 +91,13 @@ function CTypePlace({ D }) {
         <Card title="원인1 분포" titleIcon={AlertCircle} sub={`${yrLabel} 1차 원인`}
           right={<ExportBtn rows={D.causes1.map(c=>({원인:c.c,건수:c._show}))} filename={`고객사고_원인1_${yrLabel}.csv`}/>}>
           <ResponsiveContainer width="100%" height={Math.max(200, D.causes1.length*22)} debounce={50}>
-            <BarChart data={D.causes1} layout="vertical" margin={{left:10}}>
+            <BarChart data={D.causes1} layout="vertical" margin={{left:0}}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false}/>
               <XAxis type="number" tick={{fontSize:10,fill:"#78716C"}} axisLine={false} tickLine={false}/>
               <YAxis type="category" dataKey="c" tick={{fontSize:11,fill:"#44403C"}} axisLine={false} tickLine={false} width={60} interval={0}/>
               <Tooltip content={<TT/>}/>
               <Bar dataKey="_show" fill={CUST_AMBER} radius={[0,4,4,0]} name="건수">
+                {gradientCells(D.causes1, CUST_AMBER)}
                 <LabelList dataKey="_show" position="right" style={{fontSize:10,fill:INK,fontWeight:700}}/>
               </Bar>
             </BarChart>
@@ -104,7 +107,7 @@ function CTypePlace({ D }) {
         <Card title="원인2 세부" titleIcon={AlertCircle} sub={`${yrLabel} 2차 세부 원인`}
           right={<ExportBtn rows={D.causes2.map(c=>({원인2:c.c,건수:c._show}))} filename={`고객사고_원인2_${yrLabel}.csv`}/>}>
           <ResponsiveContainer width="100%" height={Math.max(200, D.causes2.length*22)} debounce={50}>
-            <BarChart data={D.causes2} layout="vertical" margin={{left:10}}>
+            <BarChart data={D.causes2} layout="vertical" margin={{left:0}}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false}/>
               <XAxis type="number" tick={{fontSize:10,fill:"#78716C"}} axisLine={false} tickLine={false}/>
               <YAxis type="category" dataKey="c" tick={{fontSize:9,fill:"#44403C"}} axisLine={false} tickLine={false} width={120} interval={0}/>

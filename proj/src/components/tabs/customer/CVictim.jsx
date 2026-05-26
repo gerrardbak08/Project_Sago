@@ -5,6 +5,7 @@ import { CUSTOMER_BLUE, DEEP_BLUE, DAISO_RED, ALERT_RED, SAFE_GREEN, BL, OR, GR,
 import { pct, fmt, fmtKrw, TT, EmptyState } from '../../../utils/uiHelpers.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card } from '../../../components/shared/Card.jsx';
+import { gradientCells } from '../../../components/shared/ChartHelpers.jsx';
 import { CUST_AMBER, CUST_BLUE, CUST_ROSE, CUST_TEAL, TYPE_COLOR } from '../../../constants/customerColors.js';
 import { yearKey, compKey, cFilter } from '../../../utils/customerHelpers.js';
 import CUSTOMER_DATA from '../../../data/customerData.js';
@@ -35,6 +36,7 @@ function CVictim({ D }) {
               <YAxis tick={{fontSize:11,fill:"#78716C"}} axisLine={false} tickLine={false}/>
               <Tooltip content={<TT/>}/>
               <Bar dataKey="_show" fill={CUST_BLUE} radius={[4,4,0,0]} name="건수">
+                {gradientCells(D.ages, CUST_BLUE)}
                 <LabelList dataKey="_show" position="top" style={{fontSize:10,fill:INK,fontWeight:700}}/>
               </Bar>
             </BarChart>

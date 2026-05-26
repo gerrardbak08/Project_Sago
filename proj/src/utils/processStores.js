@@ -40,6 +40,7 @@ function processStores(rows) {
       displayRatio: (display && area) ? Math.round(display/area*1000)/10 : null,
       openDate: openDt, age: ageBucket(openDt),
       address: r["신주소"], sido: extractSido(r["신주소"]),
+      workers: parseFloat(r["매장인원"]) || null,
     });
   }
   return stores;
@@ -228,9 +229,26 @@ function computeStoreMerged(accidentsSales, stores, workersData) {
     rate: storeByForm[f] > 0 ? Math.round((incByForm[f] || 0) / storeByForm[f] * 1000) / 10 : 0,
   }));
   
+  // Build store → worker count lookup from workersData.storeMap
+  const storeWorkerCount = new Map();
+  if (workersData && workersData.storeMap) {
+    const masterNames = new Set(storesFallback.map(s => s.store));
+    for (const [wName, rec] of workersData.storeMap.entries()) {
+      const master = fuzzyMatchStore(wName, masterNames);
+      if (master && rec.workers > 0) storeWorkerCount.set(master, rec.workers);
+    }
+  }
+
   // Size stats
-  const storeBySize = {}, incBySize = {};
-  for (const s of storesFallback) storeBySize[s.size] = (storeBySize[s.size] || 0) + 1;
+  const storeBySize = {}, incBySize = {}, workerSumBySize = {}, workerCountBySize = {};
+  for (const s of storesFallback) {
+    storeBySize[s.size] = (storeBySize[s.size] || 0) + 1;
+    const wc = storeWorkerCount.get(s.store) ?? (s.workers ?? null);
+    if (wc != null && wc > 0) {
+      workerSumBySize[s.size] = (workerSumBySize[s.size] || 0) + wc;
+      workerCountBySize[s.size] = (workerCountBySize[s.size] || 0) + 1;
+    }
+  }
   for (const a of accidentsSales) {
     const s = storeByName.get(a.store);
     if (s) incBySize[s.size] = (incBySize[s.size] || 0) + 1;
@@ -238,6 +256,7 @@ function computeStoreMerged(accidentsSales, stores, workersData) {
   const size_stats = ["소형(~100평)","중형(100-250)","대형(250-400)","특대(400+)"].map(sz => ({
     size: sz, incidents: incBySize[sz] || 0, stores: storeBySize[sz] || 0,
     rate: storeBySize[sz] > 0 ? Math.round((incBySize[sz] || 0) / storeBySize[sz] * 1000) / 10 : 0,
+    avg_workers: workerCountBySize[sz] > 0 ? Math.round(workerSumBySize[sz] / workerCountBySize[sz] * 10) / 10 : null,
   }));
   
   // Age stats

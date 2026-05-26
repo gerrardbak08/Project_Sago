@@ -83,6 +83,15 @@ def _load_model_files(source: str) -> tuple[dict, dict, dict, dict, dict]:
     )
 
 
+def _load_recipients() -> dict:
+    """recipients.json 로드 (캐시). 없으면 빈 dict 반환."""
+    try:
+        return _load_json_s3("recipients.json")
+    except Exception as e:
+        print(f"[batch] recipients.json 로드 실패 (기본값 사용): {e}")
+        return {"default": [], "stores": {}}
+
+
 # ──────────────────────────────────────────────
 # 피처 구성
 # ──────────────────────────────────────────────
@@ -191,8 +200,12 @@ def _record_alert(
     guide_result: dict,
     channel: str,
     trigger_type: str,
+    delivery: dict | None = None,
 ) -> None:
-    """발송 결과를 frontend 버킷의 alerts/{date}/index.json에 기록한다."""
+    """발송 결과를 frontend 버킷의 alerts/{date}/{store_code}.json 에 저장한다.
+
+    파일 1개 = 매장 1개. 같은 날 재실행 시 덮어씀 (멱등).
+    """
     frontend_bucket = os.environ.get("FRONTEND_BUCKET", "")
     if not frontend_bucket:
         print("[batch] FRONTEND_BUCKET 미설정 → 기록 스킵")
@@ -200,55 +213,34 @@ def _record_alert(
 
     store_code = guide_result.get("store_code", "unknown")
     date_str = guide_result.get("date", "unknown")
-    ts = int(time.time())
-    file_key = f"alerts/{date_str}/{store_code}_{ts}.json"
+    file_key = f"alerts/{date_str}/{store_code}.json"
 
     cust = guide_result.get("results", {}).get("cust", {})
     emp = guide_result.get("results", {}).get("emp", {})
 
-    summary_record = {
-        "store_code": store_code,
-        "store_name": guide_result.get("store_name", ""),
-        "region": guide_result.get("region", ""),
-        "date": date_str,
-        "timestamp": datetime.now(KST).isoformat(timespec="seconds"),
-        "trigger_type": trigger_type,   # "batch" 또는 "manual_send_mock" 등
+    record = {
+        **guide_result,
+        "trigger_type": trigger_type,
         "channel": channel,
+        "timestamp": datetime.now(KST).isoformat(timespec="seconds"),
+        "delivery_status": delivery.get("status", "not_sent") if delivery else "not_sent",
+        "sent_recipients": delivery.get("sent", []) if delivery else [],
+        "failed_recipients": delivery.get("failed", []) if delivery else [],
         "주요_위험유형_cust": cust.get("guide", {}).get("주요_위험유형", ""),
         "주요_위험유형_emp": emp.get("guide", {}).get("주요_위험유형", ""),
         "detail_key": file_key,
     }
 
-    # 상세 파일 저장
     try:
         s3_client.put_object(
             Bucket=frontend_bucket,
             Key=file_key,
-            Body=json.dumps(guide_result, ensure_ascii=False, indent=2).encode("utf-8"),
+            Body=json.dumps(record, ensure_ascii=False, indent=2).encode("utf-8"),
             ContentType="application/json; charset=utf-8",
         )
+        print(f"[batch] 현황 기록: {store_code} → s3://{frontend_bucket}/{file_key}")
     except Exception as e:
-        print(f"[batch] 상세 파일 저장 실패 ({store_code}): {e}")
-
-    # index.json 업데이트
-    index_key = f"alerts/{date_str}/index.json"
-    try:
-        resp = s3_client.get_object(Bucket=frontend_bucket, Key=index_key)
-        index_data = json.loads(resp["Body"].read().decode("utf-8"))
-    except Exception:
-        index_data = []
-
-    index_data.append(summary_record)
-    try:
-        s3_client.put_object(
-            Bucket=frontend_bucket,
-            Key=index_key,
-            Body=json.dumps(index_data, ensure_ascii=False, indent=2).encode("utf-8"),
-            ContentType="application/json; charset=utf-8",
-        )
-        print(f"[batch] 현황 기록: {store_code} → {index_key}")
-    except Exception as e:
-        print(f"[batch] index.json 업데이트 실패 ({store_code}): {e}")
+        print(f"[batch] 파일 저장 실패 ({store_code}): {e}")
 
 
 # ──────────────────────────────────────────────
@@ -310,11 +302,22 @@ def lambda_handler(event: dict, context: Any) -> dict:
             if "error" in guide_result:
                 raise Exception(guide_result["error"])
 
-            # 발송 (프로토타입: recipients=[], 카카오 연동 후 직원 연락처 전달)
-            recipients: list[str] = []  # TODO: 직원 연락처 DB 연동
-            subject = f"[다이소 안전가이드] {store_name} - {date_str}"
-            msg_body = _build_message_body(store_name, date_str, guide_result.get("results", {}))
-            notifier.send(recipients, subject, msg_body)
+            # 수신자 조회: default(공통) + 매장별 UUID 합산
+            recipients_data = _load_recipients()
+            receiver_uuids: list[str] = (
+                recipients_data.get("default", []) +
+                recipients_data.get("stores", {}).get(str(store_code), [])
+            )
+
+            if channel == "kakao":
+                notifier.send_guide(
+                    receiver_uuids, store_name, date_str,
+                    str(store_code), guide_result.get("results", {}),
+                )
+            else:
+                subject = f"[다이소 안전가이드] {store_name} - {date_str}"
+                msg_body = _build_message_body(store_name, date_str, guide_result.get("results", {}))
+                notifier.send(receiver_uuids, subject, msg_body)
 
             # frontend 버킷에 현황 기록 (trigger_type = "batch")
             _record_alert(s3_client, guide_result, channel, trigger_type="batch")

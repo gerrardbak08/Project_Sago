@@ -128,7 +128,7 @@ function computeV5Extras(ds, df, stores) {
      "미상": sub.filter(x => severityClass(x.dx) === "미상").length,
     };
   });
-  const sevByAge = ["20 대","30 대","40 대","50 대","60 대"].map(age => {
+  const sevByAge = ["20대","30대","40대","50대","60대"].map(age => {
     const sub = ds.filter(x => x.age === age);
     return {
       age,
@@ -304,7 +304,7 @@ function processAccidents(rows, storesData, workersData) {
       submitted: r["근로복지공단 제출"] != null && r["근로복지공단 제출"] !== "",
       workerId: normalizeWorkerId(rawWorkerId, rawWorkerName),
       workerName: maskName(rawWorkerName),
-      parjang: maskNameWithHash(r["파트장"]),
+      parjang: maskName(r["파트장"]),
       applyType: r["신청유형"],
       dx: r["상병명"],
     });
@@ -482,7 +482,7 @@ function processAccidents(rows, storesData, workersData) {
   });
   
   // 연령 x 근속
-  const ages = ["10 대","20 대","30 대","40 대","50 대","60 대"];
+  const ages = ["10대","20대","30대","40대","50대","60대"];
   const tenures = ["1년 미만","1-2년","3-4년","5-9년","10-14년","15년 이상"];
   const ageTenure = ages.map(a => {
     const row = { age: a };

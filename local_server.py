@@ -38,6 +38,23 @@ except ImportError:
 
 PORT = 8000
 
+_BEDROCK_MODEL_ID = None  # lazy init
+_BEDROCK_CLIENT = None
+
+def _get_bedrock_client():
+    global _BEDROCK_CLIENT, _BEDROCK_MODEL_ID
+    if _BEDROCK_CLIENT is None:
+        import boto3
+        import os
+        region = (
+            os.environ.get("BEDROCK_REGION")
+            or os.environ.get("AWS_DEFAULT_REGION")
+            or "us-east-1"
+        )
+        _BEDROCK_MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-6")
+        _BEDROCK_CLIENT = boto3.client("bedrock-runtime", region_name=region)
+    return _BEDROCK_CLIENT
+
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type,Authorization",
@@ -118,12 +135,11 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self._serve_file(file_path)
             return
 
-        # GET /api/alerts/{date} → alerts/{date}/index.json (알림 목록)
+        # GET /api/alerts/{date} → alerts/{date}/*.json 디렉토리 스캔 (요약 목록)
         alerts_index_match = ALERTS_INDEX_PATTERN.match(path)
         if method == "GET" and alerts_index_match:
             date_str = alerts_index_match.group(1)
-            file_path = PROJECT_ROOT / "alerts" / date_str / "index.json"
-            self._serve_file(file_path)
+            self._serve_alerts_index(date_str)
             return
 
         # GET /api/alerts/{date}/{filename} → alerts/{date}/{filename} (알림 상세)
@@ -145,8 +161,61 @@ class LocalHandler(SimpleHTTPRequestHandler):
             super().do_GET()
             return
 
+        # POST /api/ai → Bedrock Claude 텍스트 생성 (로컬 개발용)
+        if method == "POST" and path == "/api/ai":
+            self._handle_ai()
+            return
+
         # 지원하지 않는 메서드/경로
         self._send_error_json(404, f"Not Found: {method} {path}")
+
+    def _serve_alerts_index(self, date_str: str):
+        """alerts/{date}/ 디렉토리의 *.json 파일을 스캔해 요약 배열을 반환한다."""
+        alerts_dir = PROJECT_ROOT / "alerts" / date_str
+        if not alerts_dir.exists():
+            self._send_error_json(404, f"{date_str} 날짜의 알림 데이터가 없습니다.")
+            return
+        summaries = []
+        for f in sorted(alerts_dir.glob("*.json")):
+            try:
+                data = json.loads(f.read_text("utf-8"))
+                # results 키(대용량)는 목록 응답에서 제외
+                summary = {k: v for k, v in data.items() if k != "results"}
+                summaries.append(summary)
+            except Exception:
+                pass
+        self._send_json(200, json.dumps(summaries, ensure_ascii=False))
+
+    def _handle_ai(self):
+        """POST /api/ai — Bedrock Claude에 프롬프트를 보내고 { text } 반환."""
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
+        except Exception:
+            self._send_error_json(400, "요청 본문 파싱 실패")
+            return
+
+        prompt = body.get("prompt", "")
+        system_text = body.get("system", "당신은 산업 안전 전문가입니다. 한국어로 답하세요.")
+        max_tokens = int(body.get("max_tokens", 2000))
+
+        if not prompt:
+            self._send_error_json(400, "prompt 필드가 필요합니다")
+            return
+
+        try:
+            client = _get_bedrock_client()
+            response = client.converse(
+                modelId=_BEDROCK_MODEL_ID,
+                system=[{"text": system_text}],
+                messages=[{"role": "user", "content": [{"text": prompt}]}],
+                inferenceConfig={"maxTokens": max_tokens, "temperature": 0.4},
+            )
+            text = response["output"]["message"]["content"][0]["text"]
+            self._send_json(200, json.dumps({"text": text}, ensure_ascii=False))
+        except Exception as e:
+            print(f"[server] AI 호출 오류: {e}")
+            self._send_error_json(500, f"AI 호출 실패: {e}")
 
     # ── HTTP 메서드 핸들러 ──
 

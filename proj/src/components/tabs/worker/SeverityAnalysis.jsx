@@ -6,7 +6,7 @@ import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN 
 import { pct, fmt, fmtKrw, TT, EmptyState } from '../../../utils/uiHelpers.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card, EstimateBadge } from '../../../components/shared/Card.jsx';
-import { CalcTip, HeatmapGrid, BarRank, Matrix } from '../../../components/shared/ChartHelpers.jsx';
+import { CalcTip, HeatmapGrid, BarRank, Matrix, gradientCells } from '../../../components/shared/ChartHelpers.jsx';
 import { RISK_COLORS } from '../../../constants/riskColors.js';
 
 function SeverityAnalysis({ D, yearFilter }) {
@@ -88,21 +88,22 @@ function SeverityAnalysis({ D, yearFilter }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card title="진단명 TOP 10" titleIcon={Stethoscope} sub="의료진단 기준 빈도" right={<ExportBtn rows={topDxArr.map(d=>({진단명:d.name,건수:d.value}))} filename="진단명_TOP10.csv" />}>
           <ResponsiveContainer width="100%" height={240} debounce={50}>
-            <BarChart data={topDxArr || []} layout="vertical" margin={{ left: 10 }}>
+            <BarChart data={topDxArr || []} layout="vertical" margin={{ left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "#44403C" }} axisLine={false} tickLine={false} width={140} />
               <Tooltip content={<TT />} />
               <Bar dataKey="value" fill={PR} radius={[0, 6, 6, 0]}>
+                {gradientCells(topDxArr, PR)}
                 <LabelList dataKey="value" position="right" style={{ fontSize: 11, fill: "#1C1917", fontWeight: 700 }} />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </Card>
-        
+
         <Card title="심각도 × 재해유형" titleIcon={AlertTriangle} sub="재해유형별 중상 비율">
           <ResponsiveContainer width="100%" height={240} debounce={50}>
-            <BarChart data={s.by_type || []} layout="vertical" margin={{ left: 10 }}>
+            <BarChart data={s.by_type || []} layout="vertical" margin={{ left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="type" tick={{ fontSize: 10, fill: "#44403C" }} axisLine={false} tickLine={false} width={90} />
@@ -142,12 +143,13 @@ function SeverityAnalysis({ D, yearFilter }) {
 
       <Card title="상해부위 (근골격계)" titleIcon={Bone} sub="기록된 건 기준">
         <ResponsiveContainer width="100%" height={200} debounce={50}>
-          <BarChart data={siteData || []} layout="vertical" margin={{ left: 10 }}>
+          <BarChart data={siteData || []} layout="vertical" margin={{ left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false} />
             <XAxis type="number" tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
             <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "#44403C" }} axisLine={false} tickLine={false} width={140} />
             <Tooltip content={<TT />} />
             <Bar dataKey="value" fill={PR} radius={[0,6,6,0]}>
+              {gradientCells(siteData, PR)}
               <LabelList dataKey="value" position="right" style={{ fontSize: 11, fill: "#1C1917", fontWeight: 700 }} />
             </Bar>
           </BarChart>
