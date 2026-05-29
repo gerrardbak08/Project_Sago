@@ -25,6 +25,19 @@ from core.weather import get_weather
 from core.rule_matcher import match_with_fallback
 from core.llm import generate_guide
 from core.notifier import get_notifier
+from core.recipients import resolve_recipients
+from core.alert_state import (
+    get_state as alert_state_get,
+    record_sent as alert_state_record_sent,
+    should_skip_for_cooldown,
+)
+from core.media import pick_media_for_results
+
+try:
+    from scripts.media_prompts import TARGETS as _MEDIA_TARGETS
+    _KNOWN_MEDIA = set(_MEDIA_TARGETS)
+except Exception:
+    _KNOWN_MEDIA = None
 
 # ──────────────────────────────────────────────
 # 상수
@@ -84,9 +97,15 @@ def _load_model_files(source: str) -> tuple[dict, dict, dict, dict, dict]:
 
 
 def _load_recipients() -> dict:
-    """recipients.json 로드 (캐시). 없으면 빈 dict 반환."""
+    """recipients.json 로드. 캐시 미사용 — 스키마 편집 즉시 반영. 실패 시 빈 구조."""
+    bucket = os.environ.get("MODELS_BUCKET", "")
+    if not bucket:
+        return {"default": [], "stores": {}}
     try:
-        return _load_json_s3("recipients.json")
+        import boto3
+        s3 = boto3.client("s3")
+        resp = s3.get_object(Bucket=bucket, Key="recipients.json")
+        return json.loads(resp["Body"].read().decode("utf-8"))
     except Exception as e:
         print(f"[batch] recipients.json 로드 실패 (기본값 사용): {e}")
         return {"default": [], "stores": {}}
@@ -168,6 +187,40 @@ def _generate_store_guide(store: dict, date_str: str) -> dict:
 
 
 # ──────────────────────────────────────────────
+# 심각도 판정 (쿨다운 override 용)
+# ──────────────────────────────────────────────
+import re as _re
+
+_HIGH_WORD = _re.compile(r"\b(HIGH|HIGH-RISK)\b", _re.IGNORECASE)
+
+
+def _infer_severity(guide_result: dict) -> str:
+    """가이드 결과에서 심각도(high/normal)를 추정한다.
+
+    규칙:
+      - results.{cust,emp}.guide.위험_요약 에 "고위험" 또는 단어 경계 HIGH 매칭 → high
+      - 또는 incident_count 가 환경변수 ALERT_HIGH_INCIDENT_MIN(기본 50) 이상 → high
+      - 예외 발생 시 안전하게 "normal" 반환 — 발송 자체를 막지 않는다.
+    """
+    try:
+        high_min = int(os.environ.get("ALERT_HIGH_INCIDENT_MIN", "50"))
+        for src in SOURCES:
+            sd = guide_result.get("results", {}).get(src, {})
+            summary = (sd.get("guide", {}) or {}).get("위험_요약", "") or ""
+            if "고위험" in summary or _HIGH_WORD.search(summary):
+                return "high"
+            try:
+                count = int(sd.get("incident_count", 0) or 0)
+            except (TypeError, ValueError):
+                count = 0
+            if count >= high_min:
+                return "high"
+    except Exception as e:
+        print(f"[batch] 심각도 추정 예외 → normal 폴백: {e}")
+    return "normal"
+
+
+# ──────────────────────────────────────────────
 # 메시지 본문 구성
 # ──────────────────────────────────────────────
 def _build_message_body(store_name: str, date_str: str, results: dict) -> str:
@@ -188,6 +241,13 @@ def _build_message_body(store_name: str, date_str: str, results: dict) -> str:
                 lines.append("  [상시 주의]")
                 for item in guide["상시_주의사항"]:
                     lines.append(f"  ☑️ {item.get('수칙', '')}")
+        lines.append("")
+
+    media_urls = pick_media_for_results(results, _KNOWN_MEDIA)
+    if media_urls:
+        lines.append("🖼️ 안전 일러스트")
+        for u in media_urls:
+            lines.append(f"  | {u}")
         lines.append("")
     return "\n".join(lines)
 
@@ -289,6 +349,9 @@ def lambda_handler(event: dict, context: Any) -> dict:
     store_results: list[dict] = []
     success_count = 0
     failed_count = 0
+    skipped_count = 0
+    cooldown_days = int(os.environ.get("ALERT_COOLDOWN_DAYS", "1"))
+    frontend_bucket = os.environ.get("FRONTEND_BUCKET", "")
 
     for store in active_stores:
         store_code = store.get("매장")
@@ -302,11 +365,33 @@ def lambda_handler(event: dict, context: Any) -> dict:
             if "error" in guide_result:
                 raise Exception(guide_result["error"])
 
-            # 수신자 조회: default(공통) + 매장별 UUID 합산
+            severity = _infer_severity(guide_result)
+
+            # 쿨다운 체크 — high 심각도면 override
+            prior_state = alert_state_get(frontend_bucket, store_code)
+            skip, reason = should_skip_for_cooldown(
+                prior_state, now, cooldown_days, severity
+            )
+            if skip:
+                store_results.append({
+                    "store_code": str(store_code),
+                    "store_name": store_name,
+                    "status": "skipped",
+                    "reason": reason,
+                    "severity": severity,
+                })
+                skipped_count += 1
+                print(f"[batch] 쿨다운 스킵: {store_name} ({store_code}) — {reason}")
+                continue
+
+            # 수신자 조회: 3계층(매장/부서/팀) 리졸버 — 배치는 매장 전체 범위
             recipients_data = _load_recipients()
-            receiver_uuids: list[str] = (
-                recipients_data.get("default", []) +
-                recipients_data.get("stores", {}).get(str(store_code), [])
+            receiver_uuids: list[str] = resolve_recipients(
+                recipients_data, store_code
+            )
+            print(
+                f"[batch][audit] store={store_code} count={len(receiver_uuids)} "
+                f"channel={channel} severity={severity}"
             )
 
             if channel == "kakao":
@@ -321,6 +406,11 @@ def lambda_handler(event: dict, context: Any) -> dict:
 
             # frontend 버킷에 현황 기록 (trigger_type = "batch")
             _record_alert(s3_client, guide_result, channel, trigger_type="batch")
+
+            # 알림 상태 업데이트 (쿨다운/확인 추적용)
+            alert_state_record_sent(
+                frontend_bucket, store_code, date_str, severity, now
+            )
 
             cust = guide_result.get("results", {}).get("cust", {})
             emp = guide_result.get("results", {}).get("emp", {})

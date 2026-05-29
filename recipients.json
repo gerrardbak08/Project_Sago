@@ -1,9 +1,27 @@
 {
-  "version": "1.0",
-  "comment": "카카오 알림 수신자 UUID. S3 MODELS_BUCKET/recipients.json 에 업로드 후 배치/알림 핸들러가 로드.",
+  "version": "2.0",
+  "comment": "3계층 수신자 스키마. default(전사) → stores._all(매장) → stores.depts._all(부서) → stores.depts.teams(팀). v1(매장코드: [uuids]) 도 하위 호환됨. S3 MODELS_BUCKET/recipients.json 에 업로드.",
   "default": [],
   "stores": {
-    "10130": [],
-    "10481": []
+    "10130": {
+      "_all": [],
+      "depts": {
+        "식품": {
+          "_all": [],
+          "teams": {
+            "신선": [],
+            "가공": []
+          }
+        },
+        "비식품": {
+          "_all": [],
+          "teams": {}
+        }
+      }
+    },
+    "10481": {
+      "_all": [],
+      "depts": {}
+    }
   }
 }

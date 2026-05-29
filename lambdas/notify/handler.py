@@ -32,6 +32,14 @@ from core.weather import get_weather
 from core.rule_matcher import match_with_fallback
 from core.llm import generate_guide
 from core.notifier import get_notifier
+from core.recipients import resolve_recipients
+from core.media import pick_media_for_results
+
+try:
+    from scripts.media_prompts import TARGETS as _MEDIA_TARGETS
+    _KNOWN_MEDIA = set(_MEDIA_TARGETS)
+except Exception:
+    _KNOWN_MEDIA = None
 
 # ──────────────────────────────────────────────
 # 상수
@@ -116,6 +124,21 @@ def _load_json_s3(key: str) -> Any:
 
 def _load_stores() -> list[dict]:
     return _load_json_s3("stores.json")
+
+
+def _load_recipients() -> dict:
+    """recipients.json 로드. 캐시 미사용 (스키마 편집 즉시 반영). 실패 시 빈 구조."""
+    bucket = os.environ.get("MODELS_BUCKET", "")
+    if not bucket:
+        return {"default": [], "stores": {}}
+    try:
+        import boto3
+        s3 = boto3.client("s3")
+        resp = s3.get_object(Bucket=bucket, Key="recipients.json")
+        return json.loads(resp["Body"].read().decode("utf-8"))
+    except Exception as e:
+        print(f"[notify] recipients.json 로드 실패 (빈 값 사용): {e}")
+        return {"default": [], "stores": {}}
 
 
 def _load_model_files(source: str) -> tuple[dict, dict, dict, dict, dict]:
@@ -231,6 +254,13 @@ def _build_message_body(store_name: str, date_str: str, results: dict) -> str:
                 for item in guide["상시_주의사항"]:
                     lines.append(f"  ☑️ {item.get('수칙', '')}")
         lines.append("")
+
+    media_urls = pick_media_for_results(results, _KNOWN_MEDIA)
+    if media_urls:
+        lines.append("🖼️ 안전 일러스트")
+        for u in media_urls:
+            lines.append(f"  | {u}")
+        lines.append("")
     return "\n".join(lines)
 
 
@@ -312,6 +342,13 @@ def lambda_handler(event: dict, context: Any) -> dict:
         date_str = body.get("date")
         channel = str(body.get("channel") or os.environ.get("NOTIFY_CHANNEL", "mock")).strip()
         receiver_uuids = body.get("receiver_uuids", [])
+        # 3계층 타겟 (옵션): 둘 다 None 이면 매장 전체
+        target_dept = body.get("dept")
+        target_team = body.get("team")
+        if target_dept is not None:
+            target_dept = str(target_dept).strip() or None
+        if target_team is not None:
+            target_team = str(target_team).strip() or None
         allowed_channels = {
             c.strip()
             for c in os.environ.get("NOTIFY_ALLOWED_CHANNELS", os.environ.get("NOTIFY_CHANNEL", "mock")).split(",")
@@ -326,8 +363,7 @@ def lambda_handler(event: dict, context: Any) -> dict:
             return _response(403, {"error": f"허용되지 않은 발송 채널입니다: {channel}"})
         if receiver_uuids and not isinstance(receiver_uuids, list):
             return _response(400, {"error": "receiver_uuids는 배열이어야 합니다."})
-        if channel == "kakao" and not receiver_uuids:
-            return _response(400, {"error": "카카오 발송에는 receiver_uuids가 필요합니다."})
+        # receiver_uuids 가 비면 recipients.json 에서 매장/부서/팀 단위로 자동 조회
         if channel == "kakao" and not _token_allowed(event, "MANUAL_SEND_TOKEN"):
             return _response(401, {"error": "카카오 발송에는 서버 설정 인증 토큰이 필요합니다."})
 
@@ -354,6 +390,8 @@ def lambda_handler(event: dict, context: Any) -> dict:
     for store_code in store_codes:
         store = store_map.get(store_code)
         guide_result = None
+        # 실패 경로에서도 정확한 수신자 명단을 기록하기 위해 루프 시작 시 선언
+        store_recipients: list[str] = list(receiver_uuids) if receiver_uuids else []
         if store is None:
             store_results.append({
                 "store_code": str(store_code),
@@ -372,13 +410,35 @@ def lambda_handler(event: dict, context: Any) -> dict:
 
             store_name = guide_result.get("store_name", str(store_code))
 
+            # 수신자 결정: 요청에 receiver_uuids 가 있으면 우선, 없으면 3계층 자동 조회
+            if receiver_uuids:
+                store_recipients = list(receiver_uuids)
+                resolved_via = "request"
+            else:
+                store_recipients = resolve_recipients(
+                    _load_recipients(), store_code, target_dept, target_team
+                )
+                resolved_via = "recipients_json"
+
+            # 발송 범위 감사 로그 — 토큰 인증된 호출자가 의도치 않게 매장 전체로
+            # 브로드캐스트하지 않는지 확인할 수 있도록 항상 출력
+            print(
+                f"[notify][audit] store={store_code} dept={target_dept} "
+                f"team={target_team} count={len(store_recipients)} via={resolved_via}"
+            )
+
+            if channel == "kakao" and not store_recipients:
+                raise Exception(
+                    f"수신자 없음 (store={store_code}, dept={target_dept}, team={target_team})"
+                )
+
             # 발송
             delivery: dict[str, Any]
             subject = f"[다이소 안전가이드] {store_name} - {date_str}"
             msg_body = _build_message_body(store_name, date_str, guide_result.get("results", {}))
             if channel == "kakao":
                 send_result = notifier.send_guide(
-                    receiver_uuids,
+                    store_recipients,
                     store_name,
                     date_str,
                     str(store_code),
@@ -386,20 +446,22 @@ def lambda_handler(event: dict, context: Any) -> dict:
                 )
                 delivery = {
                     "channel": "kakao",
-                    "recipients": receiver_uuids,
+                    "recipients": store_recipients,
                     "sent": send_result.get("sent", []),
                     "failed": send_result.get("failed", []),
                     "status": "sent" if send_result.get("sent") else "failed",
                     "raw": send_result.get("raw", {}),
+                    "scope": {"dept": target_dept, "team": target_team},
                 }
             else:
                 send_result = notifier.send([], subject, msg_body)
                 delivery = {
                     "channel": channel,
-                    "recipients": [],
+                    "recipients": store_recipients,
                     "sent": send_result.get("sent", []),
                     "failed": send_result.get("failed", []),
                     "status": "sent",
+                    "scope": {"dept": target_dept, "team": target_team},
                 }
 
             guide_result["delivery"] = delivery
@@ -417,7 +479,6 @@ def lambda_handler(event: dict, context: Any) -> dict:
                 "recipients": delivery.get("recipients", []),
                 "sent_recipients": delivery.get("sent", []),
                 "failed_recipients": delivery.get("failed", []),
-                "delivery_source": delivery.get("source", ""),
                 "주요_위험유형_cust": cust.get("guide", {}).get("주요_위험유형", ""),
                 "주요_위험유형_emp": emp.get("guide", {}).get("주요_위험유형", ""),
                 "guide_preview": {
@@ -434,11 +495,12 @@ def lambda_handler(event: dict, context: Any) -> dict:
         except Exception as e:
             failed_delivery = {
                 "channel": channel,
-                "recipients": receiver_uuids,
+                "recipients": store_recipients,
                 "sent": [],
-                "failed": receiver_uuids,
+                "failed": store_recipients,
                 "status": "failed",
                 "error": str(e),
+                "scope": {"dept": target_dept, "team": target_team},
             }
             if guide_result is not None:
                 guide_result["delivery"] = failed_delivery
@@ -447,9 +509,9 @@ def lambda_handler(event: dict, context: Any) -> dict:
                 "store_code": str(store_code),
                 "store_name": store.get("매장명", ""),
                 "status": "failed",
-                "recipients": receiver_uuids,
+                "recipients": store_recipients,
                 "sent_recipients": [],
-                "failed_recipients": receiver_uuids,
+                "failed_recipients": store_recipients,
                 "error": str(e),
             })
             failed_count += 1
