@@ -65,14 +65,6 @@ function normalizeWorkerId(rawId, rawName) {
   return name ? hashSensitive(`NAME:${name}`) : null;
 }
 
-function maskNameWithHash(name) {
-  if (name == null || name === "") return null;
-  const s = String(name).trim();
-  if (!s) return null;
-  const hashed = hashSensitive(`NAME:${s}`, "P").slice(-4);
-  return `${maskName(s)}-${hashed}`;
-}
-
 function cleanParjang(s) {
   if (!s) return null;
   return String(s).trim().replace(/\s+(사원|주임|대리|과장|차장|부장|선임|책임|수석|팀장|매니저|이사|팀)$/, "");
