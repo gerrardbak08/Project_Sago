@@ -45,14 +45,20 @@ function LegalReporting({ D, yearFilter }) {
           {APPROVAL_DATA ? (
             <>
               <div className="flex items-baseline gap-3 mt-2">
-                <div className="text-2xl sm:text-3xl font-bold tabular-nums">{APPROVAL_DATA.approvalRate ?? "—"}%</div>
-                <div className="text-xs opacity-80">승인률</div>
+                <div className="text-2xl sm:text-3xl font-bold tabular-nums">{fmt(APPROVAL_DATA.totalApproved)}<span className="text-sm text-stone-500 font-normal ml-1">건</span></div>
+                <div className="text-xs opacity-80">산재 승인</div>
               </div>
               <div className="text-xs opacity-80 mt-1">
-                승인 {APPROVAL_DATA.approved}건 · 불승인 {APPROVAL_DATA.rejected}건 · 심사중 {APPROVAL_DATA.pending}건
+                근로손실 <b className="tabular-nums">{fmt(APPROVAL_DATA.lossDaysTotal)}</b>일 · 평균 {APPROVAL_DATA.lossDaysAvg}일
               </div>
-              <div className="mt-3 h-2 bg-stone-100 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-400 rounded-full" style={{ width: `${APPROVAL_DATA.approvalRate ?? 0}%` }} />
+              {APPROVAL_DATA.linkage && (
+                <div className="text-[11px] text-stone-500 mt-1.5">
+                  사고이력 연계 <b className="text-indigo-600 tabular-nums">{APPROVAL_DATA.linkage.matchRate}%</b>
+                  <span className="text-stone-400"> ({APPROVAL_DATA.linkage.matchedTotal}/{APPROVAL_DATA.linkage.approvedInOverlap}건)</span>
+                </div>
+              )}
+              <div className="mt-2 h-2 bg-stone-100 rounded-full overflow-hidden">
+                <div className="h-full bg-indigo-400 rounded-full" style={{ width: `${APPROVAL_DATA.linkage?.matchRate ?? 0}%` }} />
               </div>
             </>
           ) : (
@@ -102,7 +108,28 @@ function LegalReporting({ D, yearFilter }) {
             </BarChart>
           </ResponsiveContainer>
         </Card>
-        
+
+        {APPROVAL_DATA && APPROVAL_DATA.byYear?.length > 0 ? (
+          <Card title="연도별 산재 승인 추세" titleIcon={ShieldCheck} sub="승인 건수 · 근로손실일수 — 산재승인 DB 기준 (2026 ~4월)" right={<ExportBtn rows={APPROVAL_DATA.byYear.map(y=>({연도:y.year,승인건수:y.count,근로손실일수:y.lossDays}))} filename="연도별_산재승인.csv" />}>
+            <ResponsiveContainer width="100%" height={200} debounce={50}>
+              <ComposedChart data={APPROVAL_DATA.byYear} margin={{ left: 0, right: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" vertical={false} />
+                <XAxis dataKey="year" tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="l" tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} width={28} />
+                <YAxis yAxisId="r" orientation="right" tick={{ fontSize: 10, fill: "#A8A29E" }} axisLine={false} tickLine={false} width={40} />
+                <Tooltip content={<TT />} />
+                <Bar yAxisId="l" dataKey="count" name="승인 건수" radius={[6,6,0,0]} fill={PR} maxBarSize={48}>
+                  <LabelList dataKey="count" position="top" style={{ fontSize: 10, fill: "#1C1917", fontWeight: 700 }} />
+                </Bar>
+                <Line yAxisId="r" dataKey="lossDays" name="근로손실일수" stroke={OR} strokeWidth={2} dot={{ r: 3 }} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </Card>
+        ) : (
+          <Card title="연도별 산재 승인 추세" titleIcon={ShieldCheck} sub="DB 연동 후 표시">
+            <EmptyState message="DB/산재승인현황.xlsx 배치 후 node scripts/extract-approval.mjs 실행" />
+          </Card>
+        )}
       </div>
       
       {/* 중대재해처벌법 12개 체크리스트 */}
