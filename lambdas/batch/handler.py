@@ -22,7 +22,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Any
 
 from core.weather import get_weather
-from core.rule_matcher import match_with_fallback
+from core.rule_matcher import match_with_fallback, compute_confidence
 from core.llm import generate_guide
 from core.notifier import get_notifier
 from core.recipients import resolve_recipients
@@ -166,11 +166,13 @@ def _generate_store_guide(store: dict, date_str: str) -> dict:
             continue
 
         leaf_summary = leaf_data.get("summary", {})
-        guide = generate_guide(store, weather, leaf_data, label_col)
+        confidence = compute_confidence(fallback_level, leaf_summary.get("total", 0))
+        guide = generate_guide(store, weather, leaf_data, label_col, confidence)
 
         results[source] = {
             "leaf_id": str(leaf_id) if leaf_id is not None else None,
             "fallback_level": fallback_level,
+            "confidence": confidence,
             "guide": guide,
             "matched_rule": leaf_data.get("rule", ""),
             "incident_count": leaf_summary.get("total", 0),

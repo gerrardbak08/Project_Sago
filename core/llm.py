@@ -541,6 +541,7 @@ def build_user_prompt(
     weather: dict,
     leaf_data: dict,
     label_col: str,
+    confidence: str = "high",
 ) -> str:
     """유저 프롬프트 구성 — 사례별 발생 조건 + 기상 Δ + 리프 위험 분석 포함."""
     today = date.today().isoformat()
@@ -561,6 +562,15 @@ def build_user_prompt(
 
     # 리프 규칙 고도화 분석
     leaf_risk_context = _build_leaf_risk_context(rule, type_dist)
+
+    confidence_note = (
+        "\n## 주의\n"
+        "이 가이드는 유사 조건 사례가 충분하지 않아 매칭 신뢰도가 낮습니다(low). "
+        "단정적 표현을 피하고 '참고용 가설' 톤으로 작성하십시오. "
+        "위험_요약 첫 줄에 '[데이터 부족 — 참고용]' 문구를 포함하십시오."
+        if confidence == "low"
+        else ""
+    )
 
     return f"""## 오늘의 조건
 - 날짜: {today}
@@ -587,7 +597,7 @@ def build_user_prompt(
 2. 오늘 조건에서의 재현 가능성을 판단하십시오 (높음/중간/낮음). 리프 위험등급이 "높음"이면 재현 가능성도 상향 조정하십시오.
 3. 원인 유형 (a)(b)(c)인 사례 중 재현 가능성이 높은 3~5건을 선정하여 `today_precautions`에 사례+수칙으로 출력하십시오.
 4. 원인 유형 (d) 부주의 사례들을 종합 분석하여, **실용적 안전 수칙 문장**을 `negligence_precautions`에 2~4개 작성하십시오. 사고 건수·통계 수치는 절대 포함하지 말고, 간결한 액션 지시 형태로 작성하십시오.
-"""
+{confidence_note}"""
 
 
 # ---------------------------------------------------------------------------
@@ -599,6 +609,7 @@ def generate_guide_mock(
     weather: dict,
     leaf_data: dict,
     label_col: str = "사고유형",
+    confidence: str = "high",
 ) -> dict:
     """Mock 모드: 기상 조건 기반 규칙으로 신 스키마에 맞는 가이드를 생성한다."""
     temp_min = weather.get("temperature_2m_min", 10) or 10
@@ -689,6 +700,8 @@ def generate_guide_mock(
     main_risk = ", ".join(risk_types) if risk_types else "상시 안전 주의"
     store_name = store.get("매장명", "매장")
     risk_summary = f"{store_name}: 오늘 주의 필요 — {main_risk}"
+    if confidence == "low":
+        risk_summary = f"[데이터 부족 — 참고용] {risk_summary}"
 
     return {
         "위험_요약": risk_summary,
@@ -778,6 +791,7 @@ def generate_guide(
     weather: dict,
     leaf_data: dict,
     label_col: str = "사고유형",
+    confidence: str = "high",
 ) -> dict:
     """안전 가이드 생성.
 
@@ -789,24 +803,25 @@ def generate_guide(
         weather: 기상 데이터
         leaf_data: 리프 노드 데이터 (rule, summary, incidents)
         label_col: 라벨 컬럼명 ('사고유형' 또는 '재해 유형')
+        confidence: 신뢰도 라벨 ('high'/'med'/'low')
 
     Returns:
         안전 가이드 dict (스키마는 모듈 docstring 참조)
     """
     if _is_mock_mode():
         print("[llm] Mock 모드로 안전 가이드를 생성합니다.")
-        guide = generate_guide_mock(store, weather, leaf_data, label_col)
+        guide = generate_guide_mock(store, weather, leaf_data, label_col, confidence)
     else:
-        user_prompt = build_user_prompt(store, weather, leaf_data, label_col)
+        user_prompt = build_user_prompt(store, weather, leaf_data, label_col, confidence)
         try:
             print("[llm] Bedrock 호출 중 (Tool Use)...")
             guide = _call_bedrock(user_prompt)
             print("[llm] Bedrock 응답 수신 완료.")
-            
+
         except Exception as e:
             print(f"[llm] Bedrock 호출 실패: {e}")
             print("[llm] Mock 모드로 전환합니다.")
-            guide = generate_guide_mock(store, weather, leaf_data, label_col)
+            guide = generate_guide_mock(store, weather, leaf_data, label_col, confidence)
 
     # 후처리: incident_id → image_url 매핑
     guide = _attach_image_urls(guide, leaf_data)

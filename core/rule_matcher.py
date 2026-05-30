@@ -101,6 +101,20 @@ def match_with_fallback(
     return str(leaf_id), None, 2
 
 
+def compute_confidence(fallback_level: int, leaf_samples: int) -> str:
+    """fallback_level + leaf 표본 수로 신뢰도 라벨(high/med/low)을 반환한다.
+
+    level 2 (전체 병합): 항상 low
+    level 1 (sibling 병합): 10건 미만이면 low, 이상이면 med
+    level 0 (직접 매칭): 15건 이상이면 high, 미만이면 med
+    """
+    if fallback_level >= 2:
+        return "low"
+    if fallback_level == 1:
+        return "low" if leaf_samples < 10 else "med"
+    return "high" if leaf_samples >= 15 else "med"
+
+
 def _merge_leaves(leaf_table: dict[str, Any], leaf_ids: list[int]) -> dict:
     merged_incidents: list[dict] = []
     merged_summary: dict[str, Any] = {"total": 0}

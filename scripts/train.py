@@ -221,16 +221,22 @@ def _export_tree_rules(
 ) -> dict:
     """sklearn 없이 실행 가능한 트리 분기 구조를 JSON dict로 변환한다."""
     tree_ = tree.tree_
+    classes = list(tree.classes_)
     nodes: dict[str, dict] = {}
 
     for node_id in range(tree_.node_count):
         left = int(tree_.children_left[node_id])
         right = int(tree_.children_right[node_id])
         if left == right:
+            class_counts = {
+                str(cls): int(tree_.value[node_id][0][i])
+                for i, cls in enumerate(classes)
+            }
             nodes[str(node_id)] = {
                 "type": "leaf",
                 "leaf_id": int(node_id),
                 "samples": int(tree_.n_node_samples[node_id]),
+                "class_counts": class_counts,
             }
             continue
 
