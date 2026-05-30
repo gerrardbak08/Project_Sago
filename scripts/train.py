@@ -20,7 +20,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score
 from sklearn.model_selection import ParameterGrid, train_test_split
 from sklearn.tree import DecisionTreeClassifier
 
@@ -356,9 +356,15 @@ def _tune_tree(X: pd.DataFrame, y: pd.Series) -> tuple[dict, dict]:
         tree = DecisionTreeClassifier(**candidate_params)
         tree.fit(X_train, y_train)
         pred = tree.predict(X_test)
+        per_class_f1 = f1_score(y_test, pred, average=None, zero_division=0, labels=list(tree.classes_))
         metrics = {
             "accuracy": float(accuracy_score(y_test, pred)),
+            "balanced_accuracy": float(balanced_accuracy_score(y_test, pred)),
             "f1_macro": float(f1_score(y_test, pred, average="macro", zero_division=0)),
+            "f1_per_class": {
+                str(cls): float(score)
+                for cls, score in zip(tree.classes_, per_class_f1)
+            },
             "tree_depth": int(tree.get_depth()),
             "n_leaves": int(tree.get_n_leaves()),
         }
@@ -398,6 +404,24 @@ def _build_metadata(
     label_dist = dict(Counter(df[label_col].tolist()))
     leaf_sizes = [v["summary"]["total"] for v in leaf_table.values()]
 
+    # 피처별 분위수/IQR — llm.py rank_incidents() kNN 정규화 기준
+    feature_stats: dict[str, dict] = {}
+    for feat in feature_names:
+        if feat == "형태" or feat not in df.columns:
+            continue
+        col = df[feat].dropna()
+        if len(col) == 0:
+            continue
+        q1 = float(col.quantile(0.25))
+        q3 = float(col.quantile(0.75))
+        iqr = q3 - q1
+        feature_stats[feat] = {
+            "q1": q1,
+            "q3": q3,
+            "iqr": iqr if iqr > 0 else max(float(col.std()), 1.0),
+            "median": float(col.median()),
+        }
+
     return {
         "feature_names": feature_names,
         "total_incidents": int(len(df)),
@@ -410,6 +434,7 @@ def _build_metadata(
         "validation": validation_metrics,
         "label_column": label_col,
         "label_distribution": label_dist,
+        "feature_stats": feature_stats,
     }
 
 
