@@ -84,12 +84,34 @@ function normDept(s) {
   return d.replace(/영업부문$/, '영업부');
 }
 
-/** 재해유형 정제: 날짜 패턴·빈값 등 명백한 오염값 제거. */
-function cleanType(s) {
-  const t = nfc(s);
-  if (!t) return null;
-  if (/^\d+[/.\-]\d+/.test(t)) return null;   // "1/0/00" 같은 날짜 오염
-  return t;
+// 사고내용에서 재해유형을 복원하기 위한 키워드 맵 (위에서부터 우선 매칭).
+const TYPE_KEYWORDS = [
+  [/(넘어|미끄러|헛디|단차)/, '넘어짐'],
+  [/(베|절단|칼|날에)/, '베임'],
+  [/(끼|협착)/, '끼임'],
+  [/(부딪|충돌)/, '부딪힘'],
+  [/(떨어|추락|낙하)/, '떨어짐'],
+  [/(물체에 ?맞|낙하물)/, '물체에 맞음'],
+  [/(무리한|반복작업|삐끗|염좌|근골)/, '무리한 동작'],
+  [/(깔림|깔려)/, '깔림'],
+];
+// 재해유형 칸에 잘못 들어온 신청유형/오염값.
+const INVALID_TYPE = new Set(['산재', '공상']);
+
+/**
+ * 재해유형 정제: 유효한 한글 유형은 그대로, 빈값·날짜오염·신청유형누수("산재")는
+ * 사고내용에서 키워드 복원을 시도하고, 그래도 불가하면 "미분류" 로 버킷팅한다.
+ * (조용히 누락하지 않아 byType 합계가 totalApproved 와 일치)
+ */
+function cleanType(rawType, content) {
+  const t = nfc(rawType);
+  const valid = t && !/^\d+[/.\-]\d+/.test(t) && !INVALID_TYPE.has(t);
+  if (valid) return t;
+  const c = nfc(content);
+  if (c) {
+    for (const [re, label] of TYPE_KEYWORDS) if (re.test(c)) return label;
+  }
+  return '미분류';
 }
 
 function toInt(v) {
@@ -161,8 +183,8 @@ function processApproval(rows, accIdx) {
 
   for (const r of rows) {
     const year = toInt(r[A_YEAR]) || null;
-    const dept = normDept(r[A_DEPT]);
-    const type = cleanType(r[A_TYPE]);
+    const dept = normDept(r[A_DEPT]) || '미상';
+    const type = cleanType(r[A_TYPE], r['사고 내용']);
     const loss = toInt(r[A_LOSS]);
     const name = nfc(r[A_NAME]);
     const date = normDate(r[A_DATE]);
@@ -176,13 +198,11 @@ function processApproval(rows, accIdx) {
     byYear[year].count++;
     byYear[year].lossDays += loss;
 
-    if (type) byType[type] = (byType[type] || 0) + 1;
+    byType[type] = (byType[type] || 0) + 1;
 
-    if (dept) {
-      if (!byDept[dept]) byDept[dept] = { count: 0, lossDays: 0 };
-      byDept[dept].count++;
-      byDept[dept].lossDays += loss;
-    }
+    if (!byDept[dept]) byDept[dept] = { count: 0, lossDays: 0 };
+    byDept[dept].count++;
+    byDept[dept].lossDays += loss;
 
     // ── 연계 매칭 ──
     if (accIdx && overlapYears.has(year) && name && date) {

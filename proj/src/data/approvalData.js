@@ -32,7 +32,7 @@ const APPROVAL_DATA = {
   "byType": [
     {
       "type": "넘어짐",
-      "count": 131
+      "count": 132
     },
     {
       "type": "무리한 동작",
@@ -51,16 +51,16 @@ const APPROVAL_DATA = {
       "count": 22
     },
     {
+      "type": "미분류",
+      "count": 20
+    },
+    {
       "type": "기타",
       "count": 18
     },
     {
       "type": "부딪힘",
       "count": 16
-    },
-    {
-      "type": "산재",
-      "count": 13
     },
     {
       "type": "끼임",
@@ -132,6 +132,11 @@ const APPROVAL_DATA = {
       "dept": "평택/안산영업부",
       "count": 16,
       "lossDays": 582
+    },
+    {
+      "dept": "미상",
+      "count": 11,
+      "lossDays": 1239
     },
     {
       "dept": "오픈지원부",
