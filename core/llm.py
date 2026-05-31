@@ -365,6 +365,8 @@ def rank_incidents(
     today_store: dict,
     feature_stats: dict,
     k: int = 5,
+    main_leaf_id: int | str | None = None,
+    main_bonus: float = 0.7,
 ) -> list[dict]:
     """오늘 조건과 가장 유사한 사례 상위 k건을 IQR 정규화 가중 거리 순으로 반환.
 
@@ -372,11 +374,16 @@ def rank_incidents(
     - 매장 수치 피처: 가중치 1.0
     - 형태 (범주형): 가중치 0.5, 불일치=1 / 일치=0
     - feature_stats 없으면 원본 순서 그대로 상위 k건 반환 (graceful degrade)
+    - cross-leaf 재정렬: main_leaf_id가 주어지면 메인 리프 소속 사례의 거리에
+      main_bonus(<1.0)를 곱해 우선권을 부여한다. 트리 분기를 신뢰하면서도
+      경계 너머 형제 리프의 더 가까운 사례를 회수할 수 있다.
     """
     if not incidents:
         return []
     if not feature_stats:
         return incidents[:k]
+
+    main_leaf = None if main_leaf_id is None else str(main_leaf_id)
 
     today = {**today_weather, **today_store}
 
@@ -424,7 +431,11 @@ def rank_incidents(
                 total_w += 0.5
             except (TypeError, ValueError):
                 pass
-        return total_d / total_w if total_w > 0 else float("inf")
+        dist = total_d / total_w if total_w > 0 else float("inf")
+        # cross-leaf 보너스: 메인 리프 사례는 거리를 할인해 트리 분기에 우선권 부여
+        if main_leaf is not None and str(inc.get("leaf_id")) == main_leaf:
+            dist *= main_bonus
+        return dist
 
     return sorted(incidents, key=_dist)[:k]
 
@@ -550,9 +561,12 @@ def build_user_prompt(
     incidents_all = leaf_data.get("incidents", [])
     total = summary.get("total", len(incidents_all))
 
-    # 오늘 조건과 유사한 사례 상위 8건으로 재정렬 (IQR 정규화 가중 거리)
+    # 오늘 조건과 유사한 사례 상위 8건으로 재정렬 (IQR 정규화 가중 거리 + cross-leaf 보너스)
     source = leaf_data.get("source", "cust")
-    incidents = rank_incidents(incidents_all, weather, store, _load_feature_stats(source), k=8)
+    incidents = rank_incidents(
+        incidents_all, weather, store, _load_feature_stats(source),
+        k=8, main_leaf_id=leaf_data.get("leaf_id"),
+    )
 
     type_dist = summary.get(label_col, {})
     aux_dist_keys = [k for k in summary.keys() if k not in ("total", label_col)]
@@ -617,11 +631,12 @@ def generate_guide_mock(
     snow = weather.get("snowfall_sum", 0) or 0
     wind = weather.get("wind_speed_10m_max", 0) or 0
 
-    # 오늘의 주의사항 (사례 기반) — 오늘 조건과 유사한 상위 5건으로 재정렬
+    # 오늘의 주의사항 (사례 기반) — 오늘 조건과 유사한 상위 5건으로 재정렬 + cross-leaf 보너스
     source = leaf_data.get("source", "cust")
     incidents = rank_incidents(
         leaf_data.get("incidents", []), weather, store,
         _load_feature_stats(source), k=5,
+        main_leaf_id=leaf_data.get("leaf_id"),
     )
     today_precautions: list[dict] = []
     risk_types: list[str] = []

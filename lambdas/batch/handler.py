@@ -22,7 +22,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Any
 
 from core.weather import get_weather
-from core.rule_matcher import match_with_fallback, compute_confidence
+from core.rule_matcher import match_with_fallback, compute_confidence, expand_with_siblings
 from core.llm import generate_guide
 from core.notifier import get_notifier
 from core.recipients import resolve_recipients
@@ -179,6 +179,10 @@ def _generate_store_guide(store: dict, date_str: str) -> dict:
         confidence = compute_confidence(
             fallback_level, leaf_summary.get("total", 0), class_counts, calibration
         )
+        # cross-leaf 재정렬: level 0이면 직계 형제 리프 사례를 후보 풀에 추가
+        # (confidence는 메인 분기 기준으로 위에서 이미 계산)
+        if fallback_level == 0:
+            leaf_data = expand_with_siblings(leaf_id, leaf_data, leaf_table, siblings)
         guide = generate_guide(store, weather, leaf_data, label_col, confidence)
 
         results[source] = {

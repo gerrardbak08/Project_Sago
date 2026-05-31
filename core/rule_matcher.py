@@ -63,6 +63,27 @@ def match_leaf(
     return leaf_id, leaf_table.get(str(leaf_id))
 
 
+def _smallest_sibling_group(
+    leaf_id: int,
+    siblings: dict[str, list[int]],
+    leaf_table: dict[str, Any],
+) -> list[int]:
+    """leaf_id를 포함하는 가장 작은 sibling 그룹(직계 형제)을 반환한다.
+
+    siblings는 내부 노드별 자식 리프 매핑이므로, leaf_id를 포함하는 그룹 중
+    가장 작은 것이 곧 직계 부모의 자식 리프 집합(= 직계 형제)이다.
+    leaf_table에 존재하는 리프만 포함한다. 없으면 빈 리스트.
+    """
+    best_children: list[int] = []
+    for children in siblings.values():
+        valid_children = [int(c) for c in children if str(c) in leaf_table]
+        if int(leaf_id) not in valid_children:
+            continue
+        if not best_children or len(valid_children) < len(best_children):
+            best_children = valid_children
+    return best_children
+
+
 def match_with_fallback(
     features: dict[str, float],
     tree_rules: dict[str, Any],
@@ -83,14 +104,7 @@ def match_with_fallback(
     if leaf_data is not None:
         return str(leaf_id), leaf_data, 0
 
-    best_children: list[int] = []
-    for children in siblings.values():
-        valid_children = [int(c) for c in children if str(c) in leaf_table]
-        if int(leaf_id) not in valid_children:
-            continue
-        if not best_children or len(valid_children) < len(best_children):
-            best_children = valid_children
-
+    best_children = _smallest_sibling_group(int(leaf_id), siblings, leaf_table)
     if best_children:
         return str(leaf_id), _merge_leaves(leaf_table, best_children), 1
 
@@ -184,3 +198,31 @@ def _merge_leaves(leaf_table: dict[str, Any], leaf_ids: list[int]) -> dict:
         "summary": merged_summary,
         "incidents": merged_incidents,
     }
+
+
+def expand_with_siblings(
+    leaf_id: str | int,
+    leaf_data: dict[str, Any],
+    leaf_table: dict[str, Any],
+    siblings: dict[str, list[int]] | None = None,
+) -> dict[str, Any]:
+    """cross-leaf 재정렬용: 직계 형제 리프의 사례를 후보 풀에 추가한 leaf_data 복사본을 반환한다.
+
+    - summary / rule / leaf_id 는 **메인 리프 값을 그대로 유지**한다
+      (신뢰도 게이팅·리프 위험 분석이 메인 분기 기준이어야 하므로).
+    - incidents 만 [메인 + 직계 형제] 로 확장한다. 각 사례의 leaf_id 태그는
+      원본이 유지되므로 rank_incidents()가 메인/형제를 구분해 보너스를 적용할 수 있다.
+    - leaf_table은 런타임에 캐싱되므로 원본을 mutate하지 않고 얕은 복사본을 만든다.
+    """
+    siblings = siblings or {}
+    group = _smallest_sibling_group(int(leaf_id), siblings, leaf_table)
+    sibling_ids = [lid for lid in group if lid != int(leaf_id)]
+    if not sibling_ids:
+        return leaf_data
+
+    expanded = dict(leaf_data)
+    incidents = list(leaf_data.get("incidents", []))
+    for sid in sibling_ids:
+        incidents.extend(leaf_table.get(str(sid), {}).get("incidents", []))
+    expanded["incidents"] = incidents
+    return expanded
