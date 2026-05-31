@@ -1,0 +1,15 @@
+{
+  "valid": true,
+  "temperature": 0.9,
+  "qhat": 0.8508683917076088,
+  "coverage_target": 0.9,
+  "n_calibration": 297,
+  "n_classes": 5,
+  "classes": [
+    "낙상",
+    "자상",
+    "재물",
+    "충돌",
+    "클레임"
+  ]
+}

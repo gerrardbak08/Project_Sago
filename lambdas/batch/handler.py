@@ -81,11 +81,19 @@ def _load_json_s3(key: str) -> Any:
     return data
 
 
+def _load_json_s3_optional(key: str, default: Any = None) -> Any:
+    """S3에서 JSON을 로드하되 파일이 없으면 default를 반환한다."""
+    try:
+        return _load_json_s3(key)
+    except Exception:
+        return default if default is not None else {}
+
+
 def _load_stores() -> list[dict]:
     return _load_json_s3("stores.json")
 
 
-def _load_model_files(source: str) -> tuple[dict, dict, dict, dict, dict]:
+def _load_model_files(source: str) -> tuple[dict, dict, dict, dict, dict, dict]:
     prefix = f"models/{source}"
     return (
         _load_json_s3(f"{prefix}/tree_rules.json"),
@@ -93,6 +101,7 @@ def _load_model_files(source: str) -> tuple[dict, dict, dict, dict, dict]:
         _load_json_s3(f"{prefix}/metadata.json"),
         _load_json_s3(f"{prefix}/encoder_map.json"),
         _load_json_s3(f"{prefix}/siblings.json"),
+        _load_json_s3_optional(f"{prefix}/calibration.json"),
     )
 
 
@@ -148,7 +157,7 @@ def _generate_store_guide(store: dict, date_str: str) -> dict:
     results: dict[str, Any] = {}
     for source in SOURCES:
         try:
-            tree_rules, leaf_table, metadata, encoder_map, siblings = _load_model_files(
+            tree_rules, leaf_table, metadata, encoder_map, siblings, calibration = _load_model_files(
                 source
             )
         except Exception as e:
@@ -166,7 +175,10 @@ def _generate_store_guide(store: dict, date_str: str) -> dict:
             continue
 
         leaf_summary = leaf_data.get("summary", {})
-        confidence = compute_confidence(fallback_level, leaf_summary.get("total", 0))
+        class_counts = leaf_summary.get(label_col) if fallback_level == 0 else None
+        confidence = compute_confidence(
+            fallback_level, leaf_summary.get("total", 0), class_counts, calibration
+        )
         guide = generate_guide(store, weather, leaf_data, label_col, confidence)
 
         results[source] = {

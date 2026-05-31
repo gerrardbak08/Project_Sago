@@ -8,6 +8,7 @@ just repeated "feature <= threshold ? left : right" traversal.
 
 from __future__ import annotations
 
+import math
 import re
 from typing import Any
 
@@ -101,13 +102,52 @@ def match_with_fallback(
     return str(leaf_id), None, 2
 
 
-def compute_confidence(fallback_level: int, leaf_samples: int) -> str:
-    """fallback_level + leaf 표본 수로 신뢰도 라벨(high/med/low)을 반환한다.
+def _softmax_calibrated(class_counts: dict[str, int], T: float) -> dict[str, float]:
+    """class_counts에 온도 스케일링을 적용한 softmax 확률을 반환한다 (순수 Python)."""
+    eps = 1e-9
+    total = sum(class_counts.values()) or 1
+    log_scaled = {c: math.log(cnt / total + eps) / T for c, cnt in class_counts.items()}
+    max_val = max(log_scaled.values())
+    exp_vals = {c: math.exp(v - max_val) for c, v in log_scaled.items()}
+    total_exp = sum(exp_vals.values()) or 1.0
+    return {c: v / total_exp for c, v in exp_vals.items()}
 
-    level 2 (전체 병합): 항상 low
-    level 1 (sibling 병합): 10건 미만이면 low, 이상이면 med
-    level 0 (직접 매칭): 15건 이상이면 high, 미만이면 med
+
+def compute_confidence(
+    fallback_level: int,
+    leaf_samples: int,
+    class_counts: dict[str, int] | None = None,
+    calibration: dict | None = None,
+) -> str:
+    """신뢰도 라벨(high/med/low)을 반환한다.
+
+    calibration이 유효하고 class_counts가 있으면:
+      온도 스케일링 T + conformal q̂ → 예측집합 크기로 판정
+        size 1   → high
+        size 2-3 → med
+        size 4+  → low
+    아닌 경우 휴리스틱 fallback:
+      level 2 → low
+      level 1 + <10건 → low, ≥10건 → med
+      level 0 + ≥15건 → high, <15건 → med
     """
+    if (
+        fallback_level == 0
+        and class_counts
+        and calibration
+        and calibration.get("valid")
+    ):
+        T = float(calibration["temperature"])
+        qhat = float(calibration["qhat"])
+        softmax = _softmax_calibrated(class_counts, T)
+        pred_set_size = sum(1 for p in softmax.values() if 1.0 - p <= qhat)
+        if pred_set_size <= 1:
+            return "high"
+        if pred_set_size <= 3:
+            return "med"
+        return "low"
+
+    # 휴리스틱 fallback
     if fallback_level >= 2:
         return "low"
     if fallback_level == 1:

@@ -8,6 +8,7 @@ train.py — Decision Tree 학습 + 리프 노드 사고 사례 테이블 생성
   3. encoder_map.json    — OrdinalEncoder 매핑
   4. siblings.json       — 부모 노드별 자식 리프 매핑 (Fallback Level 1)
   5. tree_rules.json     — sklearn 없이 실행 가능한 트리 분기 구조
+  6. calibration.json    — 온도 스케일링 T + conformal q̂ (신뢰도 보정)
 """
 
 from __future__ import annotations
@@ -221,22 +222,16 @@ def _export_tree_rules(
 ) -> dict:
     """sklearn 없이 실행 가능한 트리 분기 구조를 JSON dict로 변환한다."""
     tree_ = tree.tree_
-    classes = list(tree.classes_)
     nodes: dict[str, dict] = {}
 
     for node_id in range(tree_.node_count):
         left = int(tree_.children_left[node_id])
         right = int(tree_.children_right[node_id])
         if left == right:
-            class_counts = {
-                str(cls): int(tree_.value[node_id][0][i])
-                for i, cls in enumerate(classes)
-            }
             nodes[str(node_id)] = {
                 "type": "leaf",
                 "leaf_id": int(node_id),
                 "samples": int(tree_.n_node_samples[node_id]),
-                "class_counts": class_counts,
             }
             continue
 
@@ -343,8 +338,13 @@ def _build_leaf_table(
     return leaf_table
 
 
-def _tune_tree(X: pd.DataFrame, y: pd.Series) -> tuple[dict, dict]:
-    """train/test split으로 후보 하이퍼파라미터를 평가하고 최적 파라미터를 반환."""
+def _tune_tree(X: pd.DataFrame, y: pd.Series) -> tuple[dict, dict, pd.DataFrame, pd.Series]:
+    """train/test split으로 후보 하이퍼파라미터를 평가하고 최적 파라미터를 반환.
+
+    Returns:
+        (best_params, validation_metrics, X_cal, y_cal)
+        X_cal/y_cal은 _calibrate()에서 conformal 보정에 사용하는 held-out 분할.
+    """
     label_counts = y.value_counts()
     stratify = y if label_counts.min() >= 2 else None
     X_train, X_test, y_train, y_test = train_test_split(
@@ -387,10 +387,90 @@ def _tune_tree(X: pd.DataFrame, y: pd.Series) -> tuple[dict, dict]:
             best = {**record, "sort_key": sort_key}
 
     assert best is not None, "하이퍼파라미터 후보가 없습니다."
-    return best["params"], {
-        "split": {"test_size": 0.2, "random_state": 42, "stratified": stratify is not None},
-        "best": {"params": best["params"], "metrics": best["metrics"]},
-        "candidates": results,
+    return (
+        best["params"],
+        {
+            "split": {"test_size": 0.2, "random_state": 42, "stratified": stratify is not None},
+            "best": {"params": best["params"], "metrics": best["metrics"]},
+            "candidates": results,
+        },
+        X_test,
+        y_test,
+    )
+
+
+# ──────────────────────────────────────────────
+# 온도 스케일링 + conformal 캘리브레이션
+# ──────────────────────────────────────────────
+def _calibrate(
+    tree: DecisionTreeClassifier,
+    X_cal: pd.DataFrame,
+    y_cal: pd.Series,
+    leaf_table: dict,
+    label_col: str,
+    alpha: float = 0.1,
+) -> dict:
+    """온도 스케일링 T와 conformal q̂를 계산해 calibration.json 내용을 반환한다.
+
+    leaf_table의 실제 raw 클래스 카운트를 사용해 클래스 확률을 계산한다.
+    캘리브레이션 세트가 30건 미만이면 valid=False를 반환한다.
+    """
+    n_cal = len(y_cal)
+    MIN_CAL = 30
+
+    if n_cal < MIN_CAL:
+        print(f"  ⚠️  캘리브레이션 세트 {n_cal}건 < {MIN_CAL} — calibration.json valid=False")
+        return {"valid": False, "n_calibration": n_cal, "reason": "insufficient_samples"}
+
+    classes = sorted({str(c) for leaf in leaf_table.values()
+                      for c in leaf.get("summary", {}).get(label_col, {})})
+    if not classes:
+        classes = sorted(str(c) for c in tree.classes_)
+    class_to_idx = {c: i for i, c in enumerate(classes)}
+    n_classes = len(classes)
+    eps = 1e-9
+
+    # 각 캘리브레이션 샘플의 리프 → leaf_table raw 카운트로 클래스 확률 계산
+    leaf_ids = tree.apply(X_cal.values)
+    probs_cal = np.zeros((n_cal, n_classes), dtype=float)
+    for i, lid in enumerate(leaf_ids):
+        label_dist = leaf_table.get(str(lid), {}).get("summary", {}).get(label_col, {})
+        total = sum(label_dist.values()) or 1.0
+        for cls, cnt in label_dist.items():
+            idx = class_to_idx.get(str(cls))
+            if idx is not None:
+                probs_cal[i, idx] = cnt / total
+
+    y_indices = np.array([class_to_idx.get(str(yv), 0) for yv in y_cal.tolist()])
+
+    # 온도 스케일링 — NLL 최소화 grid search (T ∈ [0.5, 5.0] step 0.1)
+    best_T, best_nll = 1.0, float("inf")
+    for T_int in range(5, 51):
+        T = T_int / 10.0
+        log_p = np.log(probs_cal + eps) / T
+        log_p -= log_p.max(axis=1, keepdims=True)
+        sm = np.exp(log_p) / np.exp(log_p).sum(axis=1, keepdims=True)
+        nll = float(-np.mean(np.log(sm[np.arange(n_cal), y_indices] + eps)))
+        if nll < best_nll:
+            best_nll, best_T = nll, T
+
+    # Conformal q̂ — (1-alpha) 커버리지 보장 quantile
+    log_p = np.log(probs_cal + eps) / best_T
+    log_p -= log_p.max(axis=1, keepdims=True)
+    sm_cal = np.exp(log_p) / np.exp(log_p).sum(axis=1, keepdims=True)
+    scores = 1.0 - sm_cal[np.arange(n_cal), y_indices]
+    q_level = float(min(np.ceil((n_cal + 1) * (1 - alpha)) / n_cal, 1.0))
+    qhat = float(np.quantile(scores, q_level))
+
+    print(f"  캘리브레이션: n={n_cal}, T={best_T:.1f}, q̂={qhat:.4f} (alpha={alpha})")
+    return {
+        "valid": True,
+        "temperature": float(best_T),
+        "qhat": float(qhat),
+        "coverage_target": float(1 - alpha),
+        "n_calibration": int(n_cal),
+        "n_classes": int(n_classes),
+        "classes": classes,
     }
 
 
@@ -490,7 +570,7 @@ def train_source(source: str) -> None:
     print(f"  라벨 분포: {dict(Counter(y.tolist()))}")
 
     # ── Decision Tree 튜닝 + 최종 학습 ──
-    selected_params, validation_metrics = _tune_tree(X, y)
+    selected_params, validation_metrics, X_cal, y_cal = _tune_tree(X, y)
     print(f"  선택 하이퍼파라미터: {selected_params}")
     print(f"  검증 지표: {validation_metrics['best']['metrics']}")
 
@@ -548,6 +628,11 @@ def train_source(source: str) -> None:
     )
     _dump_json(tree_rules, out_dir / "tree_rules.json")
     print(f"  → tree_rules.json")
+
+    # ── 6. calibration.json ──
+    calibration = _calibrate(tree, X_cal, y_cal, leaf_table, label_col)
+    _dump_json(calibration, out_dir / "calibration.json")
+    print(f"  → calibration.json (valid={calibration['valid']})")
 
     # ── 검증 ──
     print(f"\n  [검증]")
