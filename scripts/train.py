@@ -69,6 +69,19 @@ PARAM_GRID = {
 # ──────────────────────────────────────────────
 STORE_TYPE_ORDER = ["유통점", "유통행사", "직영점"]
 
+# 사고유형별 심각도 가중치 (위험 점수 S3용, 0~1). 도메인 수기 테이블 — 운영팀이 조정.
+# 누락 유형은 런타임에서 기본 0.5 처리 (core/risk_score.severity_mix).
+SEVERITY_WEIGHTS = {
+    "cust": {
+        "낙상": 0.9, "충돌": 0.6, "자상": 0.7, "재물": 0.4, "클레임": 0.1,
+    },
+    "emp": {
+        "사망": 1.0, "떨어짐": 0.9, "끼임": 0.85, "깔림": 0.85, "넘어짐": 0.7,
+        "무리한 동작": 0.6, "물체에 맞음": 0.6, "베임": 0.55, "부딪힘": 0.5,
+        "질병": 0.4, "질병(만성질환)": 0.4, "질병 (뇌출혈 등)": 0.4, "기타": 0.3,
+    },
+}
+
 
 # ──────────────────────────────────────────────
 # JSON 직렬화 헬퍼 (numpy 타입 → Python 네이티브)
@@ -633,6 +646,16 @@ def train_source(source: str) -> None:
     calibration = _calibrate(tree, X_cal, y_cal, leaf_table, label_col)
     _dump_json(calibration, out_dir / "calibration.json")
     print(f"  → calibration.json (valid={calibration['valid']})")
+
+    # ── 7. severity_weights.json (위험 점수 S3용) ──
+    weights = dict(SEVERITY_WEIGHTS.get(source, {}))
+    observed = set(str(k) for k in Counter(df[label_col].tolist()).keys())
+    missing = observed - set(weights.keys())
+    if missing:
+        print(f"  ⚠️ severity_weights 누락 유형(런타임 기본 0.5 적용): {sorted(missing)}")
+    _dump_json({"source": source, "weights": weights, "default": 0.5},
+               out_dir / "severity_weights.json")
+    print(f"  → severity_weights.json ({len(weights)}종)")
 
     # ── 검증 ──
     print(f"\n  [검증]")

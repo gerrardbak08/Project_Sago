@@ -1,0 +1,21 @@
+{
+  "version": "2026-05-risk-policy-v1",
+  "source": "cust",
+  "theta_score": 0.6555,
+  "theta_high": 0.7131,
+  "tau": 1.0,
+  "weights": {
+    "S1": 0.3,
+    "S2": 0.45,
+    "S3": 0.25
+  },
+  "derived_from_quantile": {
+    "theta_score": 0.7,
+    "theta_high": 0.9
+  },
+  "n_samples": 1481,
+  "validation": {
+    "auc_vs_weather_shuffle": 0.5651,
+    "trigger_rate_on_incidents": 0.2836
+  }
+}

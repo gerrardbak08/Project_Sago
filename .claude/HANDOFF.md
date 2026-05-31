@@ -5,9 +5,30 @@
 ---
 
 ## 마지막 커밋
-`feat(ml): cross-leaf 재정렬 — 직계 형제 리프 사례 회수 + 메인 우선 보너스` (2026-05-31)
+`feat(ml): 위험 점수 트리거 엔진 — per-entity 위험 분석 → 선별 발동` (2026-05-31)
 
-## 방금 완료 — AlphaFold 분석 Phase 1 + 2 + cross-leaf 전체
+## 방금 완료 — 위험 점수 트리거 엔진 (방향 전환: 검색품질 → 트리거 알림)
+
+> 계획: [.claude/plans/greedy-bubbling-kite.md], 의도: 메모리 [[project-trigger-engine]]
+> "전 매장 매일 무차별 발송" → "위험할 때 그 대상에게만 적시 발송"
+
+- **core/risk_score.py** (신규, 순수 Python): 위험 점수 = 0.45·S2(사례근접) + 0.30·S1(조건위험) + 0.25·S3(심각도믹스), 신뢰도 게이트(low 차단). compute_risk_score → {risk_score, signals, trigger, severity, reason}
+- **scripts/train.py**: SEVERITY_WEIGHTS 상수(사고유형별 심각도) + severity_weights.json dump
+- **scripts/simulate_triggers.py** (신규): 사고 조건 점수분포 → P70=θ_score/P90=θ_high → risk_policy.json. weather-셔플 대조로 AUC 변별력 검증. 네트워크-free, CSV 읽기전용
+- **lambdas/batch/handler.py**: `_generate_store_guide` → `_score_store`(LLM前 점수) + `_generate_guide_for`(trigger된 source만 Bedrock). 메인 루프: 미발동→무발송+대시보드 기록(trigger_type="scored_skip"), 쿨다운 통과 후에만 LLM. `_infer_severity`는 폴백으로 강등(보존). `_load_model_files` 8-tuple
+- **tests/test_risk_score.py**: 14개 통과 (전체 18개)
+
+### 검증 결과 (시뮬레이션)
+- 발동률: CUST 28%(목표~30% 부합) / EMP 11%
+- **AUC 0.565/0.588** — 0.5보단 높으나 약함. weather만 셔플한 대조라 "기상 단독 변별력은 약하다"는 정직한 신호 → 진짜 신호는 매장 환경 피처에 있음(문서 §5 결론 일치)
+- EMP 신뢰게이트 78% 차단 (13클래스 분산 → conformal low 多)
+
+### ⚠️ 다음 세션 검토 포인트
+- AUC가 낮은 건 한계 신호. S2 가중을 더 높이거나, 매장환경 기반 변별 강화 검토 가능
+- EMP 게이트 78% 차단이 과도한지(직원 사망 포함) — gate_policy 조정 여지
+- 실제 운영 발동률은 배치 dry-run 로그로 측정·θ 재조정 필요(env RISK_SCORE_THRESHOLD)
+
+## 이전 완료 — AlphaFold 분석 Phase 1 + 2 + cross-leaf
 
 ### Phase 1 (a5c53bf)
 - kNN 유사 사례 재정렬 (IQR 정규화, 기상×2/매장×1/형태×0.5)
@@ -31,13 +52,21 @@
 
 ## 다음 작업 목록 (ML 고도화 최우선 — 2026-05-31 사용자 지시)
 
+트리거 엔진 작업 축 ([[project-trigger-engine]]):
+
 | 우선순위 | 항목 | 파일 | 비고 |
 |---|---|---|---|
-| ~~P1~~ ✅ | ~~cross-leaf 재정렬~~ | — | 완료 |
-| **P1** | **오프라인 baseline 비교** | `scripts/train.py` 오프라인만 | CatBoost/TabPFN vs 단일트리 리프 라우팅 품질 (macro-F1/top-k). 런타임 JSON 불변 |
-| P2 | **Bedrock Titan 임베딩 재정렬** (Phase 3) | `scripts/train.py`(배치), `core/llm.py` | 별도 산출물 — processed/*.csv 수정 금지 |
+| ~~축1~~ ✅ | ~~위험 점수 엔진~~ | — | 완료 (방금) |
+| **축3** | **적시성 — 기상예보 N일 선제 알림** | `lambdas/batch/handler.py`, `core/weather.py` | get_weather가 미래 forecast 지원 → 위험일 사전 발송 |
+| 축4 | **임계 자가보정** | `scripts/simulate_triggers.py`, ack 피드백 | alert_state ack_history + 사후 사고로 θ 재학습 루프 |
+| 후속 | **부서 단위 점수** | `core/risk_score.py`, emp 기인물→부서 매핑 | 사고데이터에 부서 컬럼 없음 → 도메인 규칙 필요 |
+| 검토 | **변별력 강화** | `core/risk_score.py` | AUC 0.57 낮음 — S2 가중·매장환경 변별 개선 |
 
-> 운영 전환(사내 API, 알림 추상화, 카카오맵, UI)은 ML 고도화 이후. 상세는 메모리 [[project-ml-priority]]
+기존 ML 검색품질 작업 (트리거의 근거 데이터 품질):
+| ~~Phase1~~ ✅ kNN재정렬 / ~~Phase2~~ ✅ conformal / ~~cross-leaf~~ ✅ | | | |
+| 보류 | 오프라인 baseline 비교(CatBoost) | `scripts/train.py` | 모델 한계 진단용, 트리거 방향 우선이라 후순위 |
+
+> 운영 전환(사내 API, 알림 추상화, 카카오맵, UI)은 ML 고도화 이후. 상세는 [[project-ml-priority]]
 
 ### 운영 전환 (로드맵 4축)
 | 우선순위 | 항목 | 현재 상태 | 목표 |

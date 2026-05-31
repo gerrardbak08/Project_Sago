@@ -23,6 +23,7 @@ from typing import Any
 
 from core.weather import get_weather
 from core.rule_matcher import match_with_fallback, compute_confidence, expand_with_siblings
+from core.risk_score import compute_risk_score
 from core.llm import generate_guide
 from core.notifier import get_notifier
 from core.recipients import resolve_recipients
@@ -93,7 +94,7 @@ def _load_stores() -> list[dict]:
     return _load_json_s3("stores.json")
 
 
-def _load_model_files(source: str) -> tuple[dict, dict, dict, dict, dict, dict]:
+def _load_model_files(source: str) -> tuple[dict, dict, dict, dict, dict, dict, dict, dict]:
     prefix = f"models/{source}"
     return (
         _load_json_s3(f"{prefix}/tree_rules.json"),
@@ -102,6 +103,8 @@ def _load_model_files(source: str) -> tuple[dict, dict, dict, dict, dict, dict]:
         _load_json_s3(f"{prefix}/encoder_map.json"),
         _load_json_s3(f"{prefix}/siblings.json"),
         _load_json_s3_optional(f"{prefix}/calibration.json"),
+        _load_json_s3_optional(f"{prefix}/severity_weights.json"),
+        _load_json_s3_optional(f"{prefix}/risk_policy.json"),
     )
 
 
@@ -140,7 +143,29 @@ def _build_features(weather: dict, store: dict, encoder_map: dict) -> dict[str, 
 # ──────────────────────────────────────────────
 # 단일 매장 가이드 생성
 # ──────────────────────────────────────────────
-def _generate_store_guide(store: dict, date_str: str) -> dict:
+def _risk_thresholds(risk_policy: dict | None) -> dict | None:
+    """risk_policy.json + 환경변수 override로 thresholds dict 구성. 없으면 None(기본값)."""
+    th: dict = {}
+    if risk_policy and risk_policy.get("theta_score") is not None:
+        th = {
+            "theta_score": risk_policy["theta_score"],
+            "theta_high": risk_policy.get("theta_high", risk_policy["theta_score"]),
+            "tau": risk_policy.get("tau", 1.0),
+        }
+    env = os.environ.get("RISK_SCORE_THRESHOLD")
+    if env:
+        try:
+            th["theta_score"] = float(env)
+        except ValueError:
+            pass
+    return th or None
+
+
+def _score_store(store: dict, date_str: str) -> dict:
+    """LLM 없이 매장×조건의 위험 점수를 계산한다 (트리거 게이트 입력).
+
+    반환 results[source]는 risk 결과 + LLM 단계용 캐시(_leaf_data/_label_col)를 포함.
+    """
     store_code = str(store.get("매장", ""))
     store_name = store.get("매장명", "")
     lat = store.get("위도")
@@ -157,15 +182,13 @@ def _generate_store_guide(store: dict, date_str: str) -> dict:
     results: dict[str, Any] = {}
     for source in SOURCES:
         try:
-            tree_rules, leaf_table, metadata, encoder_map, siblings, calibration = _load_model_files(
-                source
-            )
+            (tree_rules, leaf_table, metadata, encoder_map, siblings,
+             calibration, severity_weights, risk_policy) = _load_model_files(source)
         except Exception as e:
             results[source] = {"error": str(e)}
             continue
 
         label_col = LABEL_COLS.get(source, metadata.get("label_column", "사고유형"))
-        total_incidents = metadata.get("total_incidents", 0)
         features = _build_features(weather, store, encoder_map)
         leaf_id, leaf_data, fallback_level = match_with_fallback(
             features, tree_rules, leaf_table, siblings, metadata
@@ -180,18 +203,32 @@ def _generate_store_guide(store: dict, date_str: str) -> dict:
             fallback_level, leaf_summary.get("total", 0), class_counts, calibration
         )
         # cross-leaf 재정렬: level 0이면 직계 형제 리프 사례를 후보 풀에 추가
-        # (confidence는 메인 분기 기준으로 위에서 이미 계산)
         if fallback_level == 0:
             leaf_data = expand_with_siblings(leaf_id, leaf_data, leaf_table, siblings)
-        guide = generate_guide(store, weather, leaf_data, label_col, confidence)
+
+        # 위험 점수 — features를 today_store로 재사용(형태 인코딩 일치, weather 포함)
+        risk = compute_risk_score(
+            rule_str=leaf_data.get("rule", ""),
+            class_counts=leaf_summary.get(label_col),
+            incidents=leaf_data.get("incidents", []),
+            today_weather=weather,
+            today_store=features,
+            feature_stats=metadata.get("feature_stats", {}),
+            confidence=confidence,
+            severity_weights=(severity_weights or {}).get("weights", {}),
+            thresholds=_risk_thresholds(risk_policy),
+            weights=(risk_policy or {}).get("weights"),
+        )
 
         results[source] = {
             "leaf_id": str(leaf_id) if leaf_id is not None else None,
             "fallback_level": fallback_level,
             "confidence": confidence,
-            "guide": guide,
             "matched_rule": leaf_data.get("rule", ""),
             "incident_count": leaf_summary.get("total", 0),
+            "risk": risk,
+            "_leaf_data": leaf_data,
+            "_label_col": label_col,
         }
 
     return {
@@ -204,6 +241,45 @@ def _generate_store_guide(store: dict, date_str: str) -> dict:
     }
 
 
+def _generate_guide_for(scored: dict, store: dict) -> dict:
+    """트리거된 source만 generate_guide(Bedrock) 호출. guide_result 형태로 조립.
+
+    내부 캐시 키(_leaf_data/_label_col)는 결과에서 제거한다.
+    """
+    weather = scored.get("weather", {})
+    out_results: dict[str, Any] = {}
+    for source, sd in scored.get("results", {}).items():
+        if "error" in sd:
+            out_results[source] = sd
+            continue
+        entry = {k: sd[k] for k in (
+            "leaf_id", "fallback_level", "confidence", "matched_rule", "incident_count", "risk"
+        )}
+        if sd.get("risk", {}).get("trigger"):
+            entry["guide"] = generate_guide(
+                store, weather, sd["_leaf_data"], sd["_label_col"], sd["confidence"]
+            )
+        out_results[source] = entry
+
+    return {
+        "store_code": scored.get("store_code", ""),
+        "store_name": scored.get("store_name", ""),
+        "region": scored.get("region", ""),
+        "date": scored.get("date", ""),
+        "weather": weather,
+        "results": out_results,
+    }
+
+
+def _aggregate_severity(scored: dict) -> str:
+    """트리거된 source 중 하나라도 severity=high면 high (쿨다운 override 호환)."""
+    for sd in scored.get("results", {}).values():
+        risk = sd.get("risk", {}) if isinstance(sd, dict) else {}
+        if risk.get("trigger") and risk.get("severity") == "high":
+            return "high"
+    return "normal"
+
+
 # ──────────────────────────────────────────────
 # 심각도 판정 (쿨다운 override 용)
 # ──────────────────────────────────────────────
@@ -213,7 +289,11 @@ _HIGH_WORD = _re.compile(r"\b(HIGH|HIGH-RISK)\b", _re.IGNORECASE)
 
 
 def _infer_severity(guide_result: dict) -> str:
-    """가이드 결과에서 심각도(high/normal)를 추정한다.
+    """[DEPRECATED 폴백] 가이드 텍스트 기반 심각도 추정.
+
+    위험 점수 엔진(_score_store → risk.severity, _aggregate_severity)이 이 역할을
+    LLM 호출 전에 정량적으로 대체했다. 이 함수는 risk 계산 실패 시 graceful degrade용
+    안전망으로만 보존한다 (현재 메인 루프에서 직접 호출하지 않음).
 
     규칙:
       - results.{cust,emp}.guide.위험_요약 에 "고위험" 또는 단어 경계 HIGH 매칭 → high
@@ -378,12 +458,35 @@ def lambda_handler(event: dict, context: Any) -> dict:
             continue
 
         try:
-            # 가이드 생성
-            guide_result = _generate_store_guide(store, date_str)
-            if "error" in guide_result:
-                raise Exception(guide_result["error"])
+            # 1단계: 위험 점수 계산 (LLM 없음, 저비용)
+            scored = _score_store(store, date_str)
+            if "error" in scored:
+                raise Exception(scored["error"])
 
-            severity = _infer_severity(guide_result)
+            # 트리거 게이트 — 어느 source도 발동 안 하면 무발송(대시보드만 기록)
+            any_trigger = any(
+                sd.get("risk", {}).get("trigger")
+                for sd in scored["results"].values()
+                if isinstance(sd, dict) and "error" not in sd
+            )
+            if not any_trigger:
+                gate_result = _generate_guide_for(scored, store)  # guide 없이 risk만
+                _record_alert(s3_client, gate_result, channel, trigger_type="scored_skip")
+                reasons = "; ".join(
+                    f"{src}:{sd.get('risk', {}).get('reason', '')}"
+                    for src, sd in scored["results"].items() if isinstance(sd, dict)
+                )
+                store_results.append({
+                    "store_code": str(store_code),
+                    "store_name": store_name,
+                    "status": "scored_skip",
+                    "reason": reasons,
+                })
+                skipped_count += 1
+                print(f"[batch] 위험 점수 미달 무발송: {store_name} ({store_code}) — {reasons}")
+                continue
+
+            severity = _aggregate_severity(scored)
 
             # 쿨다운 체크 — high 심각도면 override
             prior_state = alert_state_get(frontend_bucket, store_code)
@@ -401,6 +504,9 @@ def lambda_handler(event: dict, context: Any) -> dict:
                 skipped_count += 1
                 print(f"[batch] 쿨다운 스킵: {store_name} ({store_code}) — {reason}")
                 continue
+
+            # 2단계: 트리거 통과 + 쿨다운 통과 매장만 LLM 가이드 생성 (Bedrock)
+            guide_result = _generate_guide_for(scored, store)
 
             # 수신자 조회: 3계층(매장/부서/팀) 리졸버 — 배치는 매장 전체 범위
             recipients_data = _load_recipients()
