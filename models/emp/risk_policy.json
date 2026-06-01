@@ -1,13 +1,13 @@
 {
-  "version": "2026-05-risk-policy-v1",
+  "version": "2026-06-risk-policy-v2-learned",
   "source": "emp",
-  "theta_score": 0.5779,
-  "theta_high": 0.618,
+  "theta_score": 4.5666,
+  "theta_high": 4.8131,
   "tau": 1.0,
   "weights": {
-    "S1": 0.3,
-    "S2": 0.45,
-    "S3": 0.25
+    "S1": 0.1155973726519777,
+    "S2": 6.248871769552152,
+    "S3": -0.4841395891524324
   },
   "derived_from_quantile": {
     "theta_score": 0.7,
@@ -17,5 +17,14 @@
   "validation": {
     "auc_vs_weather_shuffle": 0.5882,
     "trigger_rate_on_incidents": 0.1116
+  },
+  "fit": {
+    "method": "logistic_regression_balanced",
+    "n_pos": 448,
+    "n_neg": 1341,
+    "auc_train": 0.8219,
+    "auc_test": 0.8521,
+    "auc_full": 0.831,
+    "neg_stores": 332
   }
 }

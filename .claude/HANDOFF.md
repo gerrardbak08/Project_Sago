@@ -27,8 +27,12 @@
 - `scripts/simulate_triggers.py`: evaluate()(라벨 AUC), diagnose()(신호×음성축 매트릭스), apply_policy
 - `core/risk_score.py`: case_proximity exclude_ids (leave-one-out 평가)
 
-### ⚠️ 다음 세션 필수 작업
-1. **emp 비사고 수집** — Open-Meteo rate limit(429→IP 일시차단)으로 **emp 0건 실패**. rate limit 회복 후(1시간+) `python3 scripts/build_non_incidents.py --source emp --resume --sleep 2.0` → `fit_risk_weights.py --source emp`. emp risk_policy는 아직 v1(분위수)
+### emp 결과 (추가 완료)
+- emp 332매장 1341건 수집 완료 (`data/non_incidents_emp.csv`)
+- 가중치: S1=-0.149, S2=+5.685, S3=-0.216 → score AUC **0.831** (train 0.822 / test 0.852)
+- `models/emp/risk_policy.json` v2-learned 갱신
+
+### ⚠️ 다음 세션 검토 포인트
 2. **score 정규화** — 학습 가중치로 score가 0~1 벗어남(음수가중, 평균 3.8). trigger/severity 동작은 정상(θ도 같은 분포)이나 _record_alert·대시보드 표시는 정규화 검토
 3. **발동률 재측정** — v2 정책의 실제 발동률을 batch dry-run으로 확인, θ 조정
 4. **S1 역변별 근본 검토** — enrich_leaf_rule risk_level이 사고와 반대인 이유(rule_enrichment 임계 재점검). 현재는 학습이 음수가중으로 자동 교정 중
