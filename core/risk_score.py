@@ -111,14 +111,22 @@ def case_proximity(
     feature_stats: dict,
     k: int = 5,
     tau: float = 1.0,
+    exclude_ids: set | None = None,
 ) -> float:
     """유사 매장군 사례 중 오늘 조건과 가장 가까운 top-k의 평균거리 → exp(-d̄/τ).
 
     오늘 조건이 과거 사고 사례와 가까울수록(d̄↓) 1.0에 근접 → "위험이 실재함".
     feature_stats 없거나 사례 없으면 중립값 0.0 반환(근접 신호 없음).
+    exclude_ids: 후보에서 제외할 incident_id 집합 (오프라인 leave-one-out 평가용,
+                 자기 사례 누수 방지). 런타임 기본 None → 영향 없음.
     """
     if not incidents or not feature_stats:
         return 0.0
+    if exclude_ids:
+        incidents = [inc for inc in incidents
+                     if str(inc.get("incident_id")) not in exclude_ids]
+        if not incidents:
+            return 0.0
     today = {**today_weather, **today_store}
     dists = sorted(_normalized_distance(inc, today, feature_stats) for inc in incidents)
     finite = [d for d in dists[:k] if d != float("inf")]
@@ -177,6 +185,7 @@ def compute_risk_score(
     thresholds: dict | None = None,
     weights: dict | None = None,
     gate_policy: str = "block_low",
+    exclude_ids: set | None = None,
 ) -> dict[str, Any]:
     """4개 신호를 결합해 위험 점수와 트리거 발동 여부를 반환한다.
 
@@ -195,7 +204,8 @@ def compute_risk_score(
     tau = float(th.get("tau", 1.0))
 
     s1 = condition_risk(rule_str, class_counts)
-    s2 = case_proximity(incidents, today_weather, today_store, feature_stats, tau=tau)
+    s2 = case_proximity(incidents, today_weather, today_store, feature_stats,
+                        tau=tau, exclude_ids=exclude_ids)
     s3 = severity_mix(class_counts, severity_weights)
 
     score = w["S1"] * s1 + w["S2"] * s2 + w["S3"] * s3

@@ -39,6 +39,7 @@ from core.risk_score import compute_risk_score
 
 PROCESSED = ROOT / "processed"
 MODELS = ROOT / "models"
+DATA = ROOT / "data"
 SOURCES = ["cust", "emp"]
 LABEL_COLS = {"cust": "사고유형", "emp": "재해 유형"}
 STORE_TYPE_ORDER = ["유통점", "유통행사", "직영점"]
@@ -102,7 +103,7 @@ def _auc(pos: list[float], neg: list[float]) -> float:
 def _load_models(source: str) -> dict:
     d = MODELS / source
     out = {}
-    for name in ["tree_rules", "leaf_table", "metadata", "siblings", "calibration", "severity_weights"]:
+    for name in ["tree_rules", "leaf_table", "metadata", "siblings", "calibration", "severity_weights", "risk_policy"]:
         p = d / f"{name}.json"
         out[name] = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
     return out
@@ -121,8 +122,13 @@ def _row_features(row: pd.Series) -> tuple[dict, dict, dict]:
     return features, weather, store
 
 
-def _score_one(features, weather, store, models) -> dict | None:
-    """단일 조건의 위험 점수 (런타임과 동일 경로). thresholds=default로 점수만 사용."""
+def _score_one(features, weather, store, models, exclude_ids=None, apply_policy=False) -> dict | None:
+    """단일 조건의 위험 점수 (런타임과 동일 경로).
+
+    exclude_ids: leave-one-out 평가용 — case_proximity 후보에서 제외할 incident_id 집합.
+    apply_policy: True면 risk_policy.json의 학습된 weights/thresholds 적용(런타임 재현).
+                  False면 기본 가중치(신호 자체는 가중 무관 → fit/diagnose용).
+    """
     leaf_id, leaf_data, fallback = match_with_fallback(
         features, models["tree_rules"], models["leaf_table"], models["siblings"], models["metadata"]
     )
@@ -138,13 +144,21 @@ def _score_one(features, weather, store, models) -> dict | None:
         leaf_data = expand_with_siblings(leaf_id, leaf_data, models["leaf_table"], models["siblings"])
     feature_stats = models["metadata"].get("feature_stats", {})
     sev_weights = models["severity_weights"].get("weights", {})
+    policy = models.get("risk_policy", {}) if apply_policy else {}
+    thresholds = None
+    if apply_policy and policy.get("theta_score") is not None:
+        thresholds = {"theta_score": policy["theta_score"],
+                      "theta_high": policy.get("theta_high", policy["theta_score"]),
+                      "tau": policy.get("tau", 1.0)}
     return compute_risk_score(
         rule_str=leaf_data.get("rule", ""),
         class_counts=summary.get(label_col),
         incidents=leaf_data.get("incidents", []),
         today_weather=weather, today_store=store,
         feature_stats=feature_stats, confidence=confidence,
-        severity_weights=sev_weights, thresholds=None,
+        severity_weights=sev_weights, thresholds=thresholds,
+        weights=(policy.get("weights") if apply_policy else None),
+        exclude_ids=exclude_ids,
     )
 
 
@@ -228,12 +242,152 @@ def simulate(source: str, dry_run: bool = False) -> None:
         print(f"  → {out.relative_to(ROOT)}")
 
 
+def diagnose(source: str) -> None:
+    """신호별(S1/S2/S3/score) × 음성샘플링방식별(weather/store/random) AUC 매트릭스.
+
+    어느 신호가 어느 축(날씨/매장환경)에서 변별력을 갖는지 진단한다.
+      - weather 음성: 날씨만 다른 row로 교체(매장 고정) → 날씨 변별력
+      - store 음성: 매장 피처만 교체(날씨 고정) → 매장환경 변별력
+      - random 음성: 전부 다른 row → 종합 변별력
+    """
+    csv = PROCESSED / f"incidents_{source}.csv"
+    if not csv.exists():
+        return
+    models = _load_models(source)
+    models["_source"] = source
+    if not models["tree_rules"]:
+        print(f"  ❌ models/{source} 없음")
+        return
+    df = pd.read_csv(csv)
+    print(f"\n{'='*60}\n  [{source.upper()}] 변별력 진단 ({len(df)}건)\n{'='*60}")
+
+    rng = random.Random(42)
+    idx = list(range(len(df)))
+    rng.shuffle(idx)
+
+    sigs = ["S1", "S2", "S3", "score"]
+    modes = ["weather", "store", "random"]
+    pos = {s: [] for s in sigs}
+    neg = {m: {s: [] for s in sigs} for m in modes}
+
+    def _vals(r):
+        return {"S1": r["signals"]["S1"], "S2": r["signals"]["S2"],
+                "S3": r["signals"]["S3"], "score": r["risk_score"]}
+
+    for i in range(len(df)):
+        feat, w, st = _row_features(df.iloc[i])
+        # leave-one-out: 평가 중인 사고를 case_proximity 후보에서 제외(자기 누수 차단)
+        excl = {str(df.iloc[i].get("incident_id"))}
+        rp = _score_one(feat, w, st, models, exclude_ids=excl)
+        if not rp:
+            continue
+        for s, v in _vals(rp).items():
+            pos[s].append(v)
+
+        featj, wj, stj = _row_features(df.iloc[idx[i]])
+        exclj = {str(df.iloc[idx[i]].get("incident_id"))}
+        # weather 음성: 날씨만 j, 매장 고정 (셔플된 j 사례 제외)
+        fw = {**feat}
+        for f in WEATHER_FEATS:
+            fw[f] = featj[f]
+        rw = _score_one(fw, wj, st, models, exclude_ids=exclj)
+        # store 음성: 매장만 j, 날씨 고정
+        fs = {**feat}
+        for f in STORE_NUM_FEATS + ["형태"]:
+            fs[f] = featj[f]
+        rs = _score_one(fs, w, stj, models, exclude_ids=exclj)
+        # random 음성: 전부 j
+        rr = _score_one(featj, wj, stj, models, exclude_ids=exclj)
+        for m, rm in (("weather", rw), ("store", rs), ("random", rr)):
+            if rm:
+                for s, v in _vals(rm).items():
+                    neg[m][s].append(v)
+
+    print(f"  {'신호':<8}" + "".join(f"{m+' 음성':>14}" for m in modes))
+    print(f"  {'-'*8}" + "".join(f"{'-'*14}" for _ in modes))
+    for s in sigs:
+        row = f"  {s:<8}"
+        for m in modes:
+            row += f"{_auc(pos[s], neg[m][s]):>14.3f}"
+        print(row)
+    print("  (0.5=무변별, >0.5=정상변별, <0.5=역변별. 신호별 어느 축에서 변별되는지 확인)")
+
+
+def evaluate(source: str) -> None:
+    """라벨 기반 진짜 AUC — 양성(사고 CSV, 자기 누수 제외) vs 음성(non_incidents CSV).
+
+    data/non_incidents_{source}.csv 가 있어야 한다(build_non_incidents.py 선행).
+    신호별(S1/S2/S3/score) AUC와 점수 분포를 출력한다.
+    """
+    pos_csv = PROCESSED / f"incidents_{source}.csv"
+    neg_csv = DATA / f"non_incidents_{source}.csv"
+    if not neg_csv.exists():
+        print(f"  ❌ {neg_csv} 없음 → build_non_incidents.py 먼저 실행")
+        return
+    models = _load_models(source)
+    models["_source"] = source
+    if not models["tree_rules"]:
+        print(f"  ❌ models/{source} 산출물 없음")
+        return
+
+    dfp = pd.read_csv(pos_csv)
+    dfn = pd.read_csv(neg_csv)
+    # 공정 비교: 음성이 수집된 매장의 양성만 사용 (매장 구성 편향 제거)
+    neg_stores = set(dfn["매장"].unique())
+    dfp = dfp[dfp["매장"].isin(neg_stores)].reset_index(drop=True)
+    print(f"\n{'='*60}\n  [{source.upper()}] 라벨 기반 변별력 (양성 {len(dfp)} / 음성 {len(dfn)}, "
+          f"공통 {len(neg_stores)}매장)\n{'='*60}")
+
+    sigs = ["S1", "S2", "S3", "score"]
+    pos = {s: [] for s in sigs}
+    neg = {s: [] for s in sigs}
+
+    def _vals(r):
+        return {"S1": r["signals"]["S1"], "S2": r["signals"]["S2"],
+                "S3": r["signals"]["S3"], "score": r["risk_score"]}
+
+    for i in range(len(dfp)):
+        feat, w, st = _row_features(dfp.iloc[i])
+        excl = {str(dfp.iloc[i].get("incident_id"))}  # leave-one-out 누수 차단
+        r = _score_one(feat, w, st, models, exclude_ids=excl, apply_policy=True)
+        if r:
+            for s, v in _vals(r).items():
+                pos[s].append(v)
+    for i in range(len(dfn)):
+        feat, w, st = _row_features(dfn.iloc[i])
+        r = _score_one(feat, w, st, models, apply_policy=True)  # 음성은 exclude 불필요
+        if r:
+            for s, v in _vals(r).items():
+                neg[s].append(v)
+
+    print(f"  {'신호':<8}{'AUC':>10}{'양성 평균':>12}{'음성 평균':>12}")
+    print(f"  {'-'*8}{'-'*10}{'-'*12}{'-'*12}")
+    for s in sigs:
+        auc = _auc(pos[s], neg[s])
+        pm = sum(pos[s]) / len(pos[s]) if pos[s] else 0.0
+        nm = sum(neg[s]) / len(neg[s]) if neg[s] else 0.0
+        print(f"  {s:<8}{auc:>10.3f}{pm:>12.3f}{nm:>12.3f}")
+    print("  (AUC>0.55=유의미 변별 → 2단계 재학습 / ≈0.5=신호 없음 → 데이터 한계)")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true", help="산정만, JSON 미생성")
+    ap.add_argument("--diagnose", action="store_true", help="변별력 진단 매트릭스만 출력")
+    ap.add_argument("--evaluate", action="store_true", help="라벨 기반 진짜 AUC(비사고 CSV 필요)")
     ap.add_argument("--source", choices=SOURCES, help="특정 소스만")
     args = ap.parse_args()
     targets = [args.source] if args.source else SOURCES
+    if args.evaluate:
+        for src in targets:
+            evaluate(src)
+        print(f"\n  📊 평가 완료")
+        return
+    if args.diagnose:
+        for src in targets:
+            diagnose(src)
+        print(f"\n  🔍 진단 완료")
+        return
     for src in targets:
         simulate(src, dry_run=args.dry_run)
     print(f"\n  🎉 시뮬레이션 완료")

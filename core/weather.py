@@ -5,6 +5,8 @@ weather.py — Open-Meteo API 클라이언트
 오늘/미래 날짜: Forecast API (api.open-meteo.com)
 """
 
+import time
+
 import requests
 from datetime import date, datetime
 
@@ -62,3 +64,56 @@ def get_weather(lat: float, lon: float, target_date: str) -> dict | None:
     except Exception as e:
         print(f"[weather] Error: {e}")
         return None
+
+
+def get_weather_range(lat: float, lon: float, start: str, end: str) -> dict[str, dict] | None:
+    """기간(start~end)의 일별 기상을 한 번에 조회한다 (오프라인 대량 수집용).
+
+    Args:
+        lat, lon: 위경도
+        start, end: 'YYYY-MM-DD' (start <= end)
+
+    Returns:
+        {'YYYY-MM-DD': {피처: 값, ...}, ...} 또는 None.
+        과거 구간이면 archive, 미래 포함이면 forecast API 사용 (start 기준 판정).
+    """
+    try:
+        d = datetime.strptime(start, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+    url = ("https://archive-api.open-meteo.com/v1/archive"
+           if d < date.today()
+           else "https://api.open-meteo.com/v1/forecast")
+    params = {
+        "latitude": lat,
+        "longitude": lon,
+        "start_date": start,
+        "end_date": end,
+        "daily": ",".join(DAILY_PARAMS),
+        "timezone": "Asia/Seoul",
+    }
+    # 429(rate limit) 대비 exponential backoff 재시도 (대량 수집용)
+    for attempt in range(5):
+        try:
+            resp = requests.get(url, params=params, timeout=30)
+            if resp.status_code == 429:
+                wait = 2 ** attempt * 5  # 5,10,20,40,80초
+                print(f"[weather] 429 rate limit → {wait}s 대기 후 재시도({attempt+1}/5)")
+                time.sleep(wait)
+                continue
+            resp.raise_for_status()
+            daily = resp.json().get("daily", {})
+            dates = daily.get("time", [])
+            out: dict[str, dict] = {}
+            for i, day in enumerate(dates):
+                out[day] = {
+                    p: (daily.get(p, [])[i] if i < len(daily.get(p, [])) else None)
+                    for p in DAILY_PARAMS
+                }
+            return out
+        except Exception as e:
+            print(f"[weather] Range error: {e}")
+            return None
+    print("[weather] 429 재시도 소진")
+    return None

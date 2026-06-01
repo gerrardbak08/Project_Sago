@@ -5,9 +5,35 @@
 ---
 
 ## 마지막 커밋
-`feat(ml): 위험 점수 트리거 엔진 — per-entity 위험 분석 → 선별 발동` (2026-05-31)
+`feat(ml): 비사고 데이터 구축 + 가중치 재학습 — cust AUC 0.57→0.85` (2026-06-01)
 
-## 방금 완료 — 위험 점수 트리거 엔진 (방향 전환: 검색품질 → 트리거 알림)
+## 방금 완료 — 비사고 데이터 구축 → 진짜 변별력 측정 → 가중치 재학습
+
+> 계획: [.claude/plans/greedy-bubbling-kite.md] (비사고 데이터 편)
+> 동기: 위험 점수 엔진의 AUC가 누수 제거 후 0.49(동전던지기)였음 — negative 데이터 부재가 원인
+
+### 핵심 성과: cust score AUC 0.572 → **0.845**
+- **비사고 데이터 구축**: 같은 매장·같은 계절(±45일) 비사고일의 **실제 archive 날씨** 수집 (랜덤 생성 아님). cust 304매장/2292건 (`data/non_incidents_cust.csv`)
+- **진짜 변별력 측정** (leave-one-out 누수 차단, 공정 매장 매칭):
+  - S2(사례근접) AUC **0.841** — 강한 신호 확정
+  - S1(조건위험) 0.344 — **역변별**(enrich_leaf_rule risk_level이 실제 사고와 반대)
+  - S3(심각도) 0.528 — 거의 무변별(leaf 상수)
+- **가중치 재학습** (로지스틱): S1=-1.94, S2=+7.22, S3=-1.47 → score AUC **0.845** (train 0.839/test 0.855, 과적합 적음). `models/cust/risk_policy.json` v2-learned
+
+### 신규/변경 파일
+- `core/weather.py`: get_weather_range() + 429 backoff 재시도
+- `scripts/build_non_incidents.py` (신규): 비사고 수집(resume/중간저장)
+- `scripts/fit_risk_weights.py` (신규): 로지스틱 가중치 재학습 → risk_policy.json
+- `scripts/simulate_triggers.py`: evaluate()(라벨 AUC), diagnose()(신호×음성축 매트릭스), apply_policy
+- `core/risk_score.py`: case_proximity exclude_ids (leave-one-out 평가)
+
+### ⚠️ 다음 세션 필수 작업
+1. **emp 비사고 수집** — Open-Meteo rate limit(429→IP 일시차단)으로 **emp 0건 실패**. rate limit 회복 후(1시간+) `python3 scripts/build_non_incidents.py --source emp --resume --sleep 2.0` → `fit_risk_weights.py --source emp`. emp risk_policy는 아직 v1(분위수)
+2. **score 정규화** — 학습 가중치로 score가 0~1 벗어남(음수가중, 평균 3.8). trigger/severity 동작은 정상(θ도 같은 분포)이나 _record_alert·대시보드 표시는 정규화 검토
+3. **발동률 재측정** — v2 정책의 실제 발동률을 batch dry-run으로 확인, θ 조정
+4. **S1 역변별 근본 검토** — enrich_leaf_rule risk_level이 사고와 반대인 이유(rule_enrichment 임계 재점검). 현재는 학습이 음수가중으로 자동 교정 중
+
+## 이전 완료 — 위험 점수 트리거 엔진 (방향 전환: 검색품질 → 트리거 알림)
 
 > 계획: [.claude/plans/greedy-bubbling-kite.md], 의도: 메모리 [[project-trigger-engine]]
 > "전 매장 매일 무차별 발송" → "위험할 때 그 대상에게만 적시 발송"
