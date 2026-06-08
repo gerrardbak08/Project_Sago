@@ -55,6 +55,29 @@ function ymd(d, sep = "-") {
   return `${dt.getFullYear()}${sep}${String(dt.getMonth() + 1).padStart(2, "0")}${sep}${String(dt.getDate()).padStart(2, "0")}`;
 }
 
+// 카카오 Places(키워드 검색)로 매장 실제 좌표를 재해상한다 — 로드뷰 정확도 향상.
+// 정적 storesData(주소 지오코딩)는 도로/건물 차이로 거리뷰가 가끔 엉뚱한 곳을 잡음. Places 가 다이소 사인 위치를 더 정확히 짚는다.
+// 차이가 ~2km 이상이면 잘못된 매칭(동명 다른 매장)으로 보고 fallback. SDK services 미로드 시도 fallback.
+function resolveStoreCoord(store, callback) {
+  const fallback = new window.kakao.maps.LatLng(store.lat, store.lng);
+  const services = window.kakao?.maps?.services;
+  if (!services?.Places) { callback(fallback); return; }
+  try {
+    const ps = new services.Places();
+    ps.keywordSearch(`다이소 ${store.n}`, (data, status) => {
+      if (status !== services.Status.OK || !data?.length) { callback(fallback); return; }
+      const hit = data.find(p => (p.place_name || '').includes('다이소')) || data[0];
+      const lat = parseFloat(hit.y);
+      const lng = parseFloat(hit.x);
+      if (Number.isNaN(lat) || Number.isNaN(lng)) { callback(fallback); return; }
+      if (Math.abs(lat - store.lat) > 0.02 || Math.abs(lng - store.lng) > 0.02) {
+        callback(fallback); return;     // ~2km+ 차이 = 잘못된 매칭(동명) → 안전하게 fallback
+      }
+      callback(new window.kakao.maps.LatLng(lat, lng));
+    });
+  } catch { callback(fallback); }
+}
+
 function StoreRiskMap({ D = {}, yearFilter = "all", setYearFilter = () => {}, syncStoreToUrl, initStore }) {
   const [bumFilter, setBumFilter] = useState("전체");
   const [deptFilter, setDeptFilter] = useState("전체");
@@ -347,14 +370,15 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
     setTimeout(() => {
       if (!drawerRvRef.current) return;
       const { kakao } = window;
-      const pos = new kakao.maps.LatLng(selectedStore.lat, selectedStore.lng);
-      const client = new kakao.maps.RoadviewClient();
-      client.getNearestPanoId(pos, 50, (panoId) => {
-        if (!panoId) { setDrawerRvStatus("error"); return; }
-        if (!drawerRvRef.current) return;
-        drawerRvInstanceRef.current = new kakao.maps.Roadview(drawerRvRef.current);
-        drawerRvInstanceRef.current.setPanoId(panoId, pos);
-        setDrawerRvStatus("ready");
+      resolveStoreCoord(selectedStore, (pos) => {
+        const client = new kakao.maps.RoadviewClient();
+        client.getNearestPanoId(pos, 50, (panoId) => {
+          if (!panoId) { setDrawerRvStatus("error"); return; }
+          if (!drawerRvRef.current) return;
+          drawerRvInstanceRef.current = new kakao.maps.Roadview(drawerRvRef.current);
+          drawerRvInstanceRef.current.setPanoId(panoId, pos);
+          setDrawerRvStatus("ready");
+        });
       });
     }, 100);
   }, [drawerOpen, drawerTab, selectedStore?.n]);
@@ -411,26 +435,23 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
     drawerSkyMapRef.current = skyMap;
   }, [drawerOpen, selectedStore?.n]);
 
-  // 로드뷰 열기
+  // 로드뷰 열기 — Places 로 매장 실제 좌표 재해상 후 가장 가까운 pano 표시
   function openRoadview(store) {
     setRvOpen(true);
     setRvStatus("loading");
-    // rvRef.current가 DOM에 마운트되길 기다린 뒤 실행
     setTimeout(() => {
       if (!rvRef.current) { setRvStatus("error"); return; }
       const { kakao } = window;
-      const pos = new kakao.maps.LatLng(store.lat, store.lng);
-      const client = new kakao.maps.RoadviewClient();
-      client.getNearestPanoId(pos, 50, (panoId) => {
-        if (!panoId) {
-          setRvStatus("error");
-          return;
-        }
-        if (!rvInstanceRef.current) {
-          rvInstanceRef.current = new kakao.maps.Roadview(rvRef.current);
-        }
-        rvInstanceRef.current.setPanoId(panoId, pos);
-        setRvStatus("ready");
+      resolveStoreCoord(store, (pos) => {
+        const client = new kakao.maps.RoadviewClient();
+        client.getNearestPanoId(pos, 50, (panoId) => {
+          if (!panoId) { setRvStatus("error"); return; }
+          if (!rvInstanceRef.current) {
+            rvInstanceRef.current = new kakao.maps.Roadview(rvRef.current);
+          }
+          rvInstanceRef.current.setPanoId(panoId, pos);
+          setRvStatus("ready");
+        });
       });
     }, 80);
   }

@@ -146,8 +146,8 @@ export const STORE_SNAPSHOTS = [
   },
   {
     "ym": "2026-05",
-    "count": 1342,
-    "avg_area": 224.3
+    "count": 1343,
+    "avg_area": 224.4
   }
 ];
 
