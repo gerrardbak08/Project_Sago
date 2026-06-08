@@ -234,12 +234,18 @@ def simulate(source: str, dry_run: bool = False) -> None:
         "validation": {"auc_vs_weather_shuffle": round(auc, 4),
                        "trigger_rate_on_incidents": round(triggered / n, 4)},
     }
+    out = MODELS / source / "risk_policy.json"
     if dry_run:
         print(f"  (dry-run) risk_policy.json 미생성")
     else:
-        out = MODELS / source / "risk_policy.json"
-        out.write_text(json.dumps(policy, ensure_ascii=False, indent=2), encoding="utf-8")
-        print(f"  → {out.relative_to(ROOT)}")
+        # v2-learned 정책(fit_risk_weights.py 산출물)이 있으면 v1 시뮬레이션으로 덮어쓰지 않는다.
+        # 재학습이 필요하면 fit_risk_weights.py 를 다시 실행할 것.
+        existing = json.loads(out.read_text(encoding="utf-8")) if out.exists() else {}
+        if "learned" in existing.get("version", ""):
+            print(f"  ⚠️  기존 {existing['version']} 유지 (v1 덮어쓰기 차단). 재학습: fit_risk_weights.py")
+        else:
+            out.write_text(json.dumps(policy, ensure_ascii=False, indent=2), encoding="utf-8")
+            print(f"  → {out.relative_to(ROOT)}")
 
 
 def diagnose(source: str) -> None:
@@ -362,12 +368,33 @@ def evaluate(source: str) -> None:
 
     print(f"  {'신호':<8}{'AUC':>10}{'양성 평균':>12}{'음성 평균':>12}")
     print(f"  {'-'*8}{'-'*10}{'-'*12}{'-'*12}")
+    policy = models.get("risk_policy", {})
+    theta_s = policy.get("theta_score")
+    theta_h = policy.get("theta_high")
+
     for s in sigs:
         auc = _auc(pos[s], neg[s])
         pm = sum(pos[s]) / len(pos[s]) if pos[s] else 0.0
         nm = sum(neg[s]) / len(neg[s]) if neg[s] else 0.0
         print(f"  {s:<8}{auc:>10.3f}{pm:>12.3f}{nm:>12.3f}")
     print("  (AUC>0.55=유의미 변별 → 2단계 재학습 / ≈0.5=신호 없음 → 데이터 한계)")
+
+    # v2 발동률 — 각 양성/음성 샘플에 trigger 적용 (confidence 포함)
+    if theta_s is not None:
+        pos_scores = pos["score"]
+        neg_scores = neg["score"]
+        # evaluate()는 confidence 정보를 별도 수집하지 않으므로, score >= theta 기준으로만 집계
+        p_trig = sum(1 for v in pos_scores if v >= theta_s)
+        n_trig = sum(1 for v in neg_scores if v >= theta_s)
+        p_hi = sum(1 for v in pos_scores if theta_h and v >= theta_h)
+        n_hi = sum(1 for v in neg_scores if theta_h and v >= theta_h)
+        print(f"\n  [v2 발동률 — score 기준, confidence 게이트 미적용]")
+        print(f"  θ_score={theta_s:.4f}: 양성 {p_trig}/{len(pos_scores)}({p_trig/len(pos_scores)*100:.1f}%) "
+              f"/ 음성 {n_trig}/{len(neg_scores)}({n_trig/len(neg_scores)*100:.1f}%)")
+        if theta_h:
+            print(f"  θ_high ={theta_h:.4f}: 양성 {p_hi}/{len(pos_scores)}({p_hi/len(pos_scores)*100:.1f}%) "
+                  f"/ 음성 {n_hi}/{len(neg_scores)}({n_hi/len(neg_scores)*100:.1f}%)")
+    print("\n  📊 평가 완료")
 
 
 def main():

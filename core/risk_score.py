@@ -217,6 +217,10 @@ def compute_risk_score(
     trigger = bool(score >= theta_score and gate_ok)
     severity = "high" if (score >= theta_high and confidence == "high") else "normal"
 
+    # 0~1 표시용 정규화: θ_high 기준 선형 클램프 (θ_high = 1.0, 그 이하는 비례)
+    # v2 가중치는 raw score가 ~2-5 범위 — theta 기준 비율로 직관적 퍼센트 표현
+    display_score = round(min(1.0, max(0.0, score / theta_high)) if theta_high > 0 else 0.0, 4)
+
     if not gate_ok:
         reason = f"gated:confidence={confidence}"
     elif trigger:
@@ -226,6 +230,7 @@ def compute_risk_score(
 
     return {
         "risk_score": round(score, 4),
+        "display_score": display_score,   # 0~1 (θ_high=1.0 기준 정규화, 대시보드 표시용)
         "signals": {"S1": round(s1, 4), "S2": round(s2, 4), "S3": round(s3, 4)},
         "confidence": confidence,
         "trigger": trigger,

@@ -1,5 +1,10 @@
 import unittest
 
+import pytest
+
+pytest.importorskip("sklearn")
+pytest.importorskip("pandas")
+
 import pandas as pd
 from sklearn.tree import DecisionTreeClassifier
 
