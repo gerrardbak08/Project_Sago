@@ -4,6 +4,47 @@
 
 ---
 
+## 이번 세션 (2026-06-06) — 에이전트 조직도 + 카카오 알림 정합성·품질 고도화 (전부 미커밋)
+
+### 에이전트 조직 신설 (`.claude/agents/`)
+- **sago-orchestrator**(opus) + 워커 6종(ml·frontend·notify·infra·data·qa). 오케스트레이터: HANDOFF 읽기→분해→Task 위임→가드레일 강제→HANDOFF 갱신.
+- ⚠️ 커스텀 에이전트는 **세션 재시작 후** 레지스트리 등록. 커밋 시 팀 공유.
+
+### 카카오 알림 정합성·품질 고도화 (sago-orchestrator 주도: 감사→수정→테스트)
+워커 2개 병렬 읽기전용 감사 → 결함 도출 → 수정:
+- **#1** `scripts/build_alarm_preview.py`: `keywords`(없는 키)→`category_for` 재사용. 미리보기가 항상 default.png만 보이던 버그. 재물→property.png 확인.
+- **#2** `lambdas/notify/handler.py` `_build_message_body`: 존재하지 않는 키(`오늘의_특별_주의사항`)를 읽어 text 채널 수칙 전체 누락 → `KakaoNotifier._precautions` 재사용(신·구 스키마 양립).
+- **#3** `core/notifier.py` `build_template`/`_compose_description`: 신뢰도 **low 카드에 "[데이터 부족·참고용]" caveat 주입** (text엔 있었으나 피드 카드 누락이었음).
+- **#4** `core/safety_visuals.py` `category_for`: 양방향 substring→정확일치 우선+2자 가드("사"→health 오매칭 차단).
+- **#5** `core/notifier.py` `_select_source`: 비-dict results 크래시 방어(`'str'.get`).
+- **#6** `core/notifier.py` `_truncate`: 끝의 고아 마커(②) 제거.
+- **신규 `tests/test_notifier.py`**: 38개(실 alert 11 계약 + #3·#4·#5·#6 회귀 가드). 전체 **89 passed**(notifier 경로 테스트 0건→커버).
+
+### 다음 검토 (감사 잔여)
+- `tests/test_train_outputs.py` 의 sklearn import가 `pytest tests/` 전체 collection 중단 → `importorskip` 필요(sago-ml/qa 영역).
+- #7 제목 길이 상한, #8 `_guide_link` S3 페이지 존재 가드(미생성 시 404), `images/scenes/default.png` 부재 — 후속.
+
+---
+
+## 이번 세션 (2026-06-02) — 카드/실사/랜딩 (전부 미커밋)
+> ML 모델은 변경 없음. 알림 카드 비주얼 + 수신자 랜딩 페이지 구축.
+- 카드 빌더 개선([core/notifier.py]): 위험도 높은 소스 선택·수칙 먼저·등급 제목. 이미지 계층 = 사례사진→실사장면→경고표지판→브랜드기본
+- 경고표지판 10종(`images/categories/`) + **실사 장면 9종**(`images/scenes/`, 고정 여성+다이소 유니폼) + **무료 애니 GIF 9종**(`images/scenes/anim/`, PIL 모션)
+- 수신자 모바일 랜딩 페이지 생성기 `build_guide_page.py`(카드 탭→풍부한 가이드, 히어로 GIF). 카드 링크 `_guide_link`→가이드 페이지로 교체
+- 신규: core/safety_visuals.py, scripts/{gen_scene,build_scenes,annotate_scene,animate_scene,build_guide_page,preview_card}.py
+- 이미지 생성: 유료 API 전부 막힘(OpenAI 결제·Gemini 이미지 유료·Bedrock legacy) → **무료 Pollinations(flux) 확정**. provider 교체식이라 결제 시 승급
+- 카카오: Client Secret 등록, 토큰 .env 갱신(access6h/refresh60d). 친구0(개발단계)→ 본인발송(memo)으로 검증. GIF 카드 업로드 시 .gif 보존 확인
+- ⚠️ 미반영: 이미지·GIF·페이지 **S3 동기화**, 배치 페이지 생성/업로드 배선, **전체 커밋**, 미커밋 emp ML 산출물
+
+## ML 모델 객관 평가 (2026-06-02 측정·재현)
+2축 구조:
+- **트리(검색 인덱스)** — cust 56리프/depth12/entropy, emp 23리프/depth10/gini. *분류기로는 약함*: cust balanced_acc **0.31**(랜덤0.20)·f1_macro0.24 / emp **0.08**(랜덤~0.08)·f1_macro0.04 → 타입분류 신뢰 낮음, '사례 풀'로만 사용.
+- **위험점수 트리거(운영 핵심)** — 로지스틱(S1·S2·S3) + 실제 비사고 라벨. **score AUC cust 0.845 / emp 0.831**(재현됨, test≈train 과적합 적음).
+  - 변별력 전원이 **S2(사례근접 kNN)** = cust0.841/emp0.831. S1(조건위험) 역·무변별, S3(심각도) 무변별.
+- 보정(conformal): cust T0.9·q̂0.851·n297·5클래스, emp 유효.
+- **한줄 결론**: "매장×조건 *위험일* 이진 판별기로 쓸 만함(AUC~0.84). 단 신호=사례유사도 **단일축**, 타입분류·emp는 데이터 한계로 약함."
+- 재현: `python3 scripts/simulate_triggers.py --source {cust,emp} --evaluate`
+
 ## 마지막 커밋
 `feat(ml): 비사고 데이터 구축 + 가중치 재학습 — cust AUC 0.57→0.85` (2026-06-01)
 
