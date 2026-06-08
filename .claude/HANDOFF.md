@@ -4,7 +4,30 @@
 
 ---
 
-## 이번 세션 (2026-06-06) — 에이전트 조직도 + 카카오 알림 정합성·품질 고도화 (전부 미커밋)
+## 이번 세션 (2026-06-08) — 미커밋 정리 + 픽토그램 default 완성
+
+### 커밋 3개
+- `feat(notify)`: 알림 정합성·품질 6건 + 이미지 스크립트 + 테스트 89 passed
+- `feat(frontend)`: StoreRiskMap Places 좌표 재해상 + 데이터 갱신
+- `chore(agents)`: Claude 에이전트 조직도 신설
+
+### 픽토그램 3레이어 10종 완전 (images/ — gitignore, S3 동기화 필요)
+| 레이어 | 경로 | 수 | 크기 |
+|---|---|---|---|
+| 경고 표지판 | images/categories/*.png | 10종 | 800×400 |
+| 실사 장면 | images/scenes/*.png | 10종 | 886×665 |
+| 애니 GIF | images/scenes/anim/*.gif | 10종 | 480×360, 18f |
+- default.png/gif: PIL로 직접 생성 (안전 삼각형 + 락온 GIF). scripts/out/ → .gitignore 추가
+
+### 잔여 (다음 세션)
+- `tests/test_train_outputs.py` sklearn importorskip (pytest collection 중단)
+- 알림 후속: #7 제목 길이 상한, #8 `_guide_link` S3 가드
+- **images/ S3 동기화** — deploy.sh에 배선 필요 (이미지 실제 반영은 여기서 막힘)
+- ML: score 정규화, v2 발동률 dry-run, S1 역변별 근본 검토
+
+---
+
+## 이전 세션 (2026-06-06) — 에이전트 조직도 + 카카오 알림 정합성·품질 고도화
 
 ### 에이전트 조직 신설 (`.claude/agents/`)
 - **sago-orchestrator**(opus) + 워커 6종(ml·frontend·notify·infra·data·qa). 오케스트레이터: HANDOFF 읽기→분해→Task 위임→가드레일 강제→HANDOFF 갱신.
