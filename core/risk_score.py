@@ -191,7 +191,8 @@ def compute_risk_score(
 
     Returns:
         {
-          "risk_score": float,                 # 0~1
+          "risk_score": float,                 # raw logistic (v2 weights 시 ~2~5 범위)
+          "display_score": float,              # 0~1 (θ_high=1.0 기준 정규화, 대시보드 표시용)
           "signals": {"S1":.., "S2":.., "S3":..},
           "confidence": str,
           "trigger": bool,                     # 점수>=θ_score AND 신뢰게이트
