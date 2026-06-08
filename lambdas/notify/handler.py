@@ -31,7 +31,7 @@ from typing import Any
 from core.weather import get_weather
 from core.rule_matcher import match_with_fallback, compute_confidence, expand_with_siblings
 from core.llm import generate_guide
-from core.notifier import get_notifier
+from core.notifier import get_notifier, KakaoNotifier
 from core.recipients import resolve_recipients
 from core.media import pick_media_for_results
 
@@ -265,14 +265,12 @@ def _build_message_body(store_name: str, date_str: str, results: dict) -> str:
                 lines.append("  ⚠️ [데이터 부족 — 참고용 가설, 운영자 검토 권장]")
             guide = source_data.get("guide", {})
             lines.append(f"⚠️ {guide.get('위험_요약', '정보 없음')}")
-            if guide.get("오늘의_특별_주의사항"):
-                lines.append("  [오늘 특별 주의]")
-                for item in guide["오늘의_특별_주의사항"]:
-                    lines.append(f"  ☑️ {item.get('수칙', '')}")
-            if guide.get("상시_주의사항"):
-                lines.append("  [상시 주의]")
-                for item in guide["상시_주의사항"]:
-                    lines.append(f"  ☑️ {item.get('수칙', '')}")
+            # 신·구 스키마(오늘의_주의사항[].수칙 / 안전_수칙) 양쪽을 notifier와 동일 로직으로 추출
+            precautions = KakaoNotifier._precautions(guide) if isinstance(guide, dict) else []
+            if precautions:
+                lines.append("  [오늘의 안전수칙]")
+                for text in precautions:
+                    lines.append(f"  ☑️ {text}")
         lines.append("")
 
     media_urls = pick_media_for_results(results, _KNOWN_MEDIA)

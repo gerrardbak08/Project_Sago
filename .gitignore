@@ -55,6 +55,9 @@ images/
 # ── Lambda zip (deploy.sh가 매번 새로 빌드) ──
 *.zip
 
+# ── 스크립트 개발 산출물 ────────────────────
+scripts/out/
+
 # ── IDE / tooling ───────────────────────
 .vscode/
 .idea/
