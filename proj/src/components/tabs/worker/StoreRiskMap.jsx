@@ -10,6 +10,7 @@ import { CalcTip, HeatmapGrid, BarRank, Matrix } from '../../../components/share
 import { RISK_COLORS } from '../../../constants/riskColors.js';
 import MAP_STORES from '../../../data/storesData.js';
 import { requestAiGuide } from '../../../constants/ai.js';
+import { track, AI_GUIDE_REQUESTED, AI_GUIDE_RESULT } from '../../../utils/analytics.js';
 
 // ── 영업부별 경계선 색상 ──────────────────────────────────
 const DEPT_COLORS_MAP = {
@@ -228,15 +229,34 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
     setGuideError(null);
     setGuideLoading(true);
 
+    const _t0 = performance.now();
+    track(AI_GUIDE_REQUESTED, {
+      store_code: store?.['매장코드'] ?? store?.['매장'] ?? null,
+      store_name: store?.['매장명'] ?? null,
+      dept: store?.['부서'] ?? null,
+      team: store?.tm ?? null,
+    });
+
     const workerRec = D.worker_kpis ? (D.team_ir || []).find(t => t.team === store.tm) : null;
     const prompt = buildPrompt(store, storeAccidents, D.team_ir, D.dept_ir, workerRec);
 
     try {
       const result = await requestAiGuide(prompt, { signal: abortRef.current.signal });
       setGuideText(result);
+      track(AI_GUIDE_RESULT, {
+        success: true,
+        latency_ms: Math.round(performance.now() - _t0),
+        store_code: store?.['매장코드'] ?? store?.['매장'] ?? null,
+      });
     } catch (e) {
       if (e.name !== "AbortError") {
         setGuideError(e.message);
+        track(AI_GUIDE_RESULT, {
+          success: false,
+          error_message: e.message,
+          latency_ms: Math.round(performance.now() - _t0),
+          store_code: store?.['매장코드'] ?? store?.['매장'] ?? null,
+        });
       }
     } finally {
       setGuideLoading(false);

@@ -35,6 +35,16 @@
     <link rel="stylesheet"
       href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
 
+    <!-- Accoil Analytics SDK — VITE_ACCOIL_API_KEY 설정 시 활성화 -->
+    <!-- 키 없으면 이 블록은 무해하게 무시됨 (빈 문자열 → 스크립트 미로드) -->
+    <script>
+      (function(k){if(!k)return;var s=document.createElement('script');s.async=true;
+      s.src='https://cdn.accoil.com/accoil.js';s.onload=function(){window.accoil&&window.accoil.init(k);
+      var q=window._sagoAnalyticsQueue||[];q.forEach(function(e){window.accoil.track(e.name,e.props);});
+      window._sagoAnalyticsQueue=[];};document.head.appendChild(s);
+      })('%VITE_ACCOIL_API_KEY%');
+    </script>
+
     <!-- Kakao Maps SDK — 매장 위험지도(StoreRiskMap)용 -->
     <!-- appkey 는 .env 의 VITE_KAKAO_JS_KEY (JavaScript 키). autoload=false: 컴포넌트가 kakao.maps.load() 직접 호출 -->
     <link rel="preconnect" href="https://dapi.kakao.com" />

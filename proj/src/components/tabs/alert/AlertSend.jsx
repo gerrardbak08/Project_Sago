@@ -3,6 +3,7 @@ import { Send, CheckCircle2, AlertCircle, RefreshCw, MessageCircle, X, Plus, Sea
 import { ALERT_RED, SAFE_GREEN } from '../../../constants/colors.js';
 import { Card } from '../../shared/Card.jsx';
 import rawStores from '../../../data/raw/stores.json';
+import { track, ALERT_SEND_SUBMITTED, ALERT_SEND_RESULT } from '../../../utils/analytics.js';
 
 const STORES_LIST = rawStores.data.filter(s => s['폐점여부'] === '영업');
 
@@ -67,6 +68,13 @@ function AlertSend() {
     setError(null);
     setResult(null);
 
+    track(ALERT_SEND_SUBMITTED, {
+      store_count: selectedStores.length,
+      channel: kakaoEnabled ? 'kakao' : 'mock',
+      date,
+      receiver_count: kakaoEnabled ? receiverUuids.length : 0,
+    });
+
     try {
       const url = import.meta.env.VITE_NOTIFY_URL ?? `${import.meta.env.VITE_API_BASE ?? ''}/api/notify`;
       const res = await fetch(url, {
@@ -83,8 +91,19 @@ function AlertSend() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
       setResult(data);
+      track(ALERT_SEND_RESULT, {
+        success: true,
+        store_count: selectedStores.length,
+        channel: kakaoEnabled ? 'kakao' : 'mock',
+        http_status: res.status,
+      });
     } catch (e) {
       setError(e.message);
+      track(ALERT_SEND_RESULT, {
+        success: false,
+        error_message: e.message,
+        channel: kakaoEnabled ? 'kakao' : 'mock',
+      });
     } finally {
       setLoading(false);
     }

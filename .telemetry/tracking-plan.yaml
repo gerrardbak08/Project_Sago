@@ -1,0 +1,239 @@
+# SAGO AI — Target Tracking Plan
+# Designed: 2026-06-09
+# Status: partial-implemented (5 events live, rest pending)
+
+meta:
+  product: SAGO AI
+  version: "1.0"
+  destinations: [Amplitude, Accoil, internal-dw]
+  sdk: "@amplitude/analytics-browser + window.accoil CDN"
+
+# ── 구현 완료 이벤트 ──────────────────────────────
+implemented:
+  - name: alert_send_submitted
+    status: live
+    file: proj/src/components/tabs/alert/AlertSend.jsx
+    properties: [store_count, channel, date, receiver_count]
+
+  - name: alert_send_result
+    status: live
+    file: proj/src/components/tabs/alert/AlertSend.jsx
+    properties: [success, store_count, channel, http_status, error_message]
+
+  - name: ai_guide_requested
+    status: live
+    file: proj/src/components/tabs/worker/StoreRiskMap.jsx
+    properties: [store_code, store_name, dept, team]
+
+  - name: ai_guide_result
+    status: live
+    file: proj/src/components/tabs/worker/StoreRiskMap.jsx
+    properties: [success, latency_ms, store_code, error_message]
+
+  - name: tab_viewed
+    status: live
+    file: proj/src/App.jsx
+    properties: [tab_id, dashboard_mode, role_filter, year_filter]
+
+# ── 미구현 이벤트 (우선순위순) ─────────────────────
+pending:
+
+  # ── 알림 현황 조회 플로우 ──────────────────────────
+
+  - name: alert_detail_opened
+    trigger: "상세 보기 버튼 클릭 → DetailModal이 열리는 순간 (detail JSON GET 직후)"
+    file: proj/src/components/tabs/alert/AlertMonitoring.jsx
+    properties:
+      - name: alert_id
+        type: string
+        example: "ALT-20250608-001"
+      - name: store_code
+        type: string
+        example: "S1234"
+      - name: store_name
+        type: string
+        example: "강남점"
+      - name: send_date
+        type: string
+        example: "2025-06-08"
+      - name: channel
+        type: string
+        example: "kakao"
+    why: "DetailModal(KakaoTalk 미리보기) 열람률 측정 — 발송 이후 실제 내용 확인 행동 비율 파악. 열람 없이 화면을 떠나는 패턴을 발견하면 UI 개선 근거 확보"
+    priority: high
+
+  - name: alert_carousel_navigated
+    trigger: "DetailModal 내 prev/next 버튼 클릭 시마다"
+    file: proj/src/components/tabs/alert/AlertMonitoring.jsx
+    properties:
+      - name: direction
+        type: string
+        example: "next"
+      - name: slide_index
+        type: number
+        example: 2
+      - name: total_slides
+        type: number
+        example: 5
+      - name: store_code
+        type: string
+        example: "S1234"
+    why: "캐러셀 탐색 깊이로 가이드 콘텐츠 소비율 측정 — 슬라이드 1~2에서 이탈이 집중된다면 콘텐츠 구조 개선 필요 여부를 데이터로 판단"
+    priority: med
+
+  - name: alert_detail_closed
+    trigger: "DetailModal 닫기 버튼 클릭 또는 ESC/오버레이 클릭으로 모달이 unmount될 때"
+    file: proj/src/components/tabs/alert/AlertMonitoring.jsx
+    properties:
+      - name: store_code
+        type: string
+        example: "S1234"
+      - name: slides_viewed
+        type: number
+        example: 3
+      - name: time_open_ms
+        type: number
+        example: 12500
+    why: "열람 시간과 페이지 소비량을 캡처해 가이드 품질 간접 지표로 활용. time_open_ms가 짧으면 콘텐츠 가독성·길이 문제 시그널"
+    priority: low
+
+  # ── 탭 네비게이션 및 역할 필터 플로우 ─────────────────
+
+  - name: role_filter_changed
+    trigger: "역할 선택 드롭다운에서 항목 선택 완료 시 (변경이 실제로 발생한 경우만)"
+    file: proj/src/App.jsx
+    properties:
+      - name: previous_role
+        type: string
+        example: "전체"
+      - name: selected_role
+        type: string
+        example: "팀장"
+      - name: dashboard_mode
+        type: string
+        example: "worker"
+      - name: active_tab_id
+        type: string
+        example: "risk-map"
+    why: "역할 필터 사용 패턴 파악 — 어떤 역할 조합이 가장 많이 쓰이는지 확인하면 역할별 맞춤 뷰 우선순위 결정 및 불필요한 역할 옵션 정리 가능"
+    priority: high
+
+  # ── 대시보드 모드 전환 및 연도 필터 플로우 ──────────────
+
+  - name: dashboard_mode_switched
+    trigger: "근로자 사고 / 고객 사고 / 알림 관리 모드 토글 버튼 클릭 시"
+    file: proj/src/App.jsx
+    properties:
+      - name: previous_mode
+        type: string
+        example: "worker"
+      - name: new_mode
+        type: string
+        example: "customer"
+      - name: role_filter
+        type: string
+        example: "팀장"
+      - name: year_filter
+        type: string
+        example: "2025"
+    why: "모드별 실사용 비율 측정 — 알림 관리 모드의 사용 빈도가 낮다면 접근성 개선(하단 내비에서 노출 우선순위 상향 등) 검토 근거"
+    priority: high
+
+  - name: year_filter_changed
+    trigger: "연도 필터 버튼(전체/2024/2025/2026) 클릭 시 (이전 값과 다를 때만)"
+    file: proj/src/App.jsx
+    properties:
+      - name: previous_year
+        type: string
+        example: "전체"
+      - name: selected_year
+        type: string
+        example: "2025"
+      - name: dashboard_mode
+        type: string
+        example: "worker"
+      - name: active_tab_id
+        type: string
+        example: "summary"
+    why: "연도 필터 사용률과 선호 연도 파악 — '전체'가 압도적으로 많다면 기본값 설계 재검토, 특정 연도 집중 시 해당 연도 데이터 품질 우선 보강"
+    priority: med
+
+  # ── 데이터 업로드 (AdminUpload) 플로우 ─────────────────
+
+  - name: admin_upload_attempted
+    trigger: "Excel 업로드 버튼 클릭 → 파일 선택 완료 후 업로드 API POST 직전"
+    file: proj/src/components/admin/AdminUpload.jsx
+    properties:
+      - name: upload_type
+        type: string
+        example: "accident_db"
+      - name: file_name
+        type: string
+        example: "사고DB_2025.xlsx"
+      - name: file_size_kb
+        type: number
+        example: 248
+    why: "업로드 시도 횟수와 파일 크기 분포 파악 — 대용량 파일에서 실패가 집중되는지 확인하면 서버 timeout 임계값 조정 근거 확보"
+    priority: med
+
+  - name: admin_upload_result
+    trigger: "업로드 API 응답 수신 후 (성공 또는 실패 메시지 표시 시점)"
+    file: proj/src/components/admin/AdminUpload.jsx
+    properties:
+      - name: upload_type
+        type: string
+        example: "store_db"
+      - name: success
+        type: boolean
+        example: true
+      - name: http_status
+        type: number
+        example: 200
+      - name: error_message
+        type: string
+        example: "column mismatch: 매장코드 not found"
+      - name: latency_ms
+        type: number
+        example: 3400
+    why: "업로드 성공률과 에러 유형 집계 — column mismatch·인코딩 오류 등 반복 오류 패턴을 조기 발견해 업로드 가이드 및 유효성 검사 개선"
+    priority: med
+
+  # ── 인쇄 및 에러 복구 플로우 ────────────────────────
+
+  - name: print_triggered
+    trigger: "인쇄 버튼 클릭 → window.print() 호출 직전"
+    file: proj/src/App.jsx
+    properties:
+      - name: dashboard_mode
+        type: string
+        example: "worker"
+      - name: active_tab_id
+        type: string
+        example: "summary"
+      - name: role_filter
+        type: string
+        example: "경영진"
+      - name: year_filter
+        type: string
+        example: "2025"
+    why: "인쇄 기능 실사용률 및 주요 사용 맥락 파악 — 어떤 탭·역할에서 인쇄가 집중되는지 알면 인쇄 레이아웃 CSS 최적화 우선순위 결정"
+    priority: low
+
+  - name: tab_error_recovered
+    trigger: "TabErrorBoundary에서 '다시 시도' 버튼 클릭 시"
+    file: proj/src/App.jsx
+    properties:
+      - name: tab_id
+        type: string
+        example: "risk-map"
+      - name: dashboard_mode
+        type: string
+        example: "worker"
+      - name: error_message
+        type: string
+        example: "Cannot read properties of undefined"
+      - name: attempt_count
+        type: number
+        example: 2
+    why: "탭별 런타임 에러 발생률 모니터링 — 특정 탭에서 에러 복구 시도가 반복된다면 해당 탭의 데이터 로딩·상태 관리 버그를 우선 수정"
+    priority: low

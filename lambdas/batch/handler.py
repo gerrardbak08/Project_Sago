@@ -281,44 +281,6 @@ def _aggregate_severity(scored: dict) -> str:
 
 
 # ──────────────────────────────────────────────
-# 심각도 판정 (쿨다운 override 용)
-# ──────────────────────────────────────────────
-import re as _re
-
-_HIGH_WORD = _re.compile(r"\b(HIGH|HIGH-RISK)\b", _re.IGNORECASE)
-
-
-def _infer_severity(guide_result: dict) -> str:
-    """[DEPRECATED 폴백] 가이드 텍스트 기반 심각도 추정.
-
-    위험 점수 엔진(_score_store → risk.severity, _aggregate_severity)이 이 역할을
-    LLM 호출 전에 정량적으로 대체했다. 이 함수는 risk 계산 실패 시 graceful degrade용
-    안전망으로만 보존한다 (현재 메인 루프에서 직접 호출하지 않음).
-
-    규칙:
-      - results.{cust,emp}.guide.위험_요약 에 "고위험" 또는 단어 경계 HIGH 매칭 → high
-      - 또는 incident_count 가 환경변수 ALERT_HIGH_INCIDENT_MIN(기본 50) 이상 → high
-      - 예외 발생 시 안전하게 "normal" 반환 — 발송 자체를 막지 않는다.
-    """
-    try:
-        high_min = int(os.environ.get("ALERT_HIGH_INCIDENT_MIN", "50"))
-        for src in SOURCES:
-            sd = guide_result.get("results", {}).get(src, {})
-            summary = (sd.get("guide", {}) or {}).get("위험_요약", "") or ""
-            if "고위험" in summary or _HIGH_WORD.search(summary):
-                return "high"
-            try:
-                count = int(sd.get("incident_count", 0) or 0)
-            except (TypeError, ValueError):
-                count = 0
-            if count >= high_min:
-                return "high"
-    except Exception as e:
-        print(f"[batch] 심각도 추정 예외 → normal 폴백: {e}")
-    return "normal"
-
-
-# ──────────────────────────────────────────────
 # 메시지 본문 구성
 # ──────────────────────────────────────────────
 def _build_message_body(store_name: str, date_str: str, results: dict) -> str:

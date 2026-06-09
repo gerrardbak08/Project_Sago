@@ -129,6 +129,8 @@ class KakaoNotifier(BaseNotifier):
             f"{badge} {store_name} · {dominant} 주의"
             if dominant else f"{badge} {store_name} 안전 가이드"
         )
+        # 카카오 피드 title 필드 최대 200자 상한
+        title = self._truncate(title, 200)
 
         description = self._compose_description(guide, low_confidence=low_conf)
         image_url = self._resolve_card_image(guide, dominant)
@@ -380,8 +382,27 @@ class KakaoNotifier(BaseNotifier):
         """
         base = os.environ.get("GUIDE_PAGE_BASE", "").rstrip("/")
         frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/")
+        fallback = (
+            f"{frontend_url}/?store={store_code}&date={date_str}"
+            if frontend_url else "https://www.daiso.co.kr"
+        )
+
         if base:
+            # GUIDE_PAGE_BASE가 S3 버킷 기반이면 객체 존재 확인
+            guide_bucket = os.environ.get("GUIDE_BUCKET", "")
+            s3_key = f"guide/{date_str}/{store_code}.html"
+            if guide_bucket:
+                try:
+                    import boto3
+                    boto3.client("s3").head_object(Bucket=guide_bucket, Key=s3_key)
+                except Exception:
+                    print(
+                        f"[notifier] 가이드 페이지 미존재 → fallback 링크 사용: "
+                        f"s3://{guide_bucket}/{s3_key}"
+                    )
+                    return fallback
             return f"{base}/{date_str}/{store_code}.html"
+
         if frontend_url:
             return f"{frontend_url}/guide/{date_str}/{store_code}.html"
         return "https://www.daiso.co.kr"

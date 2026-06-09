@@ -15,6 +15,7 @@ import { TABS_VIEWER, HUB_LABELS, ALERT_TABS } from './constants/tabs.js';
 
 // ── 유틸 ──────────────────────────────────────────────
 import { pct, fmt, fmtKrw, TT, EmptyState } from './utils/uiHelpers.jsx';
+import { track, TAB_VIEWED } from './utils/analytics.js';
 import { ExportBtn }          from './utils/exportUtils.jsx';
 import { getFilteredData }    from './utils/filterData.js';
 import { parseExcelFile, parseExcelFileWorkers } from './utils/parseExcel.js';
@@ -114,11 +115,16 @@ function App() {
   // URL hash 동기화 — history.replaceState (리로드 없음)
   const setTab = (t) => {
     setTabState(t);
+    track(TAB_VIEWED, { tab_id: t, dashboard_mode: dashMode, role_filter: currentRole ?? null, year_filter: yearFilter ?? 'all' });
     try {
       const p = new URLSearchParams(window.location.hash.replace(/^#/, ""));
       p.set("tab", t);
       history.replaceState(null, "", "#" + p.toString());
     } catch {}
+  };
+  const switchMode = (mode) => {
+    setDashMode(mode);
+    track(TAB_VIEWED, { tab_id: 'mode_' + mode, dashboard_mode: mode, role_filter: currentRole ?? null, year_filter: yearFilter ?? 'all' });
   };
   const setYearFilter = (y) => {
     setYearState(y);
@@ -270,13 +276,13 @@ function App() {
             <div className="flex-1" />
             {/* 모드 토글 */}
             <div className="flex items-center gap-1 flex-shrink-0">
-              <button onClick={() => setDashMode("worker")}
+              <button onClick={() => switchMode("worker")}
                 style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:"#F5F5F4",color:"#78716C",border:"none"}}
                 className="cursor-pointer whitespace-nowrap">근로자 사고</button>
-              <button onClick={() => setDashMode("customer")}
+              <button onClick={() => switchMode("customer")}
                 style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:"#F5F5F4",color:"#78716C",border:"none"}}
                 className="cursor-pointer whitespace-nowrap">고객 사고</button>
-              <button onClick={() => setDashMode("alert")}
+              <button onClick={() => switchMode("alert")}
                 style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:"#4F46E5",color:"white",border:"none"}}
                 className="cursor-pointer whitespace-nowrap">알림 관리</button>
             </div>
@@ -338,17 +344,17 @@ function App() {
             <div className="flex-1" />
             {/* 모드 토글 */}
             <div className="flex items-center gap-1 flex-shrink-0">
-              <button onClick={() => setDashMode("worker")} className="cursor-pointer whitespace-nowrap"
+              <button onClick={() => switchMode("worker")} className="cursor-pointer whitespace-nowrap"
                 style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,
                   background: DAISO_RED, color:"white", border:"none"}}>
                 근로자 사고
               </button>
-              <button onClick={() => setDashMode("customer")} className="cursor-pointer whitespace-nowrap"
+              <button onClick={() => switchMode("customer")} className="cursor-pointer whitespace-nowrap"
                 style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,
                   background:"#F5F5F4", color:"#78716C", border:"none"}}>
                 고객 사고
               </button>
-              <button onClick={() => setDashMode("alert")} className="cursor-pointer whitespace-nowrap flex items-center gap-1"
+              <button onClick={() => switchMode("alert")} className="cursor-pointer whitespace-nowrap flex items-center gap-1"
                 style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,
                   background:"#F5F5F4", color:"#78716C", border:"none"}}>
                 <Bell size={11} />알림 관리

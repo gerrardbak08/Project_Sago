@@ -1,0 +1,156 @@
+# SAGO AI — Current Tracking State
+# Audited: 2026-06-09
+# Method: automated codebase scan (4 parallel audits across frontend, backend lambdas, core modules)
+
+meta:
+  product: SAGO AI
+  audit_date: "2026-06-09"
+  coverage:
+    - "proj/src/ — 54 JS/JSX React dashboard files"
+    - "lambdas/notify/handler.py"
+    - "lambdas/alerts/handler.py"
+    - "lambdas/batch/handler.py"
+    - "lambdas/ai/handler.py"
+    - "lambdas/ack/handler.py"
+    - "core/ — 10 Python modules (notifier, llm, risk_score, rule_matcher, rule_enrichment, weather, safety_visuals, recipients, alert_state, media)"
+    - "proj/package.json"
+    - "proj/index.html"
+  tools_found:
+    - none
+
+summary:
+  verdict: "no-tracking"
+  tracked_events_count: 0
+  untracked_flows:
+    - "대시보드 모드 전환 (근로자 사고 / 고객 사고 / 알림 관리)"
+    - "탭 네비게이션 (14개 근로자 탭 + 2개 알림 탭)"
+    - "연도 필터 전환 (전체 / 2024 / 2025 / 2026)"
+    - "역할 선택 및 해제 (경영진 / 영업부문장 / 팀장 / 파트장 / 안전보건팀)"
+    - "알림 발송 (매장 검색 → 선택 → 발송 → 결과 확인)"
+    - "알림 현황 조회 (날짜 선택 → 조회 → 상세 보기)"
+    - "AI 안전가이드 생성 (매장 선택 → 가이드 생성 요청)"
+    - "데이터 업로드 (사고 DB / 매장 DB / 근로자 DB Excel 파일)"
+    - "인쇄 (window.print())"
+    - "에러 복구 (TabErrorBoundary 다시 시도)"
+  notes: >
+    Zero analytics or product telemetry instrumentation exists anywhere in SAGO AI — no third-party
+    SDKs (GA4, GTM, Mixpanel, Amplitude, Segment, PostHog, Hotjar), no custom event helpers, no
+    dataLayer pushes, and no CloudWatch custom metrics. The only logging found is three
+    print()-based audit lines in Lambda handlers (notify, batch, ack) that flow to CloudWatch Logs
+    as unstructured text; these capture operational delivery facts (store, recipient count, channel,
+    ack status) but are not product analytics events and are not queryable by dimension or funnel.
+    All four frontend network calls are internal operational API calls (notify POST, alerts GET ×2,
+    AI Lambda POST) — none carry behavior telemetry. As a result, there is currently no answer to
+    any product usage question: which tabs are used, whether AI guide generation succeeds or
+    frustrates users, how often alerts actually get sent vs abandoned, or whether role filtering
+    narrows the experience as intended.
+
+existing_tracking:
+  # Lambda CloudWatch audit logs (operational, NOT product analytics)
+  - file: "lambdas/notify/handler.py"
+    tool: "print → CloudWatch Logs"
+    event_name: "[notify][audit] send scope"
+    properties: [store_code, dept, team, recipient_count, resolved_via]
+    notes: "운영 감사 로그. 분석 SDK 아님 — CloudWatch 비정형 텍스트로 저장, 퍼널/코호트 분석 불가."
+  - file: "lambdas/batch/handler.py"
+    tool: "print → CloudWatch Logs"
+    event_name: "[batch][audit] send scope"
+    properties: [store_code, recipient_count, channel, severity]
+    notes: "배치 트리거당 1회. 운영 모니터링 용도."
+  - file: "lambdas/ack/handler.py"
+    tool: "print → CloudWatch Logs"
+    event_name: "[ack][audit] acknowledgement"
+    properties: [store_code, actor_redacted, status]
+    notes: "카카오 수신 확인 콜백. actor UUID는 앞 4자만 노출."
+
+key_user_flows_without_tracking:
+  - flow: "알림 발송"
+    steps:
+      - "매장 검색 입력 (텍스트 입력)"
+      - "드롭다운에서 매장 선택"
+      - "선택 매장 제거 (X 버튼)"
+      - "발송 날짜 선택 (date picker)"
+      - "UUID 토큰 입력"
+      - "발송 버튼 클릭 → notify API POST"
+      - "발송 성공/실패 결과 확인"
+
+  - flow: "알림 현황 조회"
+    steps:
+      - "날짜 선택 (date picker)"
+      - "조회 버튼 클릭 → alerts API GET"
+      - "결과 목록 렌더링"
+      - "상세 보기 버튼(ChevronRight) 클릭 → detail JSON GET"
+      - "DetailModal 열기 — KakaoTalk 가이드 미리보기"
+      - "카카오챗 캐러셀 prev/next/next-case 버튼 탐색"
+      - "DetailModal 닫기 (X 또는 배경 클릭)"
+
+  - flow: "AI 안전가이드 생성"
+    steps:
+      - "위험지도(riskmap) 탭 진입"
+      - "지도에서 매장 선택"
+      - "AI 가이드 생성 버튼 클릭 → AI Lambda POST"
+      - "응답 대기"
+      - "생성된 가이드 출력 확인"
+      - "성공 / 에러 상태 표시"
+
+  - flow: "탭 네비게이션 및 역할 필터"
+    steps:
+      - "역할 선택 드롭다운 열기"
+      - "역할 항목 선택 (경영진/영업부문장/팀장/파트장/안전보건팀)"
+      - "역할 배너 표시 → 탭 목록 축소"
+      - "탭 버튼 클릭 (PC 상단 또는 모바일 하단 네비)"
+      - "역할 배너 X 버튼으로 필터 해제"
+
+  - flow: "대시보드 모드 전환 및 연도 필터"
+    steps:
+      - "모드 토글 클릭 (근로자 사고 / 고객 사고 / 알림 관리)"
+      - "연도 필터 버튼 클릭 (전체 / 2024 / 2025 / 2026)"
+      - "필터 적용 후 탭 데이터 갱신"
+
+  - flow: "데이터 업로드 (AdminUpload)"
+    steps:
+      - "사고 DB Excel 파일 선택 및 업로드"
+      - "매장 DB Excel 파일 선택 및 업로드"
+      - "근로자 DB Excel 파일 선택 및 업로드"
+      - "업로드 성공/실패 피드백 확인"
+      - "데이터 초기화 버튼(resetData) 클릭"
+
+  - flow: "인쇄 및 에러 복구"
+    steps:
+      - "인쇄 버튼 클릭 → window.print() 호출"
+      - "TabErrorBoundary 에러 화면 표시"
+      - "다시 시도 버튼 클릭 → 탭 재마운트"
+
+recommendations:
+  priority_events:
+    - name: "alert_send_submitted"
+      trigger: "발송 버튼 클릭 직후, notify API POST 직전"
+      why: >
+        알림 발송은 SAGO AI의 핵심 운영 액션이다. 이 이벤트가 없으면 발송 시도 횟수,
+        대상 매장 수, 채널(kakao vs mock), 포기율(토큰 미입력 등)을 전혀 알 수 없다.
+        매장 선택 수(store_count), 채널, 날짜를 속성으로 포함해야 한다.
+
+    - name: "alert_send_result"
+      trigger: "notify API 응답 수신 후 (성공 또는 실패)"
+      why: >
+        발송 시도 대비 실제 성공률을 측정하는 유일한 수단이다. HTTP 상태, 수신자 수,
+        에러 메시지를 속성으로 포함하면 Lambda 오류 패턴과 토큰 만료 빈도를 파악할 수 있다.
+
+    - name: "ai_guide_requested"
+      trigger: "AI 가이드 생성 버튼 클릭 → AI Lambda POST 직전"
+      why: >
+        AI 기능 사용률과 어느 매장·부서에서 가이드 생성 요청이 집중되는지를 보여준다.
+        store_code, dept, team을 속성으로 포함하면 고위험 매장의 실제 활용 여부를 검증할 수 있다.
+
+    - name: "ai_guide_result"
+      trigger: "AI Lambda 응답 수신 후 (성공 또는 에러)"
+      why: >
+        AI 가이드 생성 성공률과 지연 시간(latency_ms)을 측정한다. 실패율이 높으면
+        사용자 이탈로 이어지므로 Bedrock 호출 안정성을 선제적으로 모니터링할 수 있다.
+
+    - name: "tab_viewed"
+      trigger: "탭 버튼 클릭으로 탭이 마운트될 때"
+      why: >
+        14개 분석 탭 중 실제로 사용되는 탭과 사장된 탭을 구분하는 가장 기본적인 지표다.
+        tab_id, role_filter, dashboard_mode, year_filter를 속성으로 포함하면
+        역할별 사용 패턴과 어느 탭이 우선 개선 대상인지 데이터로 결정할 수 있다.

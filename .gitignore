@@ -71,3 +71,6 @@ proj/.omc/
 # proj/src/data/snapshots.js
 # proj/src/data/storesData.js
 
+
+# Analytics API keys (로컬 전용)
+proj/.env.local
