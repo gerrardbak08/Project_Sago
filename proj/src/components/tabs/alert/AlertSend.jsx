@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Send, CheckCircle2, AlertCircle, RefreshCw, MessageCircle, X, Plus, Search } from 'lucide-react';
 import { ALERT_RED, SAFE_GREEN } from '../../../constants/colors.js';
 import { Card } from '../../shared/Card.jsx';
@@ -23,7 +23,7 @@ function RiskBadge({ grade }) {
   );
 }
 
-function AlertSend({ onSent }) {
+function AlertSend({ onSent, preFillStore, onPreFillConsumed }) {
   const today = new Date().toISOString().slice(0, 10);
   const kakaoEnabled = import.meta.env.VITE_ENABLE_KAKAO_SEND === 'true';
   const [query, setQuery] = useState('');
@@ -61,6 +61,16 @@ function AlertSend({ onSent }) {
     .map(v => v.trim())
     .filter(Boolean);
   const canSend = selectedStores.length > 0 && date && (!kakaoEnabled || receiverUuids.length > 0) && !loading;
+  useEffect(() => {
+    if (preFillStore) {
+      setSelectedStores(prev => {
+        const already = prev.some(s => String(s['매장'] || s.store_code) === String(preFillStore));
+        if (already) return prev;
+        return [...prev, { '매장': preFillStore, '매장명': String(preFillStore) }];
+      });
+      if (onPreFillConsumed) onPreFillConsumed();
+    }
+  }, [preFillStore]);
 
   const handleSend = async () => {
     if (!canSend) return;

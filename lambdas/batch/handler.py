@@ -357,7 +357,7 @@ def _build_message_summary(results: dict) -> str:
         risk = sd.get("risk", {})
         if not risk.get("trigger"):
             continue
-        score = risk.get("score")
+        score = risk.get("risk_score")
         accident_type = (
             sd.get("guide", {}).get("주요_위험유형")
             or risk.get("reason", "")
@@ -377,10 +377,75 @@ def _max_risk_score(results: dict) -> float | None:
     for sd in results.values():
         if not isinstance(sd, dict) or "error" in sd:
             continue
-        score = sd.get("risk", {}).get("score")
+        score = sd.get("risk", {}).get("risk_score")
         if isinstance(score, (int, float)):
             scores.append(float(score))
     return max(scores) if scores else None
+
+
+def _build_weather_rationale(weather: dict) -> str:
+    """기상 데이터에서 주요 위험 요소를 한 줄 문자열로 조합한다."""
+    parts: list[str] = []
+    rain = weather.get("precipitation_sum") or 0
+    snow = weather.get("snowfall_sum") or 0
+    wind = weather.get("wind_speed_10m_max") or 0
+    temp_max = weather.get("temperature_2m_max")
+    temp_min = weather.get("temperature_2m_min")
+    if rain >= 5:
+        parts.append(f"강수 {rain:.1f}mm 예보")
+    if snow > 0:
+        parts.append(f"적설 {snow:.1f}cm 예보")
+    if wind >= 10:
+        parts.append(f"강풍 {wind:.1f}m/s")
+    if temp_max is not None and temp_max >= 33:
+        parts.append(f"최고기온 {temp_max:.0f}°C")
+    if temp_min is not None and temp_min <= 0:
+        parts.append(f"최저기온 {temp_min:.0f}°C (빙결 주의)")
+    return " · ".join(parts) if parts else "기상 이상 없음"
+
+
+def _build_rationale(results: dict, weather: dict) -> dict:
+    """S3 record에 삽입할 rationale dict를 구성한다.
+
+    트리거된 source 중 risk_score가 가장 높은 source를 기준으로 작성.
+    """
+    best_sd: dict | None = None
+    best_score: float = -1.0
+    for sd in results.values():
+        if not isinstance(sd, dict) or "error" in sd:
+            continue
+        score = sd.get("risk", {}).get("risk_score")
+        if isinstance(score, (int, float)) and float(score) > best_score:
+            best_score = float(score)
+            best_sd = sd
+
+    if best_sd is None:
+        return {
+            "accident_pattern": "과거 사고 데이터 없음",
+            "weather": _build_weather_rationale(weather),
+            "risk_score": "위험점수 산출 불가",
+        }
+
+    leaf_id = best_sd.get("leaf_id") or "N/A"
+    leaf_data = best_sd.get("_leaf_data") or {}
+    leaf_case_count = leaf_data.get("summary", {}).get("total_cases", leaf_data.get("count", 0))
+    # _leaf_data가 이미 stripped된 경우(guide_result 경유) incident_count로 fallback
+    if not leaf_case_count:
+        leaf_case_count = best_sd.get("incident_count", 0)
+
+    risk_score_val = best_score
+    if risk_score_val >= 0.7:
+        risk_label = "고위험"
+    elif risk_score_val >= 0.4:
+        risk_label = "중위험"
+    else:
+        risk_label = "저위험"
+
+    return {
+        "accident_pattern": f"과거 유사 사고 {leaf_case_count}건 (리프ID {leaf_id})",
+        "weather": _build_weather_rationale(weather),
+        "risk_score": f"종합 위험점수 {risk_score_val:.2f} ({risk_label})",
+    }
 
 
 def _record_alert(
@@ -417,6 +482,7 @@ def _record_alert(
     )
     risk_score = _max_risk_score(results)
 
+    weather = guide_result.get("weather", {})
     record = {
         **guide_result,
         "trigger": "batch_auto",
@@ -434,6 +500,7 @@ def _record_alert(
         "store_name": store_name,
         "risk_score": risk_score,
         "detail_key": file_key,
+        "rationale": _build_rationale(results, weather),
     }
 
     try:

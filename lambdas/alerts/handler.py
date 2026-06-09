@@ -2,11 +2,13 @@
 alerts Lambda 핸들러 — 알림 현황 조회 (Lambda Function URL)
 
 호출 방식:
-  GET {alerts_url}/{date}           → alerts/{date}/index.json 반환
-  GET {alerts_url}/{date}/{filename} → alerts/{date}/{filename} 반환
+  GET {alerts_url}/{date}               → alerts/{date}/index.json 반환
+  GET {alerts_url}/{date}/{filename}    → alerts/{date}/{filename} 반환
+  GET {alerts_url}?type=daily&date=YYYY-MM-DD → daily/{date}/results.json 반환
 
 환경변수:
-    DAILY_BUCKET : alerts/ 데이터가 저장된 S3 버킷 (읽기 전용)
+    DAILY_BUCKET  : alerts/ 및 daily/ 데이터가 저장된 S3 버킷 (읽기 전용)
+    MODELS_BUCKET : DAILY_BUCKET 미설정 시 폴백 버킷
 """
 
 from __future__ import annotations
@@ -50,7 +52,29 @@ def _get_s3_json(key: str) -> Any:
     return json.loads(resp["Body"].read().decode("utf-8"))
 
 
-def lambda_handler(event: dict, context: Any) -> dict:
+def _today_str() -> str:
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+def _handle_daily_results(event: dict) -> dict:
+    """?type=daily&date=YYYY-MM-DD → daily/{date}/results.json 반환."""
+    qs = event.get("queryStringParameters") or {}
+    date_str = qs.get("date") or _today_str()
+    s3_key = f"daily/{date_str}/results.json"
+    try:
+        data = _get_s3_json(s3_key)
+        items = data if isinstance(data, list) else data.get("items", data.get("results", []))
+        return _response(200, items)
+    except Exception as e:
+        err_str = str(e)
+        if "NoSuchKey" in err_str or "404" in err_str:
+            # 배치 미실행 날짜이면 빈 배열 반환 (200)
+            return _response(200, [])
+        return _response(500, {"error": f"데이터 조회 실패: {err_str}"})
+
+
+def lambda_handler(event: dict, context: Any) -> dict:  # noqa: ARG001
     """alerts Lambda 메인 핸들러 (Lambda Function URL)."""
     # CORS preflight
     method = (
@@ -61,6 +85,11 @@ def lambda_handler(event: dict, context: Any) -> dict:
         return _response(200, {"message": "OK"})
     if not _origin_allowed(event):
         return _response(403, {"error": "허용되지 않은 호출 출처입니다."})
+
+    # ?type=daily 라우트 — 경로 분기 전에 처리
+    qs = event.get("queryStringParameters") or {}
+    if qs.get("type") == "daily":
+        return _handle_daily_results(event)
 
     # Function URL: rawPath = "/{date}" 또는 "/{date}/{filename}"
     raw_path = event.get("rawPath", "") or event.get("path", "")

@@ -424,6 +424,7 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
                   <th className="text-center py-2 px-2 font-semibold">발송 유형</th>
                   <th className="text-center py-2 px-2 font-semibold">발송 결과</th>
                   <th className="text-left py-2 px-2 font-semibold">수신자</th>
+                  <th className="text-center py-2 px-2 font-semibold">위험도</th>
                   <th className="text-left py-2 px-2 font-semibold">주요 위험유형 (고객)</th>
                   <th className="text-left py-2 px-2 font-semibold">주요 위험유형 (직원)</th>
                   <th className="text-center py-2 px-2 font-semibold">상세</th>
@@ -453,12 +454,22 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
                       }
                     </td>
                     <td className="py-2.5 px-2 text-center">
-                      {s.delivery_status === 'sent'
-                        ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 border border-emerald-200 text-emerald-700">성공</span>
-                        : s.delivery_status === 'failed'
-                          ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 border border-red-200 text-red-700">실패</span>
-                          : <span className="text-xs text-stone-400">—</span>
-                      }
+                      <div className="flex flex-col items-center gap-1">
+                        {s.delivery_status === 'sent'
+                          ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 border border-emerald-200 text-emerald-700">성공</span>
+                          : s.delivery_status === 'failed'
+                            ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 border border-red-200 text-red-700">실패</span>
+                            : <span className="text-xs text-stone-400">—</span>
+                        }
+                        {(s.delivery_status === 'failed' || s.status === 'failed') && onSendRequest && (
+                          <button
+                            onClick={() => onSendRequest(s.store_code)}
+                            className="flex items-center gap-1 px-2 py-1 rounded-md bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium border border-red-100"
+                          >
+                            재발송
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td className="py-2.5 px-2 text-[11px] text-stone-500 max-w-[220px]">
                       {s.sent_recipients?.length > 0 && (
@@ -468,6 +479,18 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
                         <div className="truncate text-red-600">실패: {s.failed_recipients.join(', ')}</div>
                       )}
                       {!s.sent_recipients?.length && !s.failed_recipients?.length && "—"}
+                    </td>
+                    <td className="py-2.5 px-2 text-center">
+                      {s.risk_score != null && (
+                        <span className={
+                          s.risk_score >= 0.7 ? "px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700" :
+                          s.risk_score >= 0.4 ? "px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700" :
+                          "px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700"
+                        }>
+                          {s.risk_score >= 0.7 ? "고위험" : s.risk_score >= 0.4 ? "중위험" : "저위험"}
+                        </span>
+                      )}
+                      {s.risk_score == null && <span className="text-xs text-stone-400">—</span>}
                     </td>
                     <td className="py-2.5 px-2 text-xs text-stone-700">{s["주요_위험유형_cust"] || s.dominant_type_cust || "—"}</td>
                     <td className="py-2.5 px-2 text-xs text-stone-700">{s["주요_위험유형_emp"] || s.dominant_type_emp || "—"}</td>
@@ -480,7 +503,7 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={8} className="py-10 text-center text-stone-400 text-xs">조회된 매장이 없습니다.</td></tr>
+                  <tr><td colSpan={9} className="py-10 text-center text-stone-400 text-xs">조회된 매장이 없습니다.</td></tr>
                 )}
               </tbody>
             </table>

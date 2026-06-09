@@ -30,6 +30,7 @@ import { LayoutDashboard, Building, Building2, MapPin,
          X, AlertCircle, Send, Lock } from 'lucide-react';
 import AlertMonitoring from './components/tabs/alert/AlertMonitoring.jsx';
 import AlertSend       from './components/tabs/alert/AlertSend.jsx';
+import AlertReview     from './components/tabs/alert/AlertReview.jsx';
 
 // ── 공유 컴포넌트 ──────────────────────────────────────
 import { Card }              from './components/shared/Card.jsx';
@@ -110,6 +111,7 @@ function App() {
   );
   const [alertTab, setAlertTab] = useState("alert_monitor"); // 알림 모드 내 탭
   const [lastSentDate, setLastSentDate] = useState(null);
+  const [preFillStore, setPreFillStore] = useState(null);
   const [currentRole, setCurrentRole] = useState(_INIT_HASH_PARAMS.role || initialRole || null);
   const [yearFilter, setYearState] = useState(_INIT_HASH_PARAMS.year || "all");
 
@@ -306,8 +308,9 @@ function App() {
       </div>
       <div className="max-w-[1400px] mx-auto px-3 sm:px-4 py-3 sm:py-5">
         <TabErrorBoundary key={alertTab}>
-          {alertTab === "alert_monitor"  && <AlertMonitoring initialDate={lastSentDate} onSendRequest={() => setAlertTab("alert_send")} />}
-          {alertTab === "alert_send"     && <AlertSend onSent={(sentDate) => { setLastSentDate(sentDate); setAlertTab("alert_monitor"); }} />}
+          {alertTab === "alert_monitor"  && <AlertMonitoring initialDate={lastSentDate} onSendRequest={(storeCode) => { if (storeCode) setPreFillStore(storeCode); setAlertTab("alert_send"); }} />}
+          {alertTab === "alert_send"     && <AlertSend onSent={(sentDate) => { setLastSentDate(sentDate); setAlertTab("alert_monitor"); }} preFillStore={preFillStore} onPreFillConsumed={() => setPreFillStore(null)} />}
+          {alertTab === "alert_review"   && <AlertReview />}
         </TabErrorBoundary>
       </div>
       <div className="max-w-[1400px] mx-auto px-4 py-4 text-xs text-stone-400 border-t border-stone-100 mt-6">
