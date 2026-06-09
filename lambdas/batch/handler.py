@@ -315,12 +315,82 @@ def _build_message_body(store_name: str, date_str: str, results: dict) -> str:
 # ──────────────────────────────────────────────
 # 알림 현황 S3 기록 (frontend 버킷 — 대시보드 조회용)
 # ──────────────────────────────────────────────
+def _build_recipients_list(
+    receiver_uuids: list[str],
+    recipients_data: dict,
+    store_name: str,
+) -> list[dict]:
+    """UUID 목록을 recipients.json 데이터와 조인해 이름/역할/팀 정보를 담은 dict 리스트로 반환.
+
+    recipients.json에 상세 정보가 없으면 uuid만 담아 반환한다.
+    """
+    uuid_set = set(receiver_uuids)
+    # recipients.json 안에 "users" 키가 있으면 거기서 상세 정보를 조회한다.
+    users_map: dict = {}
+    for entry in recipients_data.get("users", []):
+        uid = entry.get("uuid") or entry.get("id", "")
+        if uid:
+            users_map[uid] = entry
+
+    result: list[dict] = []
+    for uid in receiver_uuids:
+        info = users_map.get(uid, {})
+        result.append({
+            "uuid": uid,
+            "name": info.get("name") or info.get("이름", ""),
+            "role": info.get("role") or info.get("직책", ""),
+            "team": info.get("team") or info.get("팀", ""),
+            "store_name": info.get("store_name") or store_name,
+        })
+    return result
+
+
+def _build_message_summary(results: dict) -> str:
+    """결과 dict에서 사람이 읽을 수 있는 위험 요약 문자열을 만든다.
+
+    예: '낙상 위험 — 위험점수 0.82 (고객), 0.75 (직원)'
+    """
+    parts: list[str] = []
+    for source, sd in results.items():
+        if not isinstance(sd, dict) or "error" in sd:
+            continue
+        risk = sd.get("risk", {})
+        if not risk.get("trigger"):
+            continue
+        score = risk.get("score")
+        accident_type = (
+            sd.get("guide", {}).get("주요_위험유형")
+            or risk.get("reason", "")
+        )
+        label = "고객" if source == "cust" else "직원"
+        score_str = f"{score:.2f}" if isinstance(score, (int, float)) else "N/A"
+        if accident_type:
+            parts.append(f"{accident_type} — 위험점수 {score_str} ({label})")
+        else:
+            parts.append(f"위험점수 {score_str} ({label})")
+    return " | ".join(parts) if parts else ""
+
+
+def _max_risk_score(results: dict) -> float | None:
+    """트리거된 source 중 최대 위험 점수를 반환한다. 없으면 None."""
+    scores: list[float] = []
+    for sd in results.values():
+        if not isinstance(sd, dict) or "error" in sd:
+            continue
+        score = sd.get("risk", {}).get("score")
+        if isinstance(score, (int, float)):
+            scores.append(float(score))
+    return max(scores) if scores else None
+
+
 def _record_alert(
     s3_client: Any,
     guide_result: dict,
     channel: str,
     trigger_type: str,
     delivery: dict | None = None,
+    recipients_data: dict | None = None,
+    receiver_uuids: list[str] | None = None,
 ) -> None:
     """발송 결과를 frontend 버킷의 alerts/{date}/{store_code}.json 에 저장한다.
 
@@ -332,22 +402,37 @@ def _record_alert(
         return
 
     store_code = guide_result.get("store_code", "unknown")
+    store_name = guide_result.get("store_name", "")
     date_str = guide_result.get("date", "unknown")
     file_key = f"alerts/{date_str}/{store_code}.json"
 
-    cust = guide_result.get("results", {}).get("cust", {})
-    emp = guide_result.get("results", {}).get("emp", {})
+    results = guide_result.get("results", {})
+    cust = results.get("cust", {})
+    emp = results.get("emp", {})
+
+    recipients_list = _build_recipients_list(
+        receiver_uuids or [],
+        recipients_data or {},
+        store_name,
+    )
+    risk_score = _max_risk_score(results)
 
     record = {
         **guide_result,
+        "trigger": "batch_auto",
         "trigger_type": trigger_type,
         "channel": channel,
         "timestamp": datetime.now(KST).isoformat(timespec="seconds"),
+        "sent_at": datetime.utcnow().isoformat() + "Z",
         "delivery_status": delivery.get("status", "not_sent") if delivery else "not_sent",
         "sent_recipients": delivery.get("sent", []) if delivery else [],
         "failed_recipients": delivery.get("failed", []) if delivery else [],
+        "recipients": recipients_list,
         "주요_위험유형_cust": cust.get("guide", {}).get("주요_위험유형", ""),
         "주요_위험유형_emp": emp.get("guide", {}).get("주요_위험유형", ""),
+        "message_summary": _build_message_summary(results),
+        "store_name": store_name,
+        "risk_score": risk_score,
         "detail_key": file_key,
     }
 
@@ -491,7 +576,10 @@ def lambda_handler(event: dict, context: Any) -> dict:
                 notifier.send(receiver_uuids, subject, msg_body)
 
             # frontend 버킷에 현황 기록 (trigger_type = "batch")
-            _record_alert(s3_client, guide_result, channel, trigger_type="batch")
+            _record_alert(
+                s3_client, guide_result, channel, trigger_type="batch",
+                recipients_data=recipients_data, receiver_uuids=receiver_uuids,
+            )
 
             # 알림 상태 업데이트 (쿨다운/확인 추적용)
             alert_state_record_sent(

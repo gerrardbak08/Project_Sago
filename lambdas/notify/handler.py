@@ -305,17 +305,58 @@ def _record_alert(guide_result: dict, channel: str, delivery: dict | None = None
     cust = guide_result.get("results", {}).get("cust", {})
     emp = guide_result.get("results", {}).get("emp", {})
 
+    # ── 수신자 목록을 구조화된 형태로 변환 ──────────────────────────
+    raw_recipients = delivery.get("recipients", []) if delivery else []
+    store_name_val = guide_result.get("store_name", "")
+
+    def _enrich_recipient(r: Any, idx: int) -> dict:
+        """수신자 항목(str UUID 또는 dict)을 구조화된 dict으로 변환."""
+        if isinstance(r, dict):
+            return {
+                "name": r.get("name") or r.get("성명") or f"수신자{idx + 1}",
+                "role": r.get("role") or r.get("직책") or "",
+                "team": r.get("team") or r.get("팀") or "",
+                "store_name": r.get("store_name") or r.get("매장명") or store_name_val,
+            }
+        # str (UUID 등) 인 경우 — 이름·직책 정보 없음
+        return {
+            "name": f"수신자{idx + 1}",
+            "role": "",
+            "team": "",
+            "store_name": store_name_val,
+        }
+
+    enriched_recipients = [_enrich_recipient(r, i) for i, r in enumerate(raw_recipients)]
+
+    # ── message_summary ─────────────────────────────────────────────
+    cust_risk = cust.get("guide", {}).get("주요_위험유형", "")
+    emp_risk = emp.get("guide", {}).get("주요_위험유형", "")
+    cust_conf = cust.get("confidence", "")
+    if cust_risk or emp_risk:
+        parts = []
+        if cust_risk:
+            parts.append(f"고객: {cust_risk}" + (f" [{cust_conf}]" if cust_conf else ""))
+        if emp_risk:
+            parts.append(f"직원: {emp_risk}")
+        message_summary = " / ".join(parts)
+    else:
+        message_summary = "안전 알림"
+
     record = {
         **guide_result,
         "trigger_type": f"manual_send_{channel}",
+        "trigger": "manual",
         "channel": channel,
         "timestamp": datetime.now(KST).isoformat(timespec="seconds"),
-        "recipients": delivery.get("recipients", []) if delivery else [],
+        "sent_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "store_name": store_name_val,
+        "recipients": enriched_recipients,
         "sent_recipients": delivery.get("sent", []) if delivery else [],
         "failed_recipients": delivery.get("failed", []) if delivery else [],
         "delivery_status": delivery.get("status", "not_sent") if delivery else "not_sent",
-        "주요_위험유형_cust": cust.get("guide", {}).get("주요_위험유형", ""),
-        "주요_위험유형_emp": emp.get("guide", {}).get("주요_위험유형", ""),
+        "주요_위험유형_cust": cust_risk,
+        "주요_위험유형_emp": emp_risk,
+        "message_summary": message_summary,
         "detail_key": file_key,
     }
 

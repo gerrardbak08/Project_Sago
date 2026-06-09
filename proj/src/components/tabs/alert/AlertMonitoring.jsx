@@ -243,7 +243,12 @@ function DetailModal({ item, onClose }) {
         <div className="sticky top-0 bg-white border-b border-stone-200 px-5 py-4 flex items-center justify-between rounded-t-2xl z-10">
           <div>
             <div className="font-bold text-stone-900 text-base">{item.store_name}</div>
-            <div className="text-xs text-stone-500 mt-0.5">{item.region} · {item.date}</div>
+            <div className="text-xs text-stone-500 mt-0.5 flex items-center gap-1.5">
+              <span>{item.region} · {item.date}</span>
+              {item.sent_at && (
+                <span className="text-xs text-slate-400">{item.sent_at.slice(11, 16)}</span>
+              )}
+            </div>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-stone-100 flex items-center justify-center cursor-pointer text-stone-500">
             <X size={16} />
@@ -251,6 +256,24 @@ function DetailModal({ item, onClose }) {
         </div>
 
         <div className="p-5">
+          {item.recipients && item.recipients.length > 0 && (
+            <div className="mb-4 px-1">
+              <p className="text-xs font-semibold text-slate-600 mb-1">수신자 ({item.recipients.length}명)</p>
+              <div className="space-y-1">
+                {item.recipients.map((r, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs text-slate-700">
+                    <span className="font-medium">{r.name || '수신자' + (i + 1)}</span>
+                    {r.role && <span className="text-slate-400">·</span>}
+                    {r.role && <span className="text-slate-500">{r.role}</span>}
+                    {r.team && <span className="text-slate-400">·</span>}
+                    {r.team && <span className="text-slate-500">{r.team}</span>}
+                    {r.store_name && <span className="text-slate-400">·</span>}
+                    {r.store_name && <span className="text-slate-500">{r.store_name}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {loading && (
             <div className="flex items-center justify-center py-10 text-stone-400">
               <RefreshCw size={16} className="animate-spin mr-2" /> 상세 데이터 로딩 중...
@@ -410,8 +433,17 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
                 {filtered.map((s, i) => (
                   <tr key={s.store_code + i} className="border-b border-stone-50 hover:bg-stone-50/70 transition-colors">
                     <td className="py-2.5 px-2">
-                      <div className="font-semibold text-stone-900 text-xs">{s.store_name}</div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-semibold text-stone-900 text-xs">{s.store_name}</span>
+                        {s.trigger === 'batch_auto'
+                          ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">자동발송</span>
+                          : <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">수동발송</span>
+                        }
+                      </div>
                       <div className="text-[10px] text-stone-400 tabular-nums">{s.store_code}</div>
+                      {s.message_summary && (
+                        <p className="text-xs text-slate-500 mt-0.5 truncate max-w-[180px]">{s.message_summary}</p>
+                      )}
                     </td>
                     <td className="py-2.5 px-2 text-xs text-stone-500">{s.region}</td>
                     <td className="py-2.5 px-2 text-center">
