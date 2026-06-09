@@ -71,59 +71,12 @@ function CrossAnalysis({ D, yearFilter }) {
       </Card>
 
       {/* ── F1 추가: 시간대별 사고 집중도 ── */}
-      {(() => {
-        const timeSlots = [
-          { label: "00-03시", key: "night0" }, { label: "03-06시", key: "night1" },
-          { label: "06-09시", key: "morn0" },  { label: "09-12시", key: "morn1" },
-          { label: "12-15시", key: "aft0" },   { label: "15-18시", key: "aft1" },
-          { label: "18-21시", key: "eve0" },   { label: "21-24시", key: "eve1" },
-        ];
-        // D.hourly 있으면 사용, 없으면 재해유형 분포로 추정 분포 생성
-        const rawHourly = D.hourly || {};
-        const hasHourly = Object.keys(rawHourly).length > 0;
-        // 기본 더미 패턴 (실제 데이터 없을 때 — 유통업 일반 패턴)
-        const defaultPattern = { night0:2, night1:1, morn0:28, morn1:62, aft0:58, aft1:84, eve0:22, eve1:8 };
-        const hourlyData = timeSlots.map(s => ({
-          label: s.label,
-          count: hasHourly ? (rawHourly[s.key] || 0) : defaultPattern[s.key],
-          isEstimated: !hasHourly,
-        }));
-        const maxH = Math.max(...hourlyData.map(h=>h.count), 1);
-        const peakSlot = hourlyData.reduce((a,b) => b.count > a.count ? b : a);
-        return (
-          <Card title="시간대별 사고 집중도" titleIcon={Calendar}
-            sub={`${hasHourly ? "실측" : "유통업 일반 패턴 참고"} · 피크: ${peakSlot.label} (${peakSlot.count}건)`}
-            right={<ExportBtn rows={hourlyData.map(h=>({시간대:h.label,건수:h.count}))} filename="시간대별_사고.csv" />}>
-            <div className="grid grid-cols-8 gap-1 items-end h-24">
-              {hourlyData.map((h, i) => {
-                const heightPct = Math.round(h.count / maxH * 100);
-                const isPeak = h.label === peakSlot.label;
-                return (
-                  <div key={i} className="flex flex-col items-center gap-1">
-                    <span className="text-[9px] tabular-nums text-stone-500">{h.count}</span>
-                    <div className="w-full rounded-t" style={{
-                      height: `${Math.max(heightPct * 0.72, 4)}px`,
-                      background: isPeak ? DAISO_RED : h.isEstimated ? "#C4B5FD" : BL,
-                      opacity: 0.7 + (h.count/maxH) * 0.3,
-                    }} />
-                  </div>
-                );
-              })}
-            </div>
-            <div className="grid grid-cols-8 gap-1 mt-1">
-              {hourlyData.map((h,i) => (
-                <div key={i} className="text-[8px] text-center text-stone-400 truncate">{h.label.split("-")[0]}</div>
-              ))}
-            </div>
-            {!hasHourly && (
-              <div className="mt-2 text-[10px] text-stone-400 flex items-center gap-1">
-                <Info size={10} className="flex-shrink-0" />
-                사고 DB에 발생 시각 컬럼이 추가되면 실측값으로 자동 전환됩니다.
-              </div>
-            )}
-          </Card>
-        );
-      })()}
+      <Card title="시간대별 사고 집중도" titleIcon={Calendar} sub="발생 시각 데이터 연동 예정">
+        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center py-12 gap-2">
+          <span className="text-slate-400 text-sm font-medium">시간대별 사고 데이터 수집 중</span>
+          <span className="text-slate-300 text-xs">데이터 연동 후 자동 표시됩니다</span>
+        </div>
+      </Card>
 
       {/* ── F1 추가: 부서 × 기인물 상위 매트릭스 ── */}
       {(() => {

@@ -240,12 +240,12 @@ function App() {
   const ROLE_TAB_VISIBILITY = {
     // 경영진: 요약·트렌드·재무·심각도 집중
     ceo:     ["overview", "time", "legal", "severity", "cost", "sigungu"],
-    // 영업부문장: 부서/팀/매장 + 지역 + 트렌드 + 위험지도
-    manager: ["overview", "dept", "store", "riskmap", "sigungu", "time", "legal", "human"],
-    // 팀장: 매장IR + 파트장 + 인적요인 + 재발 + 위험지도
-    team:    ["overview", "dept", "store", "riskmap", "parjang", "repeat", "human", "severity"],
-    // 파트장: 자기 담당 매장 위주
-    part:    ["overview", "store", "riskmap", "repeat"],
+    // 영업부문장: 부서/팀/매장 + 요인분석 + 위험지도 (운영·안전팀 전용 탭 제외)
+    manager: ["overview", "cross", "dept", "store", "parjang", "riskmap", "c_typeplace", "c_dept", "c_watch"],
+    // 팀장: 매장IR + 파트장 + 인적요인 + 재발 + 위험지도 + 시계열 + 부서
+    team:    ["overview", "dept", "store", "riskmap", "parjang", "repeat", "human", "severity", "time"],
+    // 파트장: 자기 담당 매장 + 위험지도 + 파트장 대시보드
+    part:    ["overview", "store", "riskmap", "repeat", "parjang"],
     // 안전보건팀: 전체 접근
     safety:  null,
   };
@@ -310,7 +310,7 @@ function App() {
         <TabErrorBoundary key={alertTab}>
           {alertTab === "alert_monitor"  && <AlertMonitoring initialDate={lastSentDate} onSendRequest={(storeCode) => { if (storeCode) setPreFillStore(storeCode); setAlertTab("alert_send"); }} />}
           {alertTab === "alert_send"     && <AlertSend onSent={(sentDate) => { setLastSentDate(sentDate); setAlertTab("alert_monitor"); }} preFillStore={preFillStore} onPreFillConsumed={() => setPreFillStore(null)} />}
-          {alertTab === "alert_review"   && <AlertReview />}
+          {alertTab === "alert_review"   && <AlertReview onSendRequest={(storeCode) => { if (storeCode) setPreFillStore(storeCode); setAlertTab("alert_send"); }} />}
         </TabErrorBoundary>
       </div>
       <div className="max-w-[1400px] mx-auto px-4 py-4 text-xs text-stone-400 border-t border-stone-100 mt-6">
@@ -473,10 +473,10 @@ function App() {
       
       <div className="max-w-[1400px] mx-auto px-3 sm:px-4 py-3 sm:py-5">
         <TabErrorBoundary key={tab}>
-          {tab === "overview" && <Overview D={dataFiltered} yearFilter={yearFilter} role={currentRole} setTab={setTab} />}
+          {tab === "overview" && <Overview D={dataFiltered} yearFilter={yearFilter} role={currentRole} setTab={setTab} onStoreSelect={(storeCode) => { if (storeCode) setPreFillStore(storeCode); setTab("riskmap"); }} />}
           {tab === "dept" && <DeptTeamStore D={data} yearFilter={yearFilter} />}
           {tab === "store" && <StoreAnalysis D={dataFiltered} yearFilter={yearFilter} setYearFilter={setYearFilter} />}
-          {tab === "riskmap" && <StoreRiskMap D={data} yearFilter={yearFilter} setYearFilter={setYearFilter} syncStoreToUrl={syncStoreToUrl} initStore={_INIT_HASH_PARAMS.store} />}
+          {tab === "riskmap" && <StoreRiskMap D={data} yearFilter={yearFilter} setYearFilter={setYearFilter} syncStoreToUrl={syncStoreToUrl} initStore={preFillStore ?? _INIT_HASH_PARAMS.store} onPreFillConsumed={() => setPreFillStore(null)} />}
           {tab === "sigungu" && <StoreDeepDive D={dataFiltered} yearFilter={yearFilter} />}
           {tab === "time" && <TimeSeries D={data} yearFilter={yearFilter} />}
           {tab === "cross" && <CrossAnalysis D={dataFiltered} yearFilter={yearFilter} />}

@@ -17,7 +17,7 @@ import { STORE_SNAPSHOTS, WORKER_SNAPSHOTS } from '../../../data/snapshots.js';
 const WORKER_COUNT_ESTIMATE = 1337 * 5;
 const yoy = (cur, prev) => prev ? ((cur - prev) / prev * 100) : null;
 
-function Overview({ D, yearFilter, role, setTab }) {
+function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
   const aiSummary = useAiGuide();
   const isCEO = role === "ceo";
   const isManager = role === "manager";
@@ -711,15 +711,22 @@ function Overview({ D, yearFilter, role, setTab }) {
           <Card title="사고 다발 매장 Top 5" titleIcon={Store} sub="현장 점검 우선 대상" right={<button onClick={() => setTab && setTab("riskmap")} className="text-xs text-blue-600 font-bold cursor-pointer hover:underline">위험지도 →</button>}>
             <div className="space-y-2">
               {(D.stores || []).slice(0, 5).map((s, i) => (
-                <div key={s.store} className="flex items-center gap-3 p-2 rounded-lg bg-stone-50 border border-stone-200">
+                <div key={s.store}
+                  onClick={onStoreSelect ? () => onStoreSelect(s.store) : undefined}
+                  className={`flex items-center gap-3 p-2 rounded-lg bg-stone-50 border border-stone-200 ${onStoreSelect ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50 transition" : ""}`}>
                   <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{background: i === 0 ? ALERT_RED : i < 3 ? "#F97316" : "#A8A29E", color: "white"}}>{i + 1}</div>
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-sm truncate">{s.store}</div>
                     <div className="text-[11px] text-stone-500 truncate">{s.dept} · {s.team}</div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="text-base font-extrabold tabular-nums" style={{color: ALERT_RED}}>{s.total}</div>
-                    <div className="text-[10px] text-stone-500">건</div>
+                  <div className="text-right flex-shrink-0 flex items-center gap-2">
+                    <div>
+                      <div className="text-base font-extrabold tabular-nums" style={{color: ALERT_RED}}>{s.total}</div>
+                      <div className="text-[10px] text-stone-500">건</div>
+                    </div>
+                    {onStoreSelect && (
+                      <ChevronRight size={14} className="text-blue-400 flex-shrink-0" />
+                    )}
                   </div>
                 </div>
               ))}
@@ -823,9 +830,9 @@ function Overview({ D, yearFilter, role, setTab }) {
               <div className="rounded-lg p-3 bg-stone-50 border border-stone-200">
                 <div className="text-[10px] text-stone-500 font-bold mb-1">총 추정 손실</div>
                 <div className="text-xl font-extrabold tabular-nums" style={{color:DAISO_RED}}>
-                  {(((D.kpis?.total||0) * 22 * (MIN_WAGE_DAY[CURRENT_YEAR]||80000) * 1.4) / 1e8).toFixed(1)}억원
+                  {(((D.kpis?.total||0) * 22 * (MIN_WAGE_DAY[CURRENT_YEAR]||80000) * (1 + INDIRECT_COST_MULTIPLIER)) / 1e8).toFixed(1)}억원
                 </div>
-                <div className="text-[10px] text-stone-500 mt-0.5">간접비 1.4× 포함</div>
+                <div className="text-[10px] text-stone-500 mt-0.5">간접비 {(1 + INDIRECT_COST_MULTIPLIER).toFixed(1)}× 포함</div>
               </div>
               <div className="rounded-lg p-3 bg-stone-50 border border-stone-200">
                 <div className="text-[10px] text-stone-500 font-bold mb-1">YoY</div>

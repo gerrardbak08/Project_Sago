@@ -12,8 +12,16 @@ import CUSTOMER_DATA from '../../../data/customerData.js';
 function CWatch({ D }) {
   const [search, setSearch] = useState("");
   const yrLabel = D._yr ? `${D._yr}년` : "전체";
-  const filtered = D.store_watchlist.filter(s => !search || s.store.includes(search) || s.dept.includes(search) || s.team.includes(search));
-  const list = filtered.slice(0,30);
+
+  // year-keyed field helpers for YoY delta column
+  const yk = D._yr === "2024" ? "y24" : D._yr === "2025" ? "y25" : D._yr === "2026" ? "y26" : null;
+  const prevYk = D._yr === "2025" ? "y24" : D._yr === "2026" ? "y25" : null;
+
+  // D.store_watchlist is pre-sorted by _show desc and pre-filtered (_show > 0) by cFilter upstream.
+  // Only apply the search filter locally.
+  const filtered = D.store_watchlist
+    .filter(s => !search || s.store.includes(search) || s.dept.includes(search) || s.team.includes(search));
+  const list = filtered.slice(0, 30);
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -36,26 +44,36 @@ function CWatch({ D }) {
                 <th className="py-2 px-2 text-left text-stone-400 font-medium">영업부</th>
                 <th className="py-2 px-2 text-left text-stone-400 font-medium">팀</th>
                 <th className="py-2 px-2 text-right text-stone-400 font-medium">건수</th>
+                {prevYk && <th className="py-2 px-2 text-right text-stone-400 font-medium">전년比</th>}
                 <th className="py-2 px-2 text-right text-stone-400 font-medium">보상</th>
                 <th className="py-2 px-2 text-left text-stone-400 font-medium">주요유형</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((s,i) => (
-                <tr key={s.store} className="border-b border-stone-100 hover:bg-stone-50">
-                  <td className="py-2 px-2 text-stone-400">{i+1}</td>
-                  <td className="py-2 px-2 font-semibold text-stone-800">{s.store}</td>
-                  <td className="py-2 px-2 text-stone-500">{s.bumun}</td>
-                  <td className="py-2 px-2 text-stone-500">{s.dept.replace("영업부","")}</td>
-                  <td className="py-2 px-2 text-stone-500">{s.team}</td>
-                  <td className="py-2 px-2 text-right font-bold" style={{color: s._show>=8 ? CUST_ROSE : s._show>=5 ? CUST_AMBER : INK}}>{s._show}건</td>
-                  <td className="py-2 px-2 text-right tabular-nums text-stone-600">{s._comp > 0 ? (s._comp/10000).toFixed(0)+"만" : "-"}</td>
-                  <td className="py-2 px-2">
-                    <span className="px-1.5 py-0.5 rounded text-xs" style={{background:`${TYPE_COLOR[s.tp]||CUST_GRAY}20`,color:TYPE_COLOR[s.tp]||CUST_GRAY}}>{s.tp}</span>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && <tr><td colSpan={8} className="py-8 text-center text-stone-400">{yrLabel} 데이터 없음</td></tr>}
+              {filtered.map((s,i) => {
+                const delta = prevYk != null ? (s[yk] || 0) - (s[prevYk] || 0) : null;
+                return (
+                  <tr key={s.store} className="border-b border-stone-100 hover:bg-stone-50">
+                    <td className="py-2 px-2 text-stone-400">{i+1}</td>
+                    <td className="py-2 px-2 font-semibold text-stone-800">{s.store}</td>
+                    <td className="py-2 px-2 text-stone-500">{s.bumun}</td>
+                    <td className="py-2 px-2 text-stone-500">{s.dept.replace("영업부","")}</td>
+                    <td className="py-2 px-2 text-stone-500">{s.team}</td>
+                    <td className="py-2 px-2 text-right font-bold" style={{color: s._show>=8 ? CUST_ROSE : s._show>=5 ? CUST_AMBER : INK}}>{s._show}건</td>
+                    {prevYk && (
+                      <td className="py-2 px-2 text-right tabular-nums font-medium"
+                        style={{color: delta > 0 ? CUST_ROSE : delta < 0 ? SAFE_GREEN : INK}}>
+                        {delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : "±0"}
+                      </td>
+                    )}
+                    <td className="py-2 px-2 text-right tabular-nums text-stone-600">{s._comp > 0 ? (s._comp/10000).toFixed(0)+"만" : "-"}</td>
+                    <td className="py-2 px-2">
+                      <span className="px-1.5 py-0.5 rounded text-xs" style={{background:`${TYPE_COLOR[s.tp]||CUST_GRAY}20`,color:TYPE_COLOR[s.tp]||CUST_GRAY}}>{s.tp}</span>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filtered.length === 0 && <tr><td colSpan={prevYk ? 9 : 8} className="py-8 text-center text-stone-400">{yrLabel} 데이터 없음</td></tr>}
             </tbody>
           </table>
         </div>

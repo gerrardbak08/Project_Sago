@@ -14,7 +14,10 @@ function CDept({ D }) {
   const [selBumun, setSelBumun] = useState("전체");
   const [selDept, setSelDept] = useState(null);
   const yrLabel = D._yr ? `${D._yr}년` : "전체";
-  
+
+  // Bug fix: reset dept selection when year filter changes
+  useEffect(() => { setSelDept(null); }, [D._yr]);
+
   const filteredDepts = (selBumun === "전체" ? D.depts : D.depts.filter(d => d.bumun === selBumun)).slice().sort((a,b) => b._show - a._show);
   const filteredTeams = (selDept ? D.teams.filter(t => t.dept === selDept)
                        : selBumun === "전체" ? D.teams : D.teams.filter(t => t.bumun === selBumun))
@@ -60,23 +63,27 @@ function CDept({ D }) {
       <Card title={`영업부별 현황 ${selBumun!=="전체" ? `(${selBumun})` : ""}`} titleIcon={Building2} sub={`${yrLabel} 영업부 사고건수 + 보상금액`}
         right={<ExportBtn rows={filteredDepts.map(d=>({부문:d.bumun,영업부:d.dept,건수:d._show,보상:d._comp,보상건수:d._comp_count}))} filename={`고객사고_영업부_${yrLabel}.csv`}/>}>
         <ResponsiveContainer width="100%" height={Math.max(220, filteredDepts.length*30)} debounce={50}>
-          <BarChart data={filteredDepts} layout="vertical" margin={{left:0}}>
+          <ComposedChart data={filteredDepts} layout="vertical" margin={{left:0, right:60}}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false}/>
-            <XAxis type="number" tick={{fontSize:11,fill:"#78716C"}} axisLine={false} tickLine={false}/>
+            <XAxis type="number" yAxisId="cnt" tick={{fontSize:11,fill:"#78716C"}} axisLine={false} tickLine={false}/>
+            <XAxis type="number" yAxisId="comp" orientation="top" hide/>
             <YAxis type="category" dataKey="dept" tick={{fontSize:10,fill:"#44403C"}} axisLine={false} tickLine={false} width={140} interval={0} tickFormatter={d=>d.replace("영업부","")}/>
             <Tooltip content={<TT/>}/>
-            <Bar dataKey="_show" radius={[0,4,4,0]} name="사고건수">
+            <Legend verticalAlign="top" iconSize={10} wrapperStyle={{fontSize:11,paddingBottom:4}}/>
+            <Bar yAxisId="cnt" dataKey="_show" radius={[0,4,4,0]} name="사고건수">
               {filteredDepts.map((d,i) => (
-                <Cell key={d.dept} fill={d.bumun==="수도권" ? CUST_BLUE : CUST_AMBER} cursor="pointer" 
+                <Cell key={d.dept} fill={d.bumun==="수도권" ? CUST_BLUE : CUST_AMBER} cursor="pointer"
                       onClick={() => setSelDept(selDept===d.dept ? null : d.dept)}/>
               ))}
               <LabelList dataKey="_show" position="right" style={{fontSize:11,fill:INK,fontWeight:700}}/>
             </Bar>
-          </BarChart>
+            <Line yAxisId="comp" dataKey="_comp" name="보상금액(원)" dot={{r:3,fill:CUST_TEAL}} stroke={CUST_TEAL} strokeWidth={2} type="monotone"/>
+          </ComposedChart>
         </ResponsiveContainer>
         <div className="flex items-center gap-4 mt-2 text-xs text-stone-500">
           <span className="flex items-center gap-1.5"><div style={{width:10,height:10,borderRadius:2,background:CUST_BLUE}}/>수도권</span>
           <span className="flex items-center gap-1.5"><div style={{width:10,height:10,borderRadius:2,background:CUST_AMBER}}/>지방</span>
+          <span className="flex items-center gap-1.5"><div style={{width:10,height:2,background:CUST_TEAL}}/>보상금액</span>
           <span className="ml-auto">막대 클릭 시 해당 영업부 팀별 차트로 필터</span>
         </div>
       </Card>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, Cloud, Activity, RefreshCw } from 'lucide-react';
+import { TrendingUp, Cloud, Activity, RefreshCw, Send } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_ALERTS_API_URL || '';
 
@@ -21,7 +21,7 @@ function RiskBadge({ score }) {
   return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">저위험</span>;
 }
 
-export default function AlertReview() {
+export default function AlertReview({ onSendRequest }) {
   const [date, setDate] = useState(() => {
     const d = new window.Date();
     return d.toISOString().slice(0, 10);
@@ -105,9 +105,19 @@ export default function AlertReview() {
                       <p className="text-xs text-slate-500 mt-0.5">{item.dept || ''} {item.team || ''}</p>
                     </div>
                   </div>
-                  <div className="shrink-0 text-right">
-                    <span className="text-lg font-bold text-slate-700">{(score * 100).toFixed(0)}</span>
-                    <span className="text-xs text-slate-400">/100</span>
+                  <div className="shrink-0 flex items-center gap-2">
+                    {onSendRequest && (
+                      <button
+                        onClick={() => onSendRequest(item.store_code)}
+                        className="flex items-center gap-1 px-2 py-1 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-medium border border-indigo-100 shrink-0 cursor-pointer"
+                      >
+                        <Send size={11} />발송
+                      </button>
+                    )}
+                    <div className="text-right">
+                      <span className="text-lg font-bold text-slate-700">{(score * 100).toFixed(0)}</span>
+                      <span className="text-xs text-slate-400">/100</span>
+                    </div>
                   </div>
                 </div>
 

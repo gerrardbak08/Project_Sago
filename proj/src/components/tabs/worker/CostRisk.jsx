@@ -106,11 +106,16 @@ function CostRisk({ D, yearFilter }) {
       </Card>
 
       {/* 부서별 비용 차트 */}
-      {costByDept.length > 0 && (
-        <Card title="부서별 공상비용" titleIcon={Building2} sub="비용 기록된 건의 부서별 집계 — 집중 부서 식별" right={<ExportBtn rows={costByDept} filename="부서별_비용.csv" />}>
+      <Card title="부서별 공상비용" titleIcon={Building2} sub="비용 기록된 건의 부서별 집계 — 집중 부서 식별" right={costByDept.length > 0 ? <ExportBtn rows={costByDept} filename="부서별_비용.csv" /> : null}>
+        {costByDept.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-amber-200 bg-amber-50 p-4 text-center">
+            <p className="text-sm font-medium text-amber-700">부서별 비용 데이터 집계 중</p>
+            <p className="text-xs text-amber-500 mt-1">Excel 업로드 시 비용 항목 포함 필요</p>
+          </div>
+        ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <ResponsiveContainer width="100%" height={200} debounce={50}>
-              <BarChart data={costByDept || []} layout="vertical" margin={{ left: 0 }}>
+              <BarChart data={costByDept} layout="vertical" margin={{ left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false}
                   tickFormatter={v => `${(v/10000).toFixed(0)}만`} />
@@ -150,8 +155,8 @@ function CostRisk({ D, yearFilter }) {
               ))}
             </div>
           </div>
-        </Card>
-      )}
+        )}
+      </Card>
 
       {/* 비용 기록률 개선 안내 */}
       <div className="rounded-lg p-4 flex items-start gap-3" style={{background:"#FFF7ED", border:"1px solid #FED7AA"}}>
