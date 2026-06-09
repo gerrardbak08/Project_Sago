@@ -232,17 +232,19 @@ function AlertSend({ onSent, preFillStore, onPreFillConsumed }) {
             />
           </div>
 
-          {/* 인증 토큰 */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-stone-600">인증 토큰</label>
-            <input
-              type="password"
-              value={sendToken}
-              onChange={e => { setSendToken(e.target.value); localStorage.setItem('MANUAL_SEND_TOKEN', e.target.value); }}
-              placeholder="MANUAL_SEND_TOKEN 입력 (저장됨)"
-              className="w-full h-9 px-3 rounded-lg border border-stone-200 text-sm text-stone-700 bg-white focus:outline-none focus:border-stone-400 font-mono"
-            />
-          </div>
+          {/* 인증 토큰 — 개발 모드에서만 노출 */}
+          {import.meta.env.VITE_DEV_MODE === 'true' && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-stone-600">인증 토큰</label>
+              <input
+                type="password"
+                value={sendToken}
+                onChange={e => { setSendToken(e.target.value); localStorage.setItem('MANUAL_SEND_TOKEN', e.target.value); }}
+                placeholder="MANUAL_SEND_TOKEN 입력 (저장됨)"
+                className="w-full h-9 px-3 rounded-lg border border-stone-200 text-sm text-stone-700 bg-white focus:outline-none focus:border-stone-400 font-mono"
+              />
+            </div>
+          )}
 
           {kakaoEnabled && (
             <div className="space-y-1.5">

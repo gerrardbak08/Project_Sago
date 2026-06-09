@@ -486,8 +486,7 @@ function App() {
           {tab === "parjang" && <ParjangDashboard D={dataFiltered} yearFilter={yearFilter} />}
           {tab === "cost" && <CostRisk D={dataFiltered} yearFilter={yearFilter} />}
           {tab === "legal" && <LegalReporting D={dataFiltered} yearFilter={yearFilter} />}
-          {tab === "alert_monitor"  && <AlertMonitoring initialDate={lastSentDate} onSendRequest={() => setTab("alert_send")} />}
-          {tab === "alert_send"     && <AlertSend onSent={(sentDate) => { setLastSentDate(sentDate); setTab("alert_monitor"); }} />}        </TabErrorBoundary>
+        </TabErrorBoundary>
       </div>
       
       <div className="max-w-[1400px] mx-auto px-4 py-4 text-xs text-stone-400 border-t border-stone-100 mt-6 flex justify-between flex-wrap gap-2">
