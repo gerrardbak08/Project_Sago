@@ -23,7 +23,7 @@ function RiskBadge({ grade }) {
   );
 }
 
-function AlertSend() {
+function AlertSend({ onSent }) {
   const today = new Date().toISOString().slice(0, 10);
   const kakaoEnabled = import.meta.env.VITE_ENABLE_KAKAO_SEND === 'true';
   const [query, setQuery] = useState('');
@@ -91,6 +91,7 @@ function AlertSend() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
       setResult(data);
+      if (onSent) onSent(date);
       track(ALERT_SEND_RESULT, {
         success: true,
         store_count: selectedStores.length,

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, Calendar, AlertCircle, ChevronRight, ChevronLeft, RefreshCw, X, AlertTriangle, Search, Menu, ArrowLeft, Home, ChevronDown } from 'lucide-react';
+import { Bell, Calendar, AlertCircle, ChevronRight, ChevronLeft, RefreshCw, X, AlertTriangle, Search, Menu, ArrowLeft, Home, ChevronDown, Send } from 'lucide-react';
 import { Card } from '../../shared/Card.jsx';
 
 // 이미지 URL 변환
@@ -292,13 +292,16 @@ function DetailModal({ item, onClose }) {
 }
 
 // ─── 메인 컴포넌트 ───────────────────────────────────────
-function AlertMonitoring() {
-  const today = new Date().toISOString().slice(0, 10);
-  const [date, setDate] = useState(today);
+function AlertMonitoring({ initialDate, onSendRequest }) {
+  const [date, setDate] = useState(() => {
+    const d = new window.Date();
+    return d.toISOString().slice(0, 10);
+  });
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [refreshTick, setRefreshTick] = useState(0);
 
   const load = async (d) => {
     setLoading(true); setError(null); setResult(null);
@@ -322,6 +325,25 @@ function AlertMonitoring() {
   };
 
   const handleLoad = () => load(date);
+
+  // Sync with initialDate prop
+  useEffect(() => {
+    if (initialDate) setDate(initialDate);
+  }, [initialDate]);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    if (!date) return;
+    const id = setInterval(() => setRefreshTick(t => t + 1), 30000);
+    return () => clearInterval(id);
+  }, [date]);
+
+  // Reload when refreshTick increments (only if a result already loaded)
+  useEffect(() => {
+    if (refreshTick === 0) return;
+    load(date);
+  }, [refreshTick]);
+
   const filtered = result || [];
 
   return (
@@ -335,6 +357,14 @@ function AlertMonitoring() {
             <div className="font-extrabold text-lg leading-tight">알림 발송 현황</div>
             <div className="text-xs text-stone-400 mt-0.5">배치 결과 · 매장별 위험도 모니터링</div>
           </div>
+          {onSendRequest && (
+            <button
+              onClick={onSendRequest}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold cursor-pointer ml-auto"
+            >
+              <Send size={13} /> 새 알림 발송
+            </button>
+          )}
         </div>
       </div>
 
