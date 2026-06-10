@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  daiso_worker_rig.svg — Rive 리깅용 레이어 분해본
+  ─────────────────────────────────────────────────
+  · 원본: daiso-worker-faces.html (사용자 제공 디자인)
+  · 각 신체 부위를 명명된 <g id="..."> 로 분리 → Rive Import 시 그대로 본(bone)에 바인딩
+  · 색상: 빨강 셔츠 #E84B4B / 파랑 앞치마 #2B5CB8 / 진곤색 바지 #2D3340
+  · 표정은 #face-* 그룹 중 하나만 노출(나머지는 런타임/상태머신에서 토글)
+  · 리깅 권장 본 계층은 RIG_GUIDE.md 참고
+
+  좌표계: viewBox 0 0 120 180 (원본 유지)
+  피벗(관절) 참고 좌표:
+    목         (60,52)    어깨L (41,68) 어깨R (79,68)
+    팔꿈치L    (38,90)    팔꿈치R (82,90)
+    골반       (60,116)   고관절L (52,118) 고관절R (68,118)
+    무릎L      (49,138)   무릎R (71,138)
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 180" width="240" height="360">
+  <g stroke="#1A1A1A" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+
+    <!-- ════ 머리 뒤 레이어 (포니테일) ════ -->
+    <g id="ponytail">
+      <path d="M74,24 Q92,30 92,52 Q92,66 82,64 Q86,48 72,30 Z" fill="#3A3A3A"/>
+      <circle cx="75" cy="25" r="3.5" fill="#2B5CB8" stroke="#1E4488" stroke-width="1"/>
+    </g>
+
+    <!-- ════ 다리 (좌/우 분리) ════ -->
+    <g id="leg_L">
+      <path d="M46,116 L44,158 Q44,162 49,162 L56,162 L58,116 Z" fill="#2D3340"/>
+      <g id="shoe_L"><path d="M42,158 L57,158 L57,165 Q57,167 55,167 L44,167 Q42,167 42,165 Z" fill="#1A1A1A"/></g>
+    </g>
+    <g id="leg_R">
+      <path d="M74,116 L76,158 Q76,162 71,162 L64,162 L62,116 Z" fill="#2D3340"/>
+      <g id="shoe_R"><path d="M78,158 L63,158 L63,165 Q63,167 65,167 L76,167 Q78,167 78,165 Z" fill="#1A1A1A"/></g>
+    </g>
+
+    <!-- ════ 뒤 팔(오른팔, 몸 뒤) ════ -->
+    <g id="arm_R">
+      <path d="M79,66 L78,102 L83,105 Q89,106 89,100 L91,80 Q90,68 79,66 Z" fill="#E84B4B"/>
+      <g id="hand_R"><circle cx="86" cy="104" r="5.5" fill="#F2C9A0"/></g>
+    </g>
+
+    <!-- ════ 몸통 (셔츠 + 앞치마) ════ -->
+    <g id="torso">
+      <path d="M40,64 Q60,58 80,64 L82,114 Q60,118 38,114 Z" fill="#E84B4B"/>
+      <g id="apron">
+        <path d="M48,70 L72,70 L72,84 L79,86 L77,120 L43,120 L41,86 L48,84 Z" fill="#2B5CB8"/>
+        <line x1="44" y1="100" x2="76" y2="100" stroke="#1E4488"/>
+        <line x1="60" y1="100" x2="60" y2="120" stroke="#1E4488"/>
+        <path d="M50,70 L54,58" stroke="#2B5CB8" stroke-width="3" fill="none"/>
+        <path d="M70,70 L66,58" stroke="#2B5CB8" stroke-width="3" fill="none"/>
+        <g id="nametag">
+          <rect x="52" y="74" width="16" height="7" rx="1.5" fill="#FFFFFF"/>
+          <circle cx="55.5" cy="77.5" r="1.6" fill="#E84B4B" stroke="none"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- ════ 앞 팔(왼팔, 몸 앞) ════ -->
+    <g id="arm_L">
+      <path d="M41,66 L42,102 L37,105 Q31,106 31,100 L29,80 Q30,68 41,66 Z" fill="#E84B4B"/>
+      <g id="hand_L"><circle cx="34" cy="104" r="5.5" fill="#F2C9A0"/></g>
+    </g>
+
+    <!-- ════ 머리 (목 + 두상) ════ -->
+    <g id="head">
+      <rect id="neck" x="54" y="50" width="12" height="14" rx="3" fill="#F2C9A0"/>
+      <circle id="face_base" cx="60" cy="36" r="19" fill="#F2C9A0"/>
+
+      <!-- ════ 표정 레이어 (하나만 노출; Rive 상태머신에서 전환) ════ -->
+      <!-- 기본: 평상시 안내 -->
+      <g id="face_default">
+        <circle cx="53" cy="37" r="1.9" fill="#1A1A1A" stroke="none"/>
+        <circle cx="67" cy="37" r="1.9" fill="#1A1A1A" stroke="none"/>
+        <path d="M55,44 Q60,47 65,44" fill="none" stroke="#1A1A1A" stroke-width="1.6"/>
+      </g>
+      <!-- 안전: 수칙 준수·예방 성공 (display:none) -->
+      <g id="face_safe" style="display:none">
+        <path d="M50,38 Q53,34.5 56,38" fill="none" stroke="#1A1A1A" stroke-width="1.8"/>
+        <path d="M64,38 Q67,34.5 70,38" fill="none" stroke="#1A1A1A" stroke-width="1.8"/>
+        <path d="M53,43 Q60,50 67,43" fill="none" stroke="#1A1A1A" stroke-width="1.8"/>
+      </g>
+      <!-- 놀람: 사고 발생 순간 (display:none) -->
+      <g id="face_shock" style="display:none">
+        <path d="M49,31 Q53,29 57,31" fill="none" stroke="#1A1A1A" stroke-width="1.4"/>
+        <path d="M63,31 Q67,29 71,31" fill="none" stroke="#1A1A1A" stroke-width="1.4"/>
+        <circle cx="53" cy="38" r="3" fill="#fff" stroke="#1A1A1A" stroke-width="1.4"/>
+        <circle cx="53" cy="38" r="1.2" fill="#1A1A1A" stroke="none"/>
+        <circle cx="67" cy="38" r="3" fill="#fff" stroke="#1A1A1A" stroke-width="1.4"/>
+        <circle cx="67" cy="38" r="1.2" fill="#1A1A1A" stroke="none"/>
+        <ellipse cx="60" cy="46" rx="3" ry="3.5" fill="#fff" stroke="#1A1A1A" stroke-width="1.6"/>
+      </g>
+      <!-- 아픔: 부상·통증 (display:none) -->
+      <g id="face_pain" style="display:none">
+        <path d="M50,36 L56,39 M50,39 L56,36" stroke="#1A1A1A" stroke-width="1.6"/>
+        <path d="M64,36 L70,39 M64,39 L70,36" stroke="#1A1A1A" stroke-width="1.6"/>
+        <path d="M54,46 Q57,42 60,46 Q63,42 66,46" fill="none" stroke="#1A1A1A" stroke-width="1.7"/>
+      </g>
+      <!-- 주의: 경고·주의 환기 (display:none) -->
+      <g id="face_warn" style="display:none">
+        <path d="M49,32 L57,35" stroke="#1A1A1A" stroke-width="1.6"/>
+        <path d="M71,32 L63,35" stroke="#1A1A1A" stroke-width="1.6"/>
+        <circle cx="53" cy="38.5" r="1.9" fill="#1A1A1A" stroke="none"/>
+        <circle cx="67" cy="38.5" r="1.9" fill="#1A1A1A" stroke="none"/>
+        <line x1="55" y1="45" x2="65" y2="45" stroke="#1A1A1A" stroke-width="1.7"/>
+      </g>
+
+      <!-- 헤어캡 (얼굴 위) -->
+      <g id="hair_front">
+        <path d="M41,40 C40,20 51,14 60,14 C69,14 80,20 79,40 C75,30 68,27 60,28 C52,27 45,30 41,40 Z" fill="#3A3A3A"/>
+      </g>
+    </g>
+
+  </g>
+</svg>

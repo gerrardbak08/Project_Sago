@@ -1,0 +1,88 @@
+{
+  "_comment": "SAGO 사고유형 → 캐릭터 표정·포즈·모션 명세. processed CSV 실제 분포 기반. Rive 상태머신 입력값 + 정지컷 생성의 단일 기준.",
+  "_face_ids": ["face_default", "face_safe", "face_shock", "face_pain", "face_warn"],
+  "_audiences": { "cust": "고객 사고", "emp": "근로자 재해" },
+  "scenarios": [
+    {
+      "slug": "fall", "label": "낙상", "audience": ["cust", "emp"],
+      "data_count": 684, "rank": 1,
+      "face": "face_shock",
+      "pose": "높은 곳/단차에서 발 헛디뎌 앞으로 떨어짐 — 팔 앞으로 뻗어 방어",
+      "motion": "균형상실 → 낙하 → 착지 충격. 팔 허우적, 다리 들림.",
+      "rive_trigger": "fall"
+    },
+    {
+      "slug": "property", "label": "재물 손상", "audience": ["cust"],
+      "data_count": 406, "rank": 2,
+      "face": "face_shock",
+      "pose": "진열대 물건이 떨어지는 걸 보고 놀라 한 발 물러섬",
+      "motion": "물건 낙하 → 캐릭터 움찔 뒤로 → 파손 이펙트",
+      "rive_trigger": "property"
+    },
+    {
+      "slug": "collision", "label": "충돌·부딪힘", "audience": ["cust", "emp"],
+      "data_count": 327, "rank": 3,
+      "face": "face_shock",
+      "pose": "이동 중 돌출물/사람과 부딪혀 휘청",
+      "motion": "걷기 → 충돌 순간 정지·반동 → 휘청. 충돌 별 이펙트.",
+      "rive_trigger": "collision"
+    },
+    {
+      "slug": "slip", "label": "넘어짐·미끄러짐", "audience": ["emp"],
+      "data_count": 148, "rank": 4,
+      "face": "face_shock",
+      "pose": "바닥 물기에 발이 미끄러져 뒤로 자빠짐",
+      "motion": "걷기 → 발 미끄러짐 → 뒤로 넘어져 주저앉음. 물기 이펙트.",
+      "rive_trigger": "slip"
+    },
+    {
+      "slug": "cut", "label": "베임·자상", "audience": ["cust", "emp"],
+      "data_count": 179, "rank": 5,
+      "face": "face_pain",
+      "pose": "칼·모서리에 손을 베여 손을 움켜쥠",
+      "motion": "작업 → 베임 순간 손 뒤로 빼며 움찔 → 손 감싸쥠. 통증 이펙트.",
+      "rive_trigger": "cut"
+    },
+    {
+      "slug": "strain", "label": "무리한 동작", "audience": ["emp"],
+      "data_count": 92, "rank": 6,
+      "face": "face_pain",
+      "pose": "무거운 상자 들다 허리 삐끗 — 허리 감싸쥠",
+      "motion": "상자 들어올림 → 허리 통증 → 허리 짚고 굳음. 허리 ⚡ 이펙트.",
+      "rive_trigger": "strain"
+    },
+    {
+      "slug": "health", "label": "건강·중대 위험", "audience": ["emp"],
+      "data_count": 27, "rank": 7,
+      "face": "face_pain",
+      "pose": "가슴을 쥐고 무릎이 꺾이며 주저앉음",
+      "motion": "걷기 → 가슴 통증 → 무릎 buckle → 주저앉음. 심장·ECG 이펙트.",
+      "rive_trigger": "health"
+    },
+    {
+      "slug": "claim", "label": "고객 클레임", "audience": ["cust", "emp"],
+      "data_count": 50, "rank": 8,
+      "face": "face_warn",
+      "pose": "고객 응대 중 난처한 표정으로 손짓 (굽신)",
+      "motion": "고객(별도 캐릭터) 항의 → 근로자 난처·진정 손짓. ⚠ 말풍선.",
+      "rive_trigger": "claim"
+    },
+    {
+      "slug": "default", "label": "안전 경고", "audience": ["cust", "emp"],
+      "data_count": 20, "rank": 9,
+      "face": "face_warn",
+      "pose": "경고 표지를 가리키며 주의 환기",
+      "motion": "⚠ 경고 표지 펄스 + 캐릭터 가리키는 포즈.",
+      "rive_trigger": "default"
+    },
+    {
+      "slug": "safe", "label": "예방 성공·안내", "audience": ["cust", "emp"],
+      "data_count": null, "rank": null,
+      "face": "face_safe",
+      "pose": "엄지척/밝게 인사 — 수칙 준수, 평상시 안내",
+      "motion": "밝게 손 흔들기/엄지척. 알림 없는 날·예방 성공 메시지용.",
+      "rive_trigger": "idle_safe"
+    }
+  ],
+  "selection_rule": "batch/notify Lambda 가 매장별 dominant 사고유형(core/safety_visuals.category_for)을 산출 → 위 slug 매칭 → 해당 face/rive_trigger 로 카드 정지컷 + 웹 Rive 모션 결정. 미매칭 시 default."
+}

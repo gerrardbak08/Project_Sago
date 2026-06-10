@@ -33,6 +33,52 @@ from core.safety_visuals import category_for
 GRADE = {"high": ("🔴", "위험", "#E5484D"), "medium": ("🟠", "주의", "#F76808"),
          "med": ("🟠", "주의", "#F76808"), "low": ("🟡", "참고", "#F5A623")}
 
+# slug → Rive 상태머신 트리거 (assets/character/scenario_expression_map.json 과 일치)
+RIVE_TRIGGER = {
+    "slip": "slip", "fall": "fall", "collision": "collision", "cut": "cut",
+    "strain": "strain", "health": "health", "property": "property",
+    "claim": "claim", "default": "default",
+}
+# 캐릭터 자산(.riv, 정지 PNG) 공개 경로 베이스 — S3 정적호스팅 루트 기준 상대경로
+ASSET_BASE = os.environ.get("GUIDE_ASSET_BASE", "")
+
+
+def _rive_stage(dominant: str) -> str:
+    """카드 클릭 시 보일 캐릭터 모션 무대.
+
+    .riv 가 로드되면 사고유형별 모션 재생, 실패하면 무대 숨김(정지 히어로로 폴백).
+    온라인 랜딩 페이지 전용(외부 Rive 런타임 CDN 사용).
+    """
+    slug = category_for(dominant)["slug"]
+    trigger = RIVE_TRIGGER.get(slug, "default")
+    riv_url = f"{ASSET_BASE}/character/daiso_worker.riv"
+    return f"""
+    <div id="char-stage" class="char-stage" style="display:none">
+      <canvas id="rive-canvas" width="320" height="320"></canvas>
+    </div>
+    <script src="https://unpkg.com/@rive-app/canvas@2"></script>
+    <script>
+    (function(){{
+      var url = {json.dumps(riv_url)};
+      fetch(url, {{method:'HEAD'}}).then(function(r){{
+        if(!r.ok) throw 0;
+        var inst = new rive.Rive({{
+          src: url, canvas: document.getElementById('rive-canvas'),
+          stateMachines: 'accident', autoplay: true,
+          onLoad: function(){{
+            inst.resizeDrawingSurfaceToCanvas();
+            try {{
+              var ins = inst.stateMachineInputs('accident') || [];
+              var t = ins.filter(function(i){{return i.name==={json.dumps(trigger)};}})[0];
+              if(t && t.fire) t.fire();
+            }} catch(e){{}}
+          }}
+        }});
+        document.getElementById('char-stage').style.display='flex';
+      }}).catch(function(){{ /* .riv 없음 → 정지 히어로 폴백 */ }});
+    }})();
+    </script>"""
+
 WEATHER_LABELS = [
     ("temperature_2m_max", "최고기온", "°C"), ("temperature_2m_min", "최저기온", "°C"),
     ("precipitation_sum", "강수량", "mm"), ("snowfall_sum", "적설", "cm"),
@@ -124,6 +170,14 @@ def build(alert: dict, animated: bool = False) -> str:
     if results.get("emp", {}).get("guide"):
         sections += _section("직원 안전", results["emp"], weather, animated)
 
+    # 페이지 대표 사고유형 → 캐릭터 모션 무대 (.riv 있을 때만 표시)
+    _page_dom = ""
+    for _src in ("cust", "emp"):
+        _r = (results.get(_src) or {}).get("risk") or {}
+        if _r.get("dominant_type"):
+            _page_dom = str(_r["dominant_type"]); break
+    char_stage = _rive_stage(_page_dom)
+
     return f"""<!doctype html><html lang="ko"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{html.escape(store)} 안전 가이드</title>
@@ -138,6 +192,8 @@ body{{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:#0f1
 .chips{{padding:12px 14px;display:flex;flex-wrap:wrap;gap:6px;background:#fff;border-bottom:1px solid #eee}}
 .chip{{font-size:11px;color:#555;background:#f1f2f4;border-radius:20px;padding:5px 10px}}
 .chip b{{color:#111}}
+.char-stage{{align-items:center;justify-content:center;background:#fff;padding:8px 0 0}}
+.char-stage canvas{{width:320px;height:320px;max-width:100%}}
 .guide{{padding:14px}}
 .tag{{font-size:12px;font-weight:800;margin:6px 2px 8px}}
 .hero{{position:relative;border-radius:16px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.15)}}
@@ -160,6 +216,7 @@ h3{{font-size:14px;font-weight:800;color:#111;margin:18px 2px 8px}}
 <h1>{html.escape(store)} 안전 가이드</h1>
 <div class="meta">{html.escape(region)} · {html.escape(date)}</div></div>
 {f'<div class="chips">{chips}</div>' if chips else ''}
+{char_stage}
 {sections}
 <div class="foot">본 가이드는 과거 사고 데이터·기상 조건을 AI가 분석해 자동 생성한 참고 자료입니다.</div>
 </div></body></html>"""

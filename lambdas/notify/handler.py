@@ -286,6 +286,41 @@ def _build_message_body(store_name: str, date_str: str, results: dict) -> str:
 # ──────────────────────────────────────────────
 # 알림 현황 S3 기록
 # ──────────────────────────────────────────────
+def _upload_guide_page(guide_result: dict) -> str | None:
+    """수신자용 안전가이드 랜딩 페이지(HTML)를 생성해 S3에 업로드한다.
+
+    카드 링크(_guide_link)가 가리키는 guide/{date}/{store}.html 을 실제로 만든다.
+    이게 없으면 카드 탭 시 페이지가 없어 대시보드 딥링크로 폴백된다.
+    실패해도 발송은 계속되도록 예외를 삼킨다(베스트 에포트).
+
+    캐릭터 모션(.riv)이 FRONTEND_BUCKET/character/ 에 있으면 페이지에서 자동 재생,
+    없으면 정지 히어로로 폴백(build_guide_page._rive_stage 참고).
+    """
+    bucket = os.environ.get("GUIDE_BUCKET") or os.environ.get("FRONTEND_BUCKET", "")
+    if not bucket:
+        print("[notify] GUIDE_BUCKET/FRONTEND_BUCKET 미설정 → 랜딩페이지 업로드 스킵")
+        return None
+    try:
+        import boto3
+        from scripts.build_guide_page import build as build_guide_html
+
+        store_code = guide_result.get("store_code", "unknown")
+        date_str = guide_result.get("date", "unknown")
+        html_doc = build_guide_html(guide_result)
+        key = f"guide/{date_str}/{store_code}.html"
+        boto3.client("s3").put_object(
+            Bucket=bucket, Key=key,
+            Body=html_doc.encode("utf-8"),
+            ContentType="text/html; charset=utf-8",
+            CacheControl="public, max-age=300",
+        )
+        print(f"[notify] 랜딩페이지 업로드: s3://{bucket}/{key}")
+        return key
+    except Exception as e:  # noqa: BLE001 — 베스트 에포트, 발송 차단 금지
+        print(f"[notify] 랜딩페이지 생성/업로드 실패(무시): {e}")
+        return None
+
+
 def _record_alert(guide_result: dict, channel: str, delivery: dict | None = None) -> None:
     """발송 결과를 S3 daily 버킷의 alerts/{date}/{store_code}.json 에 저장한다.
 
@@ -468,6 +503,9 @@ def lambda_handler(event: dict, context: Any) -> dict:
                 raise Exception(guide_result["error"])
 
             store_name = guide_result.get("store_name", str(store_code))
+
+            # 랜딩 페이지(HTML) 생성·업로드 — 카드 링크가 가리키는 페이지를 미리 만든다
+            _upload_guide_page(guide_result)
 
             # 수신자 결정: 요청에 receiver_uuids 가 있으면 우선, 없으면 3계층 자동 조회
             if receiver_uuids:
