@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-14 0 148 186" width="320" height="402">
+<style>
+.character{animation:breathe 3s ease-in-out infinite;transform-origin:60px 116px}
+@keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.5px)}}
+.ponytail{animation:sway 2.4s ease-in-out infinite;transform-origin:74px 26px;transform-box:fill-box}
+@keyframes sway{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(5deg)}}
+.armL{animation:swingL 2.8s ease-in-out infinite;transform-origin:41px 66px;transform-box:fill-box}
+@keyframes swingL{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(4deg)}}
+.armR{animation:swingR 2.8s ease-in-out infinite;transform-origin:79px 66px;transform-box:fill-box}
+@keyframes swingR{0%,100%{transform:rotate(2deg)}50%{transform:rotate(-4deg)}}
+.armL{animation:flinch .9s ease-in-out infinite;transform-origin:41px 66px;transform-box:fill-box}@keyframes flinch{0%,40%{transform:rotate(0)}55%{transform:rotate(-14deg)}100%{transform:rotate(0)}}.fx{transform-origin:30px 104px;animation:pop .9s ease-out infinite}@keyframes pop{0%,45%{opacity:0;transform:scale(.3)}60%{opacity:1;transform:scale(1.1)}100%{opacity:0;transform:scale(1.2)}}
+svg *{stroke-linejoin:round;stroke-linecap:round}</style>
+<g class="character" stroke="#1A1A1A" stroke-width="1.6">
+  <g class="ponytail"><path d="M74,24 Q92,30 92,52 Q92,66 82,64 Q86,48 72,30 Z" fill="#3A3A3A"/><circle cx="75" cy="25" r="3.5" fill="#2B5CB8" stroke="#1E4488" stroke-width="1"/></g>
+  <path d="M46,116 L44,158 Q44,162 49,162 L56,162 L58,116 Z" fill="#2D3340"/><path d="M74,116 L76,158 Q76,162 71,162 L64,162 L62,116 Z" fill="#2D3340"/><path d="M42,158 L57,158 L57,165 Q57,167 55,167 L44,167 Q42,167 42,165 Z" fill="#1A1A1A"/><path d="M78,158 L63,158 L63,165 Q63,167 65,167 L76,167 Q78,167 78,165 Z" fill="#1A1A1A"/>
+  <g class="armR"><path d="M79,66 L78,102 L83,105 Q89,106 89,100 L91,80 Q90,68 79,66 Z" fill="#E84B4B"/><circle cx="86" cy="104" r="5.5" fill="#F2C9A0"/></g>
+  <path d="M40,64 Q60,58 80,64 L82,114 Q60,118 38,114 Z" fill="#E84B4B"/><path d="M48,70 L72,70 L72,84 L79,86 L77,120 L43,120 L41,86 L48,84 Z" fill="#2B5CB8"/><line x1="44" y1="100" x2="76" y2="100" stroke="#1E4488"/><line x1="60" y1="100" x2="60" y2="120" stroke="#1E4488"/><path d="M50,70 L54,58" stroke="#2B5CB8" stroke-width="3" fill="none"/><path d="M70,70 L66,58" stroke="#2B5CB8" stroke-width="3" fill="none"/><rect x="52" y="74" width="16" height="7" rx="1.5" fill="#FFFFFF"/><circle cx="55.5" cy="77.5" r="1.6" fill="#E84B4B" stroke="none"/>
+  <g class="armL"><path d="M41,66 L42,102 L37,105 Q31,106 31,100 L29,80 Q30,68 41,66 Z" fill="#E84B4B"/><circle cx="34" cy="104" r="5.5" fill="#F2C9A0"/></g>
+  <g><rect x="54" y="50" width="12" height="14" rx="3" fill="#F2C9A0"/><circle cx="60" cy="36" r="19" fill="#F2C9A0"/><path d="M50,36 L56,39 M50,39 L56,36" stroke="#1A1A1A" stroke-width="1.6"/><path d="M64,36 L70,39 M64,39 L70,36" stroke="#1A1A1A" stroke-width="1.6"/><path d="M54,46 Q57,42 60,46 Q63,42 66,46" fill="none" stroke="#1A1A1A" stroke-width="1.7"/><path d="M41,40 C40,20 51,14 60,14 C69,14 80,20 79,40 C75,30 68,27 60,28 C52,27 45,30 41,40 Z" fill="#3A3A3A"/></g>
+</g>
+<g stroke="#1A1A1A" stroke-width="1.6"><polygon class="fx" points="30,98 32,104 38,104 33,108 35,114 30,110 25,114 27,108 22,104 28,104" fill="#E84B4B" stroke="#1A1A1A" stroke-width=".8"/></g>
+</svg>

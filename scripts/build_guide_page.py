@@ -43,28 +43,47 @@ RIVE_TRIGGER = {
 ASSET_BASE = os.environ.get("GUIDE_ASSET_BASE", "")
 
 
+def _animated_svg(slug: str) -> str:
+    """assets/character/animated/{slug}.svg 인라인 본문 반환(없으면 빈 문자열)."""
+    p = ROOT / "assets" / "character" / "animated" / f"{slug}.svg"
+    if not p.exists():
+        p = ROOT / "assets" / "character" / "animated" / "default.svg"
+    try:
+        s = p.read_text(encoding="utf-8")
+        # 컨테이너 맞춤: 고정 width/height 제거
+        return s.replace('width="320" height="402"', 'width="100%" height="auto"', 1)
+    except Exception:
+        return ""
+
+
 def _rive_stage(dominant: str) -> str:
     """카드 클릭 시 보일 캐릭터 모션 무대.
 
-    .riv 가 로드되면 사고유형별 모션 재생, 실패하면 무대 숨김(정지 히어로로 폴백).
-    온라인 랜딩 페이지 전용(외부 Rive 런타임 CDN 사용).
+    1순위: 움직이는 인라인 SVG(CSS 애니) — Rive 없이 지금 바로 동작.
+    2순위(업그레이드): .riv 가 있으면 로드되어 SVG를 대체.
+    둘 다 없으면(SVG 누락) 정지 히어로로 폴백.
     """
     slug = category_for(dominant)["slug"]
     trigger = RIVE_TRIGGER.get(slug, "default")
     riv_url = f"{ASSET_BASE}/character/daiso_worker.riv"
+    svg = _animated_svg(slug)
+    if not svg:
+        return ""  # 애니 SVG 없으면 무대 생략 → 정지 히어로
     return f"""
-    <div id="char-stage" class="char-stage" style="display:none">
-      <canvas id="rive-canvas" width="320" height="320"></canvas>
+    <div id="char-stage" class="char-stage">
+      <div id="char-svg">{svg}</div>
+      <canvas id="rive-canvas" width="320" height="320" style="display:none"></canvas>
     </div>
-    <script src="https://unpkg.com/@rive-app/canvas@2"></script>
+    <script src="https://unpkg.com/@rive-app/canvas@2" onerror="void 0"></script>
     <script>
     (function(){{
+      // 움직이는 SVG는 이미 재생 중. .riv 가 있으면 업그레이드 교체.
       var url = {json.dumps(riv_url)};
       fetch(url, {{method:'HEAD'}}).then(function(r){{
-        if(!r.ok) throw 0;
+        if(!r.ok || typeof rive==='undefined') return;
+        var cv = document.getElementById('rive-canvas');
         var inst = new rive.Rive({{
-          src: url, canvas: document.getElementById('rive-canvas'),
-          stateMachines: 'accident', autoplay: true,
+          src: url, canvas: cv, stateMachines: 'accident', autoplay: true,
           onLoad: function(){{
             inst.resizeDrawingSurfaceToCanvas();
             try {{
@@ -72,10 +91,11 @@ def _rive_stage(dominant: str) -> str:
               var t = ins.filter(function(i){{return i.name==={json.dumps(trigger)};}})[0];
               if(t && t.fire) t.fire();
             }} catch(e){{}}
+            document.getElementById('char-svg').style.display='none';
+            cv.style.display='block';
           }}
         }});
-        document.getElementById('char-stage').style.display='flex';
-      }}).catch(function(){{ /* .riv 없음 → 정지 히어로 폴백 */ }});
+      }}).catch(function(){{ /* SVG 유지 */ }});
     }})();
     </script>"""
 
@@ -192,8 +212,9 @@ body{{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:#0f1
 .chips{{padding:12px 14px;display:flex;flex-wrap:wrap;gap:6px;background:#fff;border-bottom:1px solid #eee}}
 .chip{{font-size:11px;color:#555;background:#f1f2f4;border-radius:20px;padding:5px 10px}}
 .chip b{{color:#111}}
-.char-stage{{align-items:center;justify-content:center;background:#fff;padding:8px 0 0}}
-.char-stage canvas{{width:320px;height:320px;max-width:100%}}
+.char-stage{{display:flex;align-items:center;justify-content:center;background:#fff;padding:8px 0 0}}
+.char-stage #char-svg{{width:280px;max-width:80%}}
+.char-stage canvas{{width:300px;height:300px;max-width:100%}}
 .guide{{padding:14px}}
 .tag{{font-size:12px;font-weight:800;margin:6px 2px 8px}}
 .hero{{position:relative;border-radius:16px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.15)}}
