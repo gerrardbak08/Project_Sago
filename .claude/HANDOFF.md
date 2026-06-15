@@ -4,17 +4,20 @@
 
 ---
 
-## 이번 세션 (2026-06-15) — 알림관리 탭 리디자인 + 코드 정리 + 배포
+## 이번 세션 (2026-06-15) — 알림관리 고도화 축1~3 + 매니저 핸드오프 문서
 
 ### 완료한 작업
 
-#### 1. 알림관리 탭 3개 전면 리디자인
-- **AlertReview**: stone-900 gradient 헤더 통일, Card 컴포넌트 통합, 위험도별 `border-l-4` 색상 강조 (red/amber/emerald), slate → stone 컬러 전환
-- **AlertSend**: 발송 성공 매장에 카카오 피드카드 미니 미리보기 블록 추가 (카드 구조 + 이미지 플레이스홀더 + S3 랜딩 힌트)
-- **AlertMonitoring**: 9컬럼 테이블 완전 제거 → 위험도 border 카드 리스트 (모바일 가로스크롤 제거, 클릭 시 DetailModal 유지)
+#### 0. 알림관리 탭 3개 전면 리디자인 (직전 세션)
+(AlertReview/Send/Monitoring 전면 리디자인, dead script 12개 제거)
 
-#### 2. Dead 스크립트 12개 제거 (픽토그램·실사이미지 폐기에 따른 정리)
-제거됨: `make_pictogram_gifs`, `make_category_images`, `make_category_images_ai`, `animate_scene`, `annotate_scene`, `build_scenes`, `gen_scene`, `match_images`, `generate_safety_media`, `media_prompts`, `sample_fall_gif`, `sample_fall_lottie`
+#### 1. 알림관리 고도화 축1~3
+- **AlertMonitoring 축1**: 4종 KPI 바(총발송/성공률/고위험/실패) + 위험도 필터칩 5종 + S3 가이드 링크 버튼
+- **AlertSend 축2**: 발송 전 카카오 피드카드 미리보기 토글 (최대 2개 매장 형식 표시)
+- **AlertMonitoring 축3**: 주간 트렌드 뷰 — 7/14일 ComposedChart(총발송·고위험 Bar + 성공률 Line) + 주간 누적 요약
+
+#### 2. 매니저 핸드오프 문서 신설
+`docs/MANAGER_HANDOFF.md` — 프로젝트 아키텍처, 완료/예정 작업, 규칙, 로컬 설정, Claude 에이전트 활용법 포함
 
 #### 3. 이전 세션 누적 작업 (모두 커밋·배포 완료)
 - CSS 애니메이션 SVG 10종 (`assets/character/animated/`) — 사고유형별 캐릭터 모션
@@ -66,8 +69,11 @@
 ### 프론트/알림
 | 항목 | 비고 |
 |---|---|
+| **A+B 안전수칙 혼합** | `core/safety_rules.py` 유형별 정적 수칙 DB → LLM 프롬프트 주입 (사용자 승인 완료) |
+| **알림관리 고도화 축4** | 수신자 관리 (localStorage 프리셋) |
+| **알림관리 고도화 축5** | 수신 확인률 (ack rate) 연동 |
+| **알림관리 고도화 축6** | 발송 이력 CSV 다운로드 |
 | **Amplitude/Accoil API Key** | `proj/.env.local` 입력 (코드는 완성됨) |
-| **카카오 피드카드 실제 발송 미리보기** | AlertSend 발송 결과에 S3 랜딩 링크 직접 연결 |
 | **산재 승인 DB 탭** | 1차 Excel(npm run data:approval), 2차 HR API |
 
 ### 운영 전환
