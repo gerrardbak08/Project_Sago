@@ -30,10 +30,13 @@ from typing import Any
 
 from core.weather import get_weather
 from core.rule_matcher import match_with_fallback, compute_confidence, expand_with_siblings
+from core.risk_score import compute_risk_score
 from core.llm import generate_guide
 from core.notifier import get_notifier, KakaoNotifier
 from core.recipients import resolve_recipients
 from core.media import pick_media_for_results
+
+_RISKY_GRADES = {"high", "medium", "med"}
 
 try:
     from scripts.media_prompts import TARGETS as _MEDIA_TARGETS
@@ -211,7 +214,6 @@ def _generate_store_guide(store: dict, date_str: str) -> dict:
             continue
 
         label_col = LABEL_COLS.get(source, metadata.get("label_column", "사고유형"))
-        total_incidents = metadata.get("total_incidents", 0)
         features = _build_features(weather, store, encoder_map)
         leaf_id, leaf_data, fallback_level = match_with_fallback(
             features, tree_rules, leaf_table, siblings, metadata
@@ -225,20 +227,60 @@ def _generate_store_guide(store: dict, date_str: str) -> dict:
         confidence = compute_confidence(
             fallback_level, leaf_summary.get("total", 0), class_counts, calibration
         )
-        # cross-leaf 재정렬: level 0이면 직계 형제 리프 사례를 후보 풀에 추가
-        # (confidence는 메인 분기 기준으로 위에서 이미 계산)
         if fallback_level == 0:
             leaf_data = expand_with_siblings(leaf_id, leaf_data, leaf_table, siblings)
+
+        # 위험 점수 계산
+        try:
+            policy = metadata.get("risk_policy", {})
+            th = None
+            if policy.get("theta_score") is not None:
+                th = {"theta_score": policy["theta_score"],
+                      "theta_high": policy.get("theta_high", policy["theta_score"]),
+                      "tau": policy.get("tau", 1.0)}
+            sw = _load_json_s3_optional(f"models/{source}/severity_weights.json")
+            today_w = {f: float(weather.get(f, 0)) for f in WEATHER_FEATURES if weather.get(f) is not None}
+            today_s = {f: float(store.get(f, 0)) for f in STORE_NUM_FEATURES if store.get(f) is not None}
+            risk = compute_risk_score(
+                rule_str=leaf_data.get("rule", ""),
+                class_counts=class_counts,
+                incidents=leaf_data.get("incidents", []),
+                today_weather=today_w,
+                today_store=today_s,
+                feature_stats=metadata.get("feature_stats", {}),
+                confidence=confidence,
+                severity_weights=(sw or {}).get("weights", {}),
+                thresholds=th,
+                weights=policy.get("weights"),
+            )
+            cc = class_counts or {}
+            risk["dominant_type"] = max(cc, key=cc.get) if cc else ""
+        except Exception as e:
+            print(f"[notify] risk 계산 실패({source}): {e}")
+            risk = {"score": 0, "grade": "low", "trigger": False, "dominant_type": ""}
+
         guide = generate_guide(store, weather, leaf_data, label_col, confidence)
 
         results[source] = {
             "leaf_id": str(leaf_id) if leaf_id is not None else None,
             "fallback_level": fallback_level,
             "confidence": confidence,
+            "risk": risk,
             "guide": guide,
             "matched_rule": leaf_data.get("rule", ""),
             "incident_count": leaf_summary.get("total", 0),
         }
+
+    # 실제로 위험한 소스만 알림에 포함 (고객/직원 각각 독립 판단)
+    triggered = {
+        src: data for src, data in results.items()
+        if not data.get("error") and (
+            data.get("risk", {}).get("trigger")
+            or str(data.get("risk", {}).get("grade", "")).lower() in _RISKY_GRADES
+        )
+    }
+    # 수동 발송은 항상 보내되, 위험 소스만 포함 (없으면 원본 그대로 — 대시보드 확인용)
+    active_results = triggered if triggered else results
 
     return {
         "store_code": store_code,
@@ -246,7 +288,9 @@ def _generate_store_guide(store: dict, date_str: str) -> dict:
         "region": store.get("지역", ""),
         "date": date_str,
         "weather": weather,
-        "results": results,
+        "results": active_results,
+        "triggered_sources": list(triggered.keys()),
+        "all_low_risk": len(triggered) == 0,
     }
 
 
@@ -255,7 +299,10 @@ def _generate_store_guide(store: dict, date_str: str) -> dict:
 # ──────────────────────────────────────────────
 def _build_message_body(store_name: str, date_str: str, results: dict) -> str:
     lines = [f"🏪 {store_name} 안전 가이드", f"📅 날짜: {date_str}", ""]
-    for source in SOURCES:
+    active_sources = [s for s in SOURCES if s in results and not results[s].get("error")]
+    if not active_sources:
+        active_sources = list(results.keys())
+    for source in active_sources:
         source_data = results.get(source, {})
         lines.append(f"━━ {SOURCE_LABEL.get(source, source.upper())} ━━")
         if "error" in source_data:
@@ -569,10 +616,13 @@ def lambda_handler(event: dict, context: Any) -> dict:
             cust = guide_result.get("results", {}).get("cust", {})
             emp = guide_result.get("results", {}).get("emp", {})
 
+            triggered_srcs = guide_result.get("triggered_sources", list(guide_result.get("results", {}).keys()))
             store_results.append({
                 "store_code": str(store_code),
                 "store_name": store_name,
                 "status": delivery.get("status", "sent"),
+                "triggered_sources": triggered_srcs,
+                "all_low_risk": guide_result.get("all_low_risk", False),
                 "recipients": delivery.get("recipients", []),
                 "sent_recipients": delivery.get("sent", []),
                 "failed_recipients": delivery.get("failed", []),

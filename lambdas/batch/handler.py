@@ -448,6 +448,36 @@ def _build_rationale(results: dict, weather: dict) -> dict:
     }
 
 
+def _upload_guide_page(s3_client: Any, guide_result: dict) -> str | None:
+    """수신자용 안전가이드 랜딩 페이지(HTML)를 생성해 S3에 업로드한다.
+
+    카카오 피드 카드의 _guide_link가 가리키는 guide/{date}/{store}.html을 실제로 만든다.
+    실패해도 발송 차단 없이 None 반환(베스트 에포트).
+    """
+    bucket = os.environ.get("GUIDE_BUCKET") or os.environ.get("FRONTEND_BUCKET", "")
+    if not bucket:
+        print("[batch] GUIDE_BUCKET/FRONTEND_BUCKET 미설정 → 랜딩페이지 업로드 스킵")
+        return None
+    try:
+        from scripts.build_guide_page import build as build_guide_html
+
+        store_code = guide_result.get("store_code", "unknown")
+        date_str = guide_result.get("date", "unknown")
+        html_doc = build_guide_html(guide_result)
+        key = f"guide/{date_str}/{store_code}.html"
+        s3_client.put_object(
+            Bucket=bucket, Key=key,
+            Body=html_doc.encode("utf-8"),
+            ContentType="text/html; charset=utf-8",
+            CacheControl="public, max-age=300",
+        )
+        print(f"[batch] 랜딩페이지 업로드: s3://{bucket}/{key}")
+        return key
+    except Exception as e:  # noqa: BLE001 — 베스트 에포트, 발송 차단 금지
+        print(f"[batch] 랜딩페이지 생성/업로드 실패(무시): {e}")
+        return None
+
+
 def _record_alert(
     s3_client: Any,
     guide_result: dict,
@@ -500,6 +530,7 @@ def _record_alert(
         "store_name": store_name,
         "risk_score": risk_score,
         "detail_key": file_key,
+        "guide_key": f"guide/{date_str}/{store_code}.html",
         "rationale": _build_rationale(results, weather),
     }
 
@@ -641,6 +672,9 @@ def lambda_handler(event: dict, context: Any) -> dict:
                 subject = f"[다이소 안전가이드] {store_name} - {date_str}"
                 msg_body = _build_message_body(store_name, date_str, guide_result.get("results", {}))
                 notifier.send(receiver_uuids, subject, msg_body)
+
+            # 랜딩 페이지 생성 → S3 업로드 (카드 탭 시 보여줄 guide/{date}/{store}.html)
+            _upload_guide_page(s3_client, guide_result)
 
             # frontend 버킷에 현황 기록 (trigger_type = "batch")
             _record_alert(

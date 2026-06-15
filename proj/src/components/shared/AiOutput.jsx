@@ -2,7 +2,7 @@
 function AiOutput({ text, loading, compact = false }) {
   if (!text && !loading) return null;
   return (
-    <div className={`text-xs text-stone-700 leading-relaxed break-keep whitespace-pre-wrap ${compact ? "" : "rounded-lg border border-stone-200 p-3"}`}>
+    <div className={`text-xs text-stone-700 leading-relaxed break-keep whitespace-pre-wrap dash-blur-in ${compact ? "" : "rounded-lg border border-stone-200 p-3"}`}>
       {(text || "").split("\n").map((line, i) => {
         if (line.startsWith("## ")) return <div key={i} className="font-bold text-stone-900 text-sm mt-3 mb-1 border-b border-stone-100 pb-0.5">{line.slice(3)}</div>;
         if (line.startsWith("### ")) return <div key={i} className="font-bold text-stone-800 mt-2 mb-0.5">{line.slice(4)}</div>;

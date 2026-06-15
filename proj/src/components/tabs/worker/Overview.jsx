@@ -4,6 +4,7 @@ import { Activity, AlertCircle, MapPin, AlertTriangle, Banknote, BarChart3, Bell
 import { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, BL, OR, NV, GR, RD, GN, PR, AM, PAL, CANVAS } from '../../../constants/colors.js';
 import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN } from '../../../constants/metrics.js';
 import { pct, fmt, fmtKrw, TT, EmptyState } from '../../../utils/uiHelpers.jsx';
+import { useCountUp } from '../../../utils/motion.js';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card, EstimateBadge } from '../../../components/shared/Card.jsx';
 import { CalcTip, HeatmapGrid, BarRank, Matrix, gradientCells } from '../../../components/shared/ChartHelpers.jsx';
@@ -26,7 +27,18 @@ function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
   const isSafety = role === "safety";
   const roleLabel = isCEO ? "경영진" : isManager ? "영업부문장" : isTeam ? "팀장" : isPart ? "파트장" : isSafety ? "안전보건팀" : "";
   const k = D.kpis;
-  
+
+  // === KPI 카운트업 훅 (숫자 0→target 애니메이션) ===
+  // periodCount/periodSudo/periodJibang 는 이 아래서 계산되므로 훅은 계산 후에 선언할 수 없음.
+  // → 훅 규칙(최상단 호출)을 지키기 위해 여기서 k 값으로 초기 카운트업 정의.
+  // 실제 표시 값은 countTotal/countSudo/countJibang 으로 대체.
+  const countTotal2024 = useCountUp(k.y2024 ?? 0);
+  const countTotal2025 = useCountUp(k.y2025 ?? 0);
+  const countTotal2026 = useCountUp(k.y2026 ?? 0);
+  const countKTotal    = useCountUp(k.total  ?? 0);
+  const countKSudo     = useCountUp(k.sudo   ?? 0);
+  const countKJibang   = useCountUp(k.jibang ?? 0);
+
   // === CEO 전용: 연도별 재무 임팩트 계산 ===
   const avgLossDays = 25;
   const yearlyFinance = D.yearly.map(y => {
@@ -297,9 +309,9 @@ function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
       {/* === 4-KPI 메인 스트립 (실적) === */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { l: "총 사고건수", v: fmt(periodCount), s: yearFilter === "all" ? `'24년 ${k.y2024}건 · '25년 ${k.y2025}건 · '26년 ${k.y2026}건` : `${yearFilter}년 단독`, Icon: AlertTriangle, delta: yoyPct, deltaLabel: "'24→'25 전년대비:", yearBars: yearFilter === "all" ? [{ yr:"2024", v:k.y2024, color:"#A8A29E" }, { yr:"2025", v:k.y2025, color:DAISO_RED }, { yr:"2026(현)", v:k.y2026, color:"#78716C" }] : null },
-          { l: "수도권", v: fmt(periodSudo), s: `전체 ${pct(periodSudo, periodCount)}%`, Icon: Building2 },
-          { l: "지방", v: fmt(periodJibang), s: `전체 ${pct(periodJibang, periodCount)}%`, Icon: MapIcon },
+          { l: "총 사고건수", v: fmt(yearFilter === "all" ? countKTotal : periodCount), s: yearFilter === "all" ? `'24년 ${countTotal2024}건 · '25년 ${countTotal2025}건 · '26년 ${countTotal2026}건` : `${yearFilter}년 단독`, Icon: AlertTriangle, delta: yoyPct, deltaLabel: "'24→'25 전년대비:", yearBars: yearFilter === "all" ? [{ yr:"2024", v:countTotal2024, color:"#A8A29E" }, { yr:"2025", v:countTotal2025, color:DAISO_RED }, { yr:"2026(현)", v:countTotal2026, color:"#78716C" }] : null },
+          { l: "수도권", v: fmt(yearFilter === "all" ? countKSudo : periodSudo), s: `전체 ${pct(periodSudo, periodCount)}%`, Icon: Building2 },
+          { l: "지방", v: fmt(yearFilter === "all" ? countKJibang : periodJibang), s: `전체 ${pct(periodJibang, periodCount)}%`, Icon: MapIcon },
           { l: "2026 연 예측", v: `${proj.low}~${proj.high}`, s: `중간값 ${proj.center}건 · 95% CI`, Icon: TrendingUp },
         ].map((c, i) => (
           <div key={i} className="bg-white border border-stone-200 rounded-lg p-3 sm:p-5 hover:border-stone-300 transition min-w-0 flex flex-col">

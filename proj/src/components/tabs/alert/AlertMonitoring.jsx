@@ -432,7 +432,9 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
               </thead>
               <tbody>
                 {filtered.map((s, i) => (
-                  <tr key={s.store_code + i} className="border-b border-stone-50 hover:bg-stone-50/70 transition-colors">
+                  <tr key={s.store_code + i}
+                    className="border-b border-stone-50 hover:bg-stone-50/70 transition-colors dash-slide-up"
+                    style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}>
                     <td className="py-2.5 px-2">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-semibold text-stone-900 text-xs">{s.store_name}</span>

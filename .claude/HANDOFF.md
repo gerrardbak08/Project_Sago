@@ -4,6 +4,67 @@
 
 ---
 
+## 이번 세션 (2026-06-10) — 알림 파이프라인 완성: 랜딩 페이지 배선
+
+### Phase 1-1 완료: batch Lambda → S3 랜딩 페이지 자동 생성 배선
+- `lambdas/batch/handler.py` 에 `_upload_guide_page()` 함수 추가
+  - `GUIDE_BUCKET` 또는 `FRONTEND_BUCKET` 환경변수 참조
+  - `scripts/build_guide_page.build(guide_result)` 호출 → `guide/{date}/{store_code}.html` 업로드
+  - 베스트 에포트 (실패해도 알림 발송 차단 없음)
+- `_record_alert` 의 S3 record에 `guide_key` 필드 추가 (대시보드 탭 링크용)
+- 발동 위치: 트리거 통과 + 쿨다운 통과 매장만 → 발송 직후, `_record_alert` 직전
+- `notify/handler.py`의 `_upload_guide_page`와 동일 로직 (코드 중복 있으나 Lambda 분리 구조상 허용)
+
+### 확인된 완전한 엔드-투-엔드 플로우
+```
+EventBridge 06:00 → batch Lambda
+  → 위험 점수 계산 (_score_store)
+  → 트리거 게이트 통과
+  → Bedrock LLM 가이드 생성 (_generate_guide_for)
+  → 카카오 피드 카드 발송 (notifier.send_guide)
+  → 랜딩 페이지 HTML 생성 + S3 업로드 (_upload_guide_page) ← 이번 세션
+  → 현황 JSON 기록 (_record_alert, guide_key 포함)
+  → 알림 상태 쿨다운 업데이트
+```
+
+### 잔여 (다음 세션)
+- **deploy.sh 실행** — 이번 변경사항 Lambda 반영
+- **Amplitude / Accoil API Key** 발급 → `proj/.env.local`
+- **images/ S3 동기화** — deploy.sh에 배선 필요
+- 카카오 `_guide_link` URL이 실제 `FRONTEND_BUCKET` 도메인 + `guide/{date}/{store}.html` 경로를 가리키는지 확인 (`core/notifier.py` → `_guide_link` 생성 로직)
+- ML 축3 (기상예보 N일 선제 알림), 축4 (임계 자가보정)
+
+---
+
+## 이전 세션 (2026-06-09) — 트래킹·픽토그램·자율 오케스트레이션
+
+### 픽토그램 10종: 실사 GIF → ISO 졸라맨 스타일 교체
+- `scripts/make_pictogram_gifs.py` 신규: rsvg-convert 기반 SVG→GIF 파이프라인
+- 카테고리 10종 모두 ISO 스타일 졸라맨 픽토그램으로 교체 (images/ — gitignore, S3 동기화 필요)
+
+### Product Tracking 전체 파이프라인
+- `.telemetry/product.md` — 제품 모델 정의
+- `.telemetry/current-state.yaml` — no-tracking 판정, 5개 우선 이벤트 도출
+- `.telemetry/tracking-plan.yaml` + `delta.md` — 트래킹 플랜 설계 완료
+
+### 트래킹 구현
+- `proj/src/utils/analytics.js` (신규): 공통 analytics 유틸리티
+- `AlertSend`, `StoreRiskMap`, `App.jsx` 이벤트 5종 배선
+- Amplitude SDK 설치 (`@amplitude/analytics-browser`) + Accoil CDN 배선
+- API 키 위치: `proj/.env.local` (발급 후 입력 필요)
+
+### 알림 후속 수정
+- `#7` `title` 200자 상한 적용
+- `#8` `_guide_link` S3 가드 (미생성 시 404 방지)
+- Dead code 제거
+
+### 잔여 (다음 세션)
+- **Amplitude API Key / Accoil API Key** 발급 및 `proj/.env.local` 입력
+- **images/ S3 동기화** — `./deploy.sh` 실행
+- ML 축3 (기상예보 N일 선제 알림), 축4 (임계 자가보정)
+
+---
+
 ## 이번 세션 (2026-06-08) — 미커밋 정리 + 픽토그램 default 완성
 
 ### 커밋 3개

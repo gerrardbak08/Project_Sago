@@ -206,25 +206,13 @@ class KakaoNotifier(BaseNotifier):
     def _resolve_card_image(self, guide: dict, dominant: str = "") -> str:
         """카드 이미지 우선순위:
         1) 사례 사진(신스키마 오늘의_주의사항[].image_url)
-        2~3) 위험유형별 히어로 — HERO_STYLE 환경변수로 순서 결정:
-             - photo(기본): 실사 장면(images/scenes) → 경고표지(images/categories)
-             - pictogram   : 경고표지(images/categories) → 실사 장면(images/scenes)
-        4) 브랜드 기본 이미지
+        2) 브랜드 기본 이미지
         """
         for case in guide.get("오늘의_주의사항") or []:  # 1) 사례 사진
             url = self._image_from_ref(case.get("image_url"))
             if url:
                 return url
-        from core.safety_visuals import image_ref, scene_ref
-        if os.environ.get("HERO_STYLE", "photo").lower() == "pictogram":
-            refs = (image_ref(dominant), scene_ref(dominant))  # 경고표지 우선
-        else:
-            refs = (scene_ref(dominant), image_ref(dominant))  # 실사 우선(기본)
-        for ref in refs:
-            url = self._image_from_ref(ref)
-            if url:
-                return url
-        return self._default_image()  # 4) 브랜드 기본
+        return self._default_image()  # 2) 브랜드 기본
 
     def _default_image(self) -> str:
         """브랜드 기본 이미지.

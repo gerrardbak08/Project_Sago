@@ -1,9 +1,5 @@
 """
-safety_visuals.py — 위험유형 → 카드 비주얼 메타데이터 (생성기·notifier 공유)
-
-사고 사례 사진이 없을 때, dominant 위험유형에 맞는 '경고 표지판' 대표 이미지를
-카드에 쓴다. scripts/make_category_images.py 가 이 메타로 PNG를 생성하고,
-core/notifier.py 가 image_ref()로 카드 이미지를 고른다.
+safety_visuals.py — 위험유형 → 카드 비주얼 메타데이터 (notifier 공유)
 
 런타임 의존성 없음(순수 데이터) — Lambda 에서도 안전하게 import.
 """
@@ -38,6 +34,11 @@ _BY_SLUG = {c["slug"]: c for c in CATEGORIES}
 DEFAULT = _BY_SLUG["default"]
 
 
+def category_by_slug(slug: str) -> dict:
+    """slug 문자열 직접 조회 (fall/slip/cut/...). 미스 시 default."""
+    return _BY_SLUG.get(slug, DEFAULT)
+
+
 def category_for(dominant: str | None) -> dict:
     """dominant 위험유형 문자열 → 카테고리 메타 (substring 매칭, 미스 시 default)."""
     text = str(dominant or "").strip()
@@ -61,17 +62,3 @@ def category_for(dominant: str | None) -> dict:
                     if head in t:
                         return cat
     return DEFAULT
-
-
-def image_ref(dominant: str | None) -> str:
-    """dominant → 'images/categories/{slug}.png' (경고 표지판) 상대 경로."""
-    return f"images/categories/{category_for(dominant)['slug']}.png"
-
-
-def scene_ref(dominant: str | None) -> str:
-    """dominant → 'images/scenes/{slug}.png' (실사 장면) 상대 경로.
-
-    파일이 아직 없으면 notifier 가 다음 후보(경고 표지판)로 자동 강등하므로,
-    실사 장면은 만들어진 유형부터 점진적으로 활성화된다.
-    """
-    return f"images/scenes/{category_for(dominant)['slug']}.png"

@@ -79,7 +79,7 @@ function resolveStoreCoord(store, callback) {
   } catch { callback(fallback); }
 }
 
-function StoreRiskMap({ D = {}, yearFilter = "all", setYearFilter = () => {}, syncStoreToUrl, initStore }) {
+function StoreRiskMap({ D = {}, yearFilter = "all", setYearFilter = () => {}, syncStoreToUrl, initStore, onPreFillConsumed }) {
   const [bumFilter, setBumFilter] = useState("전체");
   const [deptFilter, setDeptFilter] = useState("전체");
   const [teamFilter, setTeamFilter] = useState("전체");
@@ -87,13 +87,24 @@ function StoreRiskMap({ D = {}, yearFilter = "all", setYearFilter = () => {}, sy
   const [showDeptBounds, setShowDeptBounds] = useState(false);
   const deptPolygonsRef = useRef([]);
   const [selectedStore, setSelectedStore] = useState(() => {
-    // F4: URL에서 초기 매장 복원
+    // F4: URL 또는 cross-tab preFill에서 초기 매장 복원
     if (initStore) {
       const found = (D.stores || MAP_STORES).find(s => s.n === initStore || normalizeStoreName(s.n) === normalizeStoreName(initStore));
       return found || null;
     }
     return null;
   });
+
+  // cross-tab preFill: initStore prop이 바뀌면 선택 매장 갱신 + 소비 콜백
+  const prevInitStore = useRef(initStore);
+  useEffect(() => {
+    if (initStore && initStore !== prevInitStore.current) {
+      prevInitStore.current = initStore;
+      const found = (D.stores || MAP_STORES).find(s => s.n === initStore || normalizeStoreName(s.n) === normalizeStoreName(initStore));
+      if (found) setSelectedStore(found);
+      if (onPreFillConsumed) onPreFillConsumed();
+    }
+  }, [initStore]);
   const [mapError, setMapError] = useState(null);
   const [mapStatus, setMapStatus] = useState("loading");
   const mapRef = useRef(null);

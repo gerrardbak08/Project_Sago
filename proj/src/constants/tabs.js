@@ -1,4 +1,4 @@
-import { Activity, AlertCircle, MapPin, AlertTriangle, Banknote, BarChart3, Bell, Bone, Briefcase, Building, Building2, Calendar, CheckCircle2, Circle, ClipboardList, FileText, Flame, Folder, GitBranch, Info, Lightbulb, Lock, Map as MapIcon, Package, Pin, RefreshCw, Rocket, Ruler, Scale, Search, ShieldCheck, Siren, Smartphone, Store, Tag, Target, TrendingUp, Trophy, Unlock, UserCircle, Users, X, LayoutDashboard, Stethoscope, Download, ChevronRight, Eye, Send } from 'lucide-react';
+import { Activity, AlertCircle, MapPin, AlertTriangle, Banknote, BarChart3, Bell, Bone, Briefcase, Building, Building2, Calendar, CheckCircle2, Circle, ClipboardList, FileText, Flame, Folder, GitBranch, Info, Lightbulb, Lock, Map as MapIcon, Package, Pin, RefreshCw, Rocket, Ruler, Scale, Search, ShieldCheck, Siren, Smartphone, Store, Tag, Target, TrendingUp, Trophy, Unlock, UserCircle, Users, X, LayoutDashboard, Stethoscope, Download, ChevronRight, Eye, Send, ScanSearch } from 'lucide-react';
 
 import { DAISO_RED } from './colors.js';
 
@@ -30,6 +30,7 @@ const HUB_LABELS = {
 const ALERT_TABS = [
   { id: "alert_monitor",  l: "알림 현황",   short: "알림현황",  Icon: Bell },
   { id: "alert_send",     l: "알림 발송",   short: "알림발송",  Icon: Send },
+  { id: "alert_review",   l: "AI 검토",    short: "AI검토",   Icon: ScanSearch },
 ];
 
 // ── 고객사고 탭 정의 ──

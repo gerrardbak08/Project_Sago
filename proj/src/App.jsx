@@ -15,6 +15,7 @@ import { TABS_VIEWER, HUB_LABELS, ALERT_TABS } from './constants/tabs.js';
 
 // ── 유틸 ──────────────────────────────────────────────
 import { pct, fmt, fmtKrw, TT, EmptyState } from './utils/uiHelpers.jsx';
+import { injectDashCss } from './utils/motion.js';
 import { track, TAB_VIEWED } from './utils/analytics.js';
 import { ExportBtn }          from './utils/exportUtils.jsx';
 import { getFilteredData }    from './utils/filterData.js';
@@ -36,6 +37,7 @@ import AlertReview     from './components/tabs/alert/AlertReview.jsx';
 import { Card }              from './components/shared/Card.jsx';
 import AdminUpload           from './components/admin/AdminUpload.jsx';
 import CustomerDashboard     from './components/layout/CustomerDashboard.jsx';
+import LandingPage           from './components/layout/LandingPage.jsx';
 
 // ── 근로자 탭 컴포넌트 ─────────────────────────────────
 import Overview          from './components/tabs/worker/Overview.jsx';
@@ -93,12 +95,23 @@ const _INIT_HASH_PARAMS = (() => {
 })();
 
 function App() {
+  injectDashCss();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 640);
     window.addEventListener("resize", handler);
     return () => window.removeEventListener("resize", handler);
   }, []);
+
+  // === 랜딩 페이지 — ?skip=1 또는 ?role=xxx 이면 바이패스 ===
+  const _skipLanding = (() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      return p.get("skip") === "1" || !!p.get("role");
+    } catch { return false; }
+  })();
+  const [showLanding, setShowLanding] = useState(!_skipLanding);
+  const [landingFading, setLandingFading] = useState(false);
 
   const [dashMode, setDashMode] = useState("worker"); // "worker" | "customer" | "alert"
   // === 역할 기반 랜딩 ===
@@ -114,6 +127,17 @@ function App() {
   const [preFillStore, setPreFillStore] = useState(null);
   const [currentRole, setCurrentRole] = useState(_INIT_HASH_PARAMS.role || initialRole || null);
   const [yearFilter, setYearState] = useState(_INIT_HASH_PARAMS.year || "all");
+
+  // 랜딩 → 대시보드 페이드 전환
+  const handleLandingEnter = () => {
+    setLandingFading(true);
+    setTimeout(() => setShowLanding(false), 400);
+  };
+  const handleLandingRoleSelect = (roleId) => {
+    setCurrentRole(roleId);
+    const ROLE_LANDING = { ceo: "overview", manager: "dept", team: "parjang", part: "store", safety: "overview" };
+    if (ROLE_LANDING[roleId]) setTabState(ROLE_LANDING[roleId]);
+  };
 
   // URL hash 동기화 — history.replaceState (리로드 없음)
   const setTab = (t) => {
@@ -260,6 +284,17 @@ function App() {
   // Visible tabs
   const TABS = visibleTabs;
 
+  // 랜딩 페이지
+  if (showLanding) return (
+    <div style={{
+      opacity: landingFading ? 0 : 1,
+      transition: 'opacity .4s ease',
+      pointerEvents: landingFading ? 'none' : 'auto',
+    }}>
+      <LandingPage onEnter={handleLandingEnter} />
+    </div>
+  );
+
   // 알림 모드 — customer 대시보드와 동일하게 별도 렌더
   if (dashMode === "alert") return (
     <div className="min-h-screen" style={{background:"linear-gradient(135deg, #F5F5F4 0%, #FAFAF9 40%, #F0F4FF 100%)"}}>
@@ -329,7 +364,7 @@ function App() {
   return (
     <div className="min-h-screen pb-14 lg:pb-0" style={{background:"linear-gradient(135deg, #F5F5F4 0%, #FAFAF9 40%, #F0F4FF 100%)"}}>
       {/* ═══ 헤더 (모바일 최적화) ═══ */}
-      <div className="sticky top-0 z-40 shadow-sm">
+      <div className="sticky top-0 z-40 shadow-sm" style={{animation:"dashSlideDown .4s ease both"}}>
 
         {/* ── 1행: 흰 배경 + CI + 회사명 + 모드 토글 ── */}
         <div className="bg-white border-b border-stone-200">
@@ -350,17 +385,20 @@ function App() {
             <div className="flex items-center gap-1 flex-shrink-0">
               <button onClick={() => switchMode("worker")} className="cursor-pointer whitespace-nowrap"
                 style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,
-                  background: DAISO_RED, color:"white", border:"none"}}>
+                  background: DAISO_RED, color:"white", border:"none",
+                  transition:"all .2s", transform:"scale(1.05)"}}>
                 근로자 사고
               </button>
               <button onClick={() => switchMode("customer")} className="cursor-pointer whitespace-nowrap"
                 style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,
-                  background:"#F5F5F4", color:"#78716C", border:"none"}}>
+                  background:"#F5F5F4", color:"#78716C", border:"none",
+                  transition:"all .2s"}}>
                 고객 사고
               </button>
               <button onClick={() => switchMode("alert")} className="cursor-pointer whitespace-nowrap flex items-center gap-1"
                 style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,
-                  background:"#F5F5F4", color:"#78716C", border:"none"}}>
+                  background:"#F5F5F4", color:"#78716C", border:"none",
+                  transition:"all .2s"}}>
                 <Bell size={11} />알림 관리
               </button>
             </div>
@@ -375,10 +413,11 @@ function App() {
               {["all", "2024", "2025", "2026"].map(y => (
                 <button key={y} onClick={() => setYearFilter(y)}
                   className="cursor-pointer"
-                  style={{padding:"3px 10px",borderRadius:5,fontSize:12,fontWeight:600,
+                  style={{padding:"3px 10px",borderRadius:999,fontSize:12,fontWeight:600,
                     background: yearFilter===y ? "#1C1917" : "transparent",
                     color: yearFilter===y ? "white" : "#78716C",
-                    border:"none",transition:"all .15s"}}>
+                    border:"none",transition:"all .15s",
+                    transform: yearFilter===y ? "scale(1.05)" : "scale(1)"}}>
                   {y === "all" ? "전체" : y}
                 </button>
               ))}
@@ -440,7 +479,7 @@ function App() {
       
       {/* 역할 안내 배너 */}
       {currentRole && (
-        <div className="max-w-[1400px] mx-auto px-3 sm:px-4 pt-2 sm:pt-3">
+        <div className="max-w-[1400px] mx-auto px-3 sm:px-4 pt-2 sm:pt-3 dash-slide-up">
           <div className="rounded-lg bg-white border border-stone-200 p-3 flex items-start gap-3" style={{ borderLeft: `3px solid ${currentRole === "ceo" ? "#1C1917" : currentRole === "manager" ? "#4F46E5" : currentRole === "team" ? "#0891B2" : currentRole === "part" ? "#B45309" : DAISO_RED}` }}>
             <div style={{ width: 28, height: 28, borderRadius: 6, background: currentRole === "ceo" ? "#1C1917" : currentRole === "manager" ? "#4F46E5" : currentRole === "team" ? "#0891B2" : currentRole === "part" ? "#B45309" : DAISO_RED, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               {currentRole === "ceo" && <Building2 size={14} color="white" />}
@@ -472,21 +511,23 @@ function App() {
       {error && <div className="max-w-[1400px] mx-auto px-4 pt-4"><div className="p-3 rounded-lg bg-[#FEF2F3] border border-[#FCE0E3] text-sm text-red-700 flex items-center gap-2"><AlertCircle size={16} /> {error}</div></div>}
       
       <div className="max-w-[1400px] mx-auto px-3 sm:px-4 py-3 sm:py-5">
-        <TabErrorBoundary key={tab}>
-          {tab === "overview" && <Overview D={dataFiltered} yearFilter={yearFilter} role={currentRole} setTab={setTab} onStoreSelect={(storeCode) => { if (storeCode) setPreFillStore(storeCode); setTab("riskmap"); }} />}
-          {tab === "dept" && <DeptTeamStore D={data} yearFilter={yearFilter} />}
-          {tab === "store" && <StoreAnalysis D={dataFiltered} yearFilter={yearFilter} setYearFilter={setYearFilter} />}
-          {tab === "riskmap" && <StoreRiskMap D={data} yearFilter={yearFilter} setYearFilter={setYearFilter} syncStoreToUrl={syncStoreToUrl} initStore={preFillStore ?? _INIT_HASH_PARAMS.store} onPreFillConsumed={() => setPreFillStore(null)} />}
-          {tab === "sigungu" && <StoreDeepDive D={dataFiltered} yearFilter={yearFilter} />}
-          {tab === "time" && <TimeSeries D={data} yearFilter={yearFilter} />}
-          {tab === "cross" && <CrossAnalysis D={dataFiltered} yearFilter={yearFilter} />}
-          {tab === "human" && <HumanFactors D={dataFiltered} yearFilter={yearFilter} />}
-          {tab === "repeat" && <RepeatWorkers D={dataFiltered} yearFilter={yearFilter} />}
-          {tab === "severity" && <SeverityAnalysis D={data} yearFilter={yearFilter} />}
-          {tab === "parjang" && <ParjangDashboard D={dataFiltered} yearFilter={yearFilter} />}
-          {tab === "cost" && <CostRisk D={dataFiltered} yearFilter={yearFilter} />}
-          {tab === "legal" && <LegalReporting D={dataFiltered} yearFilter={yearFilter} />}
-        </TabErrorBoundary>
+        <div key={tab} className="dash-slide-up">
+          <TabErrorBoundary key={tab}>
+            {tab === "overview" && <Overview D={dataFiltered} yearFilter={yearFilter} role={currentRole} setTab={setTab} onStoreSelect={(storeCode) => { if (storeCode) setPreFillStore(storeCode); setTab("riskmap"); }} />}
+            {tab === "dept" && <DeptTeamStore D={data} yearFilter={yearFilter} />}
+            {tab === "store" && <StoreAnalysis D={dataFiltered} yearFilter={yearFilter} setYearFilter={setYearFilter} />}
+            {tab === "riskmap" && <StoreRiskMap D={data} yearFilter={yearFilter} setYearFilter={setYearFilter} syncStoreToUrl={syncStoreToUrl} initStore={preFillStore ?? _INIT_HASH_PARAMS.store} onPreFillConsumed={() => setPreFillStore(null)} />}
+            {tab === "sigungu" && <StoreDeepDive D={dataFiltered} yearFilter={yearFilter} />}
+            {tab === "time" && <TimeSeries D={data} yearFilter={yearFilter} />}
+            {tab === "cross" && <CrossAnalysis D={dataFiltered} yearFilter={yearFilter} />}
+            {tab === "human" && <HumanFactors D={dataFiltered} yearFilter={yearFilter} />}
+            {tab === "repeat" && <RepeatWorkers D={dataFiltered} yearFilter={yearFilter} />}
+            {tab === "severity" && <SeverityAnalysis D={data} yearFilter={yearFilter} />}
+            {tab === "parjang" && <ParjangDashboard D={dataFiltered} yearFilter={yearFilter} />}
+            {tab === "cost" && <CostRisk D={dataFiltered} yearFilter={yearFilter} />}
+            {tab === "legal" && <LegalReporting D={dataFiltered} yearFilter={yearFilter} />}
+          </TabErrorBoundary>
+        </div>
       </div>
       
       <div className="max-w-[1400px] mx-auto px-4 py-4 text-xs text-stone-400 border-t border-stone-100 mt-6 flex justify-between flex-wrap gap-2">
