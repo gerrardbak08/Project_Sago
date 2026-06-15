@@ -23,6 +23,144 @@ function RiskBadge({ grade }) {
   );
 }
 
+function PresetForm({ name, onNameChange, members, onMemberChange, onAddMember, onRemoveMember, onSave, onCancel }) {
+  return (
+    <div className="space-y-3">
+      <input
+        value={name}
+        onChange={e => onNameChange(e.target.value)}
+        placeholder="프리셋 이름 (예: 서울 안전팀)"
+        className="w-full h-9 px-3 rounded-lg border border-stone-200 text-sm font-semibold text-stone-800 bg-white focus:outline-none focus:border-stone-400"
+      />
+      <div className="space-y-2">
+        <div className="text-[11px] font-bold text-stone-400">수신자 목록</div>
+        {members.map((m, i) => (
+          <div key={i} className="flex gap-1.5 items-center">
+            <input value={m.name} onChange={e => onMemberChange(i, 'name', e.target.value)}
+              placeholder="이름" className="w-20 h-8 px-2 rounded-lg border border-stone-200 text-xs bg-white focus:outline-none focus:border-stone-400" />
+            <input value={m.role} onChange={e => onMemberChange(i, 'role', e.target.value)}
+              placeholder="직책" className="w-20 h-8 px-2 rounded-lg border border-stone-200 text-xs bg-white focus:outline-none focus:border-stone-400" />
+            <input value={m.uuid} onChange={e => onMemberChange(i, 'uuid', e.target.value)}
+              placeholder="카카오 UUID" className="flex-1 h-8 px-2 rounded-lg border border-stone-200 text-xs bg-white focus:outline-none focus:border-stone-400 font-mono" />
+            {members.length > 1 && (
+              <button onClick={() => onRemoveMember(i)} className="w-7 h-7 rounded-lg hover:bg-red-50 flex items-center justify-center text-stone-300 hover:text-red-400 cursor-pointer flex-shrink-0">
+                <X size={13} />
+              </button>
+            )}
+          </div>
+        ))}
+        <button onClick={onAddMember} className="text-[11px] font-bold text-stone-400 hover:text-stone-600 cursor-pointer">+ 수신자 추가</button>
+      </div>
+      <div className="flex gap-2 pt-1">
+        <button onClick={onSave} className="flex-1 h-9 rounded-xl bg-stone-900 text-white text-xs font-bold cursor-pointer hover:bg-stone-800">저장</button>
+        <button onClick={onCancel} className="h-9 px-4 rounded-xl border border-stone-200 text-stone-500 text-xs font-bold cursor-pointer hover:bg-stone-50">취소</button>
+      </div>
+    </div>
+  );
+}
+
+function RecipientPresetManager({ presets, onChange, onClose }) {
+  const [editingId, setEditingId] = useState(null);
+  const [newName, setNewName] = useState('');
+  const [newMembers, setNewMembers] = useState([{ name: '', role: '', uuid: '' }]);
+
+  const startNew = () => {
+    setEditingId('__new__');
+    setNewName('');
+    setNewMembers([{ name: '', role: '', uuid: '' }]);
+  };
+
+  const savePreset = () => {
+    if (!newName.trim()) return;
+    const members = newMembers.filter(m => m.uuid.trim());
+    if (editingId === '__new__') {
+      onChange([...presets, { id: `preset-${Date.now()}`, name: newName.trim(), members }]);
+    } else {
+      onChange(presets.map(p => p.id === editingId ? { ...p, name: newName.trim(), members } : p));
+    }
+    setEditingId(null);
+  };
+
+  const deletePreset = (id) => onChange(presets.filter(p => p.id !== id));
+
+  const editPreset = (p) => {
+    setEditingId(p.id);
+    setNewName(p.name);
+    setNewMembers(p.members.length > 0 ? [...p.members] : [{ name: '', role: '', uuid: '' }]);
+  };
+
+  const updateMember = (i, field, val) => {
+    setNewMembers(prev => prev.map((m, idx) => idx === i ? { ...m, [field]: val } : m));
+  };
+
+  const addMember = () => setNewMembers(prev => [...prev, { name: '', role: '', uuid: '' }]);
+  const removeMember = (i) => setNewMembers(prev => prev.filter((_, idx) => idx !== i));
+
+  return (
+    <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        {/* 헤더 */}
+        <div className="sticky top-0 bg-white border-b border-stone-100 px-5 py-4 flex items-center justify-between rounded-t-2xl">
+          <div className="font-extrabold text-stone-900 text-base">수신자 프리셋 관리</div>
+          <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-stone-100 flex items-center justify-center cursor-pointer text-stone-400">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* 기존 프리셋 목록 */}
+          {presets.map(p => (
+            <div key={p.id} className="rounded-xl border border-stone-100 bg-stone-50 p-4">
+              {editingId === p.id ? (
+                <PresetForm
+                  name={newName} onNameChange={setNewName}
+                  members={newMembers} onMemberChange={updateMember}
+                  onAddMember={addMember} onRemoveMember={removeMember}
+                  onSave={savePreset} onCancel={() => setEditingId(null)}
+                />
+              ) : (
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-stone-900 text-sm">{p.name}</div>
+                    <div className="text-[11px] text-stone-500 mt-1 space-y-0.5">
+                      {p.members.map((m, i) => (
+                        <div key={i}>{m.name}{m.role ? ` · ${m.role}` : ''}</div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    <button onClick={() => editPreset(p)} className="px-2.5 py-1 rounded-lg bg-white border border-stone-200 text-[11px] font-semibold text-stone-600 hover:bg-stone-50 cursor-pointer">편집</button>
+                    <button onClick={() => deletePreset(p.id)} className="px-2.5 py-1 rounded-lg bg-red-50 border border-red-100 text-[11px] font-semibold text-red-600 hover:bg-red-100 cursor-pointer">삭제</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* 새 프리셋 추가 */}
+          {editingId === '__new__' ? (
+            <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+              <PresetForm
+                name={newName} onNameChange={setNewName}
+                members={newMembers} onMemberChange={updateMember}
+                onAddMember={addMember} onRemoveMember={removeMember}
+                onSave={savePreset} onCancel={() => setEditingId(null)}
+              />
+            </div>
+          ) : (
+            <button
+              onClick={startNew}
+              className="w-full h-10 rounded-xl border-2 border-dashed border-stone-200 text-[12px] font-bold text-stone-400 hover:border-stone-400 hover:text-stone-600 transition-colors cursor-pointer"
+            >
+              + 새 프리셋 추가
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AlertSend({ onSent, preFillStore, onPreFillConsumed }) {
   const today = new Date().toISOString().slice(0, 10);
   const kakaoEnabled = import.meta.env.VITE_ENABLE_KAKAO_SEND === 'true';
@@ -36,6 +174,20 @@ function AlertSend({ onSent, preFillStore, onPreFillConsumed }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
+
+  // 프리셋 관련 state
+  const [presets, setPresets] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('SAGO_RECIPIENT_PRESETS') || '[]'); }
+    catch { return []; }
+  });
+  const [selectedPresetId, setSelectedPresetId] = useState(null);
+  const [showPresetManager, setShowPresetManager] = useState(false);
+  const [directInput, setDirectInput] = useState(false);
+
+  // presets 변경 시 localStorage 동기화
+  useEffect(() => {
+    localStorage.setItem('SAGO_RECIPIENT_PRESETS', JSON.stringify(presets));
+  }, [presets]);
 
   const filteredStores = (query
     ? STORES_LIST.filter(s =>
@@ -57,11 +209,16 @@ function AlertSend({ onSent, preFillStore, onPreFillConsumed }) {
     setSelectedStores(prev => prev.filter(s => s['매장'] !== code));
   };
 
-  const receiverUuids = receiverText
-    .split(/[\n,]+/)
-    .map(v => v.trim())
-    .filter(Boolean);
-  const canSend = selectedStores.length > 0 && date && (!kakaoEnabled || receiverUuids.length > 0) && !loading;
+  // 활성 프리셋과 최종 수신자 UUID 계산
+  const activePreset = presets.find(p => p.id === selectedPresetId) || null;
+  const receiverUuids = activePreset
+    ? activePreset.members.map(m => m.uuid).filter(Boolean)
+    : receiverText.split(/[\n,]+/).map(v => v.trim()).filter(Boolean);
+
+  const canSend = selectedStores.length > 0 && date && (
+    !kakaoEnabled || (activePreset ? activePreset.members.length > 0 : receiverUuids.length > 0)
+  ) && !loading;
+
   useEffect(() => {
     if (preFillStore) {
       setSelectedStores(prev => {
@@ -247,24 +404,77 @@ function AlertSend({ onSent, preFillStore, onPreFillConsumed }) {
             </div>
           )}
 
+          {/* 수신자 선택 */}
           {kakaoEnabled && (
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-stone-600">카카오 친구 UUID</label>
-                {receiverUuids.length > 0 && (
-                  <span className="text-xs text-stone-400">{receiverUuids.length}명 입력됨</span>
-                )}
+                <span className="text-xs font-bold text-stone-600">수신자</span>
+                <button
+                  type="button"
+                  onClick={() => setShowPresetManager(true)}
+                  className="flex items-center gap-1 text-[11px] text-stone-500 hover:text-stone-800 font-semibold cursor-pointer"
+                >
+                  <Plus size={11} /> 수신자 관리
+                </button>
               </div>
-              <textarea
-                value={receiverText}
-                onChange={e => setReceiverText(e.target.value)}
-                placeholder="friends 결과의 uuid를 입력하세요. 여러 명은 줄바꿈 또는 쉼표로 구분"
-                rows={3}
-                className="w-full px-3 py-2 rounded-lg border border-stone-200 text-sm text-stone-700 bg-white focus:outline-none focus:border-stone-400 resize-none font-mono"
-              />
-              <div className="text-[11px] text-stone-400">
-                현재는 테스트 단계이므로 친구 UUID를 직접 입력합니다.
-              </div>
+
+              {/* 프리셋 칩 목록 */}
+              {presets.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {presets.map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => { setSelectedPresetId(p.id === selectedPresetId ? null : p.id); setDirectInput(false); }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors cursor-pointer ${
+                        selectedPresetId === p.id
+                          ? 'bg-stone-900 text-white border-stone-900'
+                          : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'
+                      }`}
+                    >
+                      {p.name}
+                      <span className="opacity-60">{p.members.length}명</span>
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => { setDirectInput(v => !v); setSelectedPresetId(null); }}
+                    className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors cursor-pointer ${
+                      directInput
+                        ? 'bg-stone-900 text-white border-stone-900'
+                        : 'bg-white text-stone-500 border-stone-200 hover:border-stone-400'
+                    }`}
+                  >
+                    직접 입력
+                  </button>
+                </div>
+              )}
+
+              {/* 선택된 프리셋 멤버 미리보기 */}
+              {activePreset && (
+                <div className="rounded-xl bg-stone-50 border border-stone-100 px-3 py-2.5 space-y-1">
+                  {activePreset.members.map((m, i) => (
+                    <div key={i} className="flex items-center gap-2 text-[11px]">
+                      <span className="w-5 h-5 rounded-full bg-stone-200 flex items-center justify-center text-[9px] font-bold text-stone-600 flex-shrink-0">
+                        {m.name?.[0] || '?'}
+                      </span>
+                      <span className="font-semibold text-stone-800">{m.name}</span>
+                      {m.role && <span className="text-stone-400">·</span>}
+                      {m.role && <span className="text-stone-500">{m.role}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 직접 입력 (프리셋 없거나 directInput 모드) */}
+              {(directInput || (presets.length === 0 && !activePreset)) && (
+                <textarea
+                  value={receiverText}
+                  onChange={e => setReceiverText(e.target.value)}
+                  placeholder="수신자 UUID를 쉼표 또는 줄바꿈으로 구분해 입력"
+                  className="w-full h-20 px-3 py-2 rounded-xl border border-stone-200 text-xs text-stone-700 bg-white resize-none focus:outline-none focus:border-stone-400 font-mono"
+                />
+              )}
             </div>
           )}
 
@@ -478,10 +688,19 @@ function AlertSend({ onSent, preFillStore, onPreFillConsumed }) {
         <div className="rounded-xl bg-stone-50 border border-stone-200 p-4 text-xs text-stone-500 space-y-1">
           <div className="font-semibold text-stone-600 mb-2">📌 발송 흐름</div>
           <div>1. 매장 검색 → 여러 매장 추가 → 날짜 선택</div>
-          <div>2. 발송 버튼 클릭{kakaoEnabled ? " (카카오 친구 UUID 필요)" : ""}</div>
+          <div>2. 발송 버튼 클릭{kakaoEnabled ? " (수신자 프리셋 또는 직접 UUID 입력 필요)" : ""}</div>
           <div>3. 매장별 안전가이드 생성 후 발송 결과가 알림 현황 탭에 저장됨</div>
           <div className="pt-1 text-amber-600">※ 실제 카카오 발송은 배포 환경에서 별도 활성화가 필요합니다</div>
         </div>
+      )}
+
+      {/* 프리셋 관리 모달 */}
+      {showPresetManager && (
+        <RecipientPresetManager
+          presets={presets}
+          onChange={(updated) => { setPresets(updated); }}
+          onClose={() => setShowPresetManager(false)}
+        />
       )}
     </div>
   );
