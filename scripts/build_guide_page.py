@@ -374,6 +374,9 @@ def build(alert: dict, animated: bool = False) -> str:
     rm_cust = _risk_meter(cust_risk, "고객 위험", "🛒")
     rm_emp  = _risk_meter(emp_risk,  "직원 위험", "👷")
 
+    video_url = alert.get("video_url", "") or ""
+    video_display = "block" if video_url else "none"
+
     sections = ""
     if results.get("cust", {}).get("guide"):
         sections += _section("고객 안전", results["cust"], weather, animated,
@@ -523,6 +526,8 @@ body{{font-family:var(--sans);background:var(--bg);color:var(--txt);font-size:14
 .htext{{font-size:12px;color:var(--sub);line-height:1.4}}
 .foot{{text-align:center;padding:28px 20px;color:var(--sub);font-size:11.5px;line-height:1.8}}
 .foot strong{{color:var(--txt);font-weight:700;display:block;margin-bottom:3px}}
+.lp-video-wrap{{margin-bottom:20px}}
+.lp-video-container{{background:#000;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.12)}}
 </style></head>
 <body>
 <div id="prog"></div>
@@ -541,6 +546,26 @@ body{{font-family:var(--sans);background:var(--bg);color:var(--txt);font-size:14
   {wx_section}
   {char_wrap}
   <div class="hdiv"></div>
+  <div class="lp-video-wrap" id="lp-video-section" style="display:{video_display};padding:0 14px">
+    <div style="font-size:11px;font-weight:800;color:var(--sub);letter-spacing:.6px;margin:12px 0 8px;display:flex;align-items:center;gap:8px">
+      <span style="width:8px;height:8px;border-radius:50%;background:#D70011;display:inline-block;flex:none"></span>
+      안전 예방 영상
+    </div>
+    <div class="lp-video-container">
+      <video
+        id="safety-video"
+        controls
+        playsinline
+        preload="metadata"
+        style="width:100%;border-radius:12px;background:#000;max-height:280px;object-fit:contain;"
+      >
+        <source src="{video_url}" type="video/mp4">
+        <p style="color:#888;font-size:12px;text-align:center;padding:16px;">
+          이 브라우저는 영상 재생을 지원하지 않습니다.
+        </p>
+      </video>
+    </div>
+  </div>
   {sections}
   <div class="foot">
     <strong>(주)아성다이소 안전보건팀</strong>

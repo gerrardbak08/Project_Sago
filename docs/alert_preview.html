@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SAGO AI — 알림 카드 → 랜딩페이지 프리뷰</title>
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --red:   #D70011;
+  --amber: #F76808;
+  --blue:  #1D4ED8;
+  --kakao-bg: #9DC6C2;
+  --kakao-yellow: #F7D24B;
+  --sans: -apple-system,"Apple SD Gothic Neo","Pretendard Variable",Pretendard,sans-serif;
+}
+html { background:#0F0F14; min-height:100vh; }
+body { font-family:var(--sans); -webkit-font-smoothing:antialiased; color:#111; }
+
+/* ── 페이지 ── */
+.page-wrap {
+  min-height:100vh; display:flex; flex-direction:column;
+  align-items:center; padding:40px 24px 60px; gap:32px;
+}
+.page-title { text-align:center; color:#fff; }
+.page-title h1 { font-size:18px; font-weight:800; letter-spacing:-.3px; margin-bottom:6px; }
+.page-title p  { font-size:13px; color:rgba(255,255,255,.4); }
+
+/* ── 2폰 ── */
+.phones { display:flex; align-items:flex-start; gap:32px; flex-wrap:wrap; justify-content:center; }
+.phone-col { display:flex; flex-direction:column; align-items:center; gap:12px; }
+.phone-label { font-size:11px; font-weight:700; color:rgba(255,255,255,.35); letter-spacing:.8px; text-transform:uppercase; }
+.flow-info   { font-size:11px; font-weight:600; color:rgba(255,255,255,.28); margin-top:4px; }
+.arrow-col   { display:flex; align-items:center; padding-top:60px; flex-shrink:0; }
+
+/* ── 폰 프레임 ── */
+.phone-frame {
+  width:320px; height:660px;
+  background:#1A1A1A; border-radius:44px; padding:12px;
+  box-shadow: 0 0 0 1.5px #333, 0 30px 80px rgba(0,0,0,.7), inset 0 0 0 1px rgba(255,255,255,.05);
+  position:relative; overflow:hidden;
+}
+.phone-screen { width:100%; height:100%; border-radius:34px; overflow:hidden; position:relative; background:#fff; }
+.phone-frame::before {
+  content:''; position:absolute; top:18px; left:50%; transform:translateX(-50%);
+  width:100px; height:28px; background:#1A1A1A; border-radius:0 0 18px 18px; z-index:10;
+}
+
+/* ── 상태바 ── */
+.status-bar {
+  height:44px; display:flex; align-items:flex-end; justify-content:space-between;
+  padding:0 20px 6px; font-size:12px; font-weight:700; position:relative; z-index:5;
+}
+.status-bar.kakao { background:var(--kakao-bg); color:#1a1a1a; }
+.status-bar.white { background:#fff; color:#111; }
+.status-icons { display:flex; align-items:center; gap:5px; }
+
+/* ════════════════════════════
+   SCREEN 1 — 카카오톡
+════════════════════════════ */
+.kakao-screen {
+  display:flex; flex-direction:column; height:100%; background:var(--kakao-bg);
+}
+.kk-header { background:var(--kakao-bg); padding:8px 14px 12px; display:flex; align-items:center; gap:10px; }
+.kk-back { font-size:18px; color:#222; flex:none; }
+.kk-title-wrap { flex:1; min-width:0; }
+.kk-title { font-size:14px; font-weight:800; color:#111; display:flex; align-items:center; gap:4px; }
+.kk-verified {
+  width:14px; height:14px; background:var(--kakao-yellow); border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:8px; font-weight:900; color:#111; flex:none;
+}
+.kk-subtitle { font-size:10.5px; color:rgba(0,0,0,.5); margin-top:1px; }
+.kk-icons { display:flex; gap:12px; color:rgba(0,0,0,.6); font-size:16px; }
+.kk-date-badge { text-align:center; padding:8px 0 10px; }
+.kk-date-badge span {
+  display:inline-block; background:rgba(0,0,0,.18); color:#fff;
+  font-size:10.5px; font-weight:700; border-radius:999px; padding:3px 14px;
+}
+.kk-chat { flex:1; overflow-y:auto; padding:0 10px 12px; display:flex; flex-direction:column; }
+.kk-msg-row { display:flex; gap:8px; align-items:flex-start; }
+.kk-bot-icon {
+  width:36px; height:36px; border-radius:12px; background:var(--kakao-yellow);
+  flex:none; display:flex; align-items:center; justify-content:center;
+  font-size:16px; box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+.kk-msg-body { flex:1; min-width:0; }
+.kk-sender-name { font-size:10px; color:rgba(0,0,0,.55); font-weight:600; margin-bottom:4px; padding-left:2px; }
+.kk-feed-card { background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,.15); }
+.kk-card-top { padding:14px 14px 12px; border-bottom:1px solid #F3F4F6; }
+.kk-card-title { font-size:15px; font-weight:900; color:#111; line-height:1.3; margin-bottom:10px; }
+.kk-card-store-row { display:flex; align-items:center; gap:9px; }
+.kk-store-icon {
+  width:32px; height:32px; background:#F4F4F5; border-radius:9px;
+  display:flex; align-items:center; justify-content:center; font-size:16px; flex:none;
+}
+.kk-store-name { font-size:13px; font-weight:800; color:#111; }
+.kk-store-date { font-size:10.5px; color:#9CA3AF; margin-top:1px; }
+.kk-card-img {
+  width:100%; aspect-ratio:4/3;
+  background:linear-gradient(135deg,#FEF3F2 0%,#FECACA 50%,#FCA5A5 100%);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:8px; position:relative;
+}
+.kk-card-img-icon {
+  width:52px; height:52px; background:rgba(255,255,255,.7); border-radius:16px;
+  display:flex; align-items:center; justify-content:center; font-size:26px;
+}
+.kk-card-img-label {
+  font-size:11px; font-weight:700; color:#B91C1C;
+  background:rgba(255,255,255,.8); border-radius:999px; padding:3px 12px;
+}
+.kk-card-risk-badge {
+  position:absolute; top:8px; right:8px;
+  background:#D70011; color:#fff; font-size:10px; font-weight:800;
+  border-radius:999px; padding:3px 10px;
+}
+.kk-card-body { padding:12px 14px; border-bottom:1px solid #F3F4F6; }
+.kk-card-case-label { font-size:10px; font-weight:700; color:#9CA3AF; margin-bottom:5px; }
+.kk-card-case-title { font-size:14.5px; font-weight:900; color:#111; line-height:1.4; margin-bottom:8px; }
+.kk-card-rule { background:#F9FAFB; border-radius:10px; padding:9px 11px; border:1px solid #F3F4F6; }
+.kk-card-rule-label { font-size:10px; font-weight:800; color:#9CA3AF; margin-bottom:4px; }
+.kk-card-rule-text { font-size:12.5px; font-weight:600; color:#374151; line-height:1.5; }
+.kk-card-btn {
+  width:100%; padding:12px; text-align:center;
+  font-size:13px; font-weight:800; color:#374151;
+  background:#fff; border:none; cursor:pointer; transition:background .15s;
+}
+.kk-card-btn:hover { background:#F9FAFB; }
+.kk-timestamp { font-size:9.5px; color:rgba(0,0,0,.45); margin-top:4px; padding-left:2px; }
+.kk-home-btn {
+  width:34px; height:34px; border-radius:50%; background:#fff;
+  box-shadow:0 2px 8px rgba(0,0,0,.18); display:flex; align-items:center;
+  justify-content:center; font-size:14px; align-self:flex-end; margin-bottom:24px; flex:none;
+}
+.kk-bottom { flex:none; }
+.kk-channel-menu { background:var(--kakao-yellow); text-align:center; padding:9px; font-size:12px; font-weight:800; color:#1a1a1a; }
+.kk-input-bar { background:#fff; display:flex; align-items:center; gap:8px; padding:8px 12px; }
+.kk-plus {
+  width:26px; height:26px; background:#F4F4F5; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-size:14px; color:#9CA3AF; flex:none;
+}
+.kk-input-placeholder { font-size:12px; color:#9CA3AF; flex:1; }
+
+/* ════════════════════════════
+   SCREEN 2 — 랜딩 (클린 화이트카드 B)
+════════════════════════════ */
+.lp-screen {
+  height:100%; overflow-y:auto; background:#F7F8FA;
+}
+.lp-screen::-webkit-scrollbar { display:none; }
+
+/* 상단 프로그레스 */
+.lp-prog {
+  position:sticky; top:0; height:3px;
+  background:var(--red); z-index:100; width:0;
+  border-radius:0 2px 2px 0; transition:width .1s linear;
+}
+
+/* ── 헤더 (화이트 + 레드 상단 스트라이프) ── */
+.lp-hd {
+  background:#fff;
+  border-top:4px solid var(--red);
+  padding:16px 16px 18px;
+  position:relative;
+}
+.lp-hd-brand {
+  font-size:10px; font-weight:700; color:#9CA3AF;
+  letter-spacing:.4px; margin-bottom:10px;
+}
+.lp-hd-top {
+  display:flex; align-items:flex-start; justify-content:space-between; gap:8px;
+}
+.lp-hd-store {
+  font-size:26px; font-weight:900; color:#111;
+  letter-spacing:-.8px; line-height:1.1;
+}
+.lp-hd-grade {
+  flex:none; margin-top:3px;
+  background:#FFF0F0; color:var(--red);
+  font-size:11px; font-weight:800;
+  border-radius:8px; padding:5px 10px;
+  border:1px solid rgba(215,0,17,.15);
+  text-align:center; line-height:1.4;
+}
+.lp-hd-meta {
+  display:flex; align-items:center; gap:6px; margin-top:10px; flex-wrap:wrap;
+}
+.lp-hd-region {
+  font-size:12px; font-weight:700; color:#6B7280;
+}
+.lp-hd-sep { color:#D1D5DB; font-size:10px; }
+.lp-hd-date {
+  font-size:11.5px; font-weight:600; color:#9CA3AF;
+}
+
+/* ── 위험 점수 카드 ── */
+.lp-score-row {
+  display:flex; gap:8px; padding:12px 12px 0;
+}
+.lp-score-card {
+  flex:1; background:#fff; border-radius:14px;
+  padding:14px 12px; box-shadow:0 1px 3px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.06);
+  display:flex; flex-direction:column; gap:8px;
+}
+.lp-score-top {
+  display:flex; align-items:center; justify-content:space-between;
+}
+.lp-score-lbl { font-size:10px; font-weight:700; color:#9CA3AF; }
+.lp-score-grade {
+  font-size:10px; font-weight:800; border-radius:6px; padding:2px 7px;
+}
+.lp-score-num {
+  font-size:32px; font-weight:900; letter-spacing:-1.5px; line-height:1;
+}
+.lp-score-dom { font-size:11.5px; font-weight:700; color:#374151; }
+.lp-score-bar {
+  height:4px; background:#F3F4F6; border-radius:999px; overflow:hidden; margin-top:2px;
+}
+.lp-score-fill {
+  height:100%; border-radius:999px;
+  transition:width 1.2s cubic-bezier(.2,.7,.3,1);
+}
+
+/* ── 날씨 ── */
+.lp-wx { padding:12px 12px 0; }
+.lp-sec-label {
+  font-size:10px; font-weight:800; color:#9CA3AF; letter-spacing:.6px;
+  margin-bottom:7px; display:flex; align-items:center; gap:7px;
+}
+.lp-sec-label::after { content:''; flex:1; height:1px; background:#E9EAEC; }
+.lp-wx-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+.lp-wx-chip {
+  background:#fff; border-radius:10px; padding:9px 5px; text-align:center;
+  box-shadow:0 1px 4px rgba(0,0,0,.06);
+}
+.lp-wx-ico  { font-size:17px; display:block; margin-bottom:2px; }
+.lp-wx-val  { font-size:11.5px; font-weight:800; display:block; }
+.lp-wx-lbl  { font-size:9px; color:#9CA3AF; display:block; margin-top:1px; }
+
+/* ── 섹션 구분 ── */
+.lp-divider { height:1px; background:#EBEBEB; margin:12px 12px 0; }
+
+/* ── 안전 섹션 ── */
+.lp-sec { padding:12px 12px 0; }
+.lp-sec-head { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.lp-sec-dot { width:8px; height:8px; border-radius:50%; flex:none; }
+.lp-sec-ttl { font-size:15px; font-weight:900; letter-spacing:-.3px; flex:1; }
+.lp-sec-pill {
+  font-size:10px; font-weight:800; border-radius:6px; padding:3px 9px;
+  border:1px solid; white-space:nowrap;
+}
+
+/* 요약 박스 */
+.lp-summ {
+  background:#fff; border-radius:12px;
+  padding:12px 13px; margin-bottom:8px;
+  border:1px solid #EBEBEB;
+  box-shadow:0 1px 4px rgba(0,0,0,.05);
+}
+.lp-summ-txt { font-size:12.5px; font-weight:600; color:#374151; line-height:1.7; }
+
+/* 수칙 타일 */
+.lp-rules { display:flex; flex-direction:column; gap:7px; margin-bottom:8px; }
+.lp-rule {
+  background:#fff; border-radius:12px;
+  padding:12px 13px; display:flex; align-items:flex-start; gap:11px;
+  box-shadow:0 1px 4px rgba(0,0,0,.05);
+  opacity:0; transform:translateY(6px);
+  animation:ruleIn .45s cubic-bezier(.2,.7,.3,1) forwards;
+}
+@keyframes ruleIn { to { opacity:1; transform:none; } }
+.lp-rule-first {
+  border:1px solid rgba(215,0,17,.15);
+}
+.lp-rule-num {
+  flex:none; width:26px; height:26px; border-radius:8px;
+  color:#fff; font-size:12px; font-weight:900;
+  display:flex; align-items:center; justify-content:center; margin-top:1px;
+}
+.lp-rule-txt { font-size:12.5px; line-height:1.7; color:#1F2937; flex:1; }
+.lp-rule-kw { font-weight:800; }
+
+/* 사례 */
+.lp-cases { display:flex; flex-direction:column; gap:6px; margin-bottom:8px; }
+.lp-case {
+  background:#FFFBEB; border-radius:10px;
+  padding:10px 12px; font-size:11.5px; line-height:1.65;
+  color:#374151;
+}
+
+/* AI 근거 */
+.lp-evidence {
+  background:#fff; border-radius:12px;
+  padding:13px 14px; margin-bottom:8px;
+  box-shadow:0 1px 4px rgba(0,0,0,.05);
+}
+.lp-ev-head {
+  display:flex; align-items:center; gap:7px;
+  font-size:11.5px; font-weight:800; margin-bottom:10px; color:#374151;
+}
+.lp-ev-icon {
+  width:26px; height:26px; background:#EFF6FF; border-radius:7px;
+  display:flex; align-items:center; justify-content:center; font-size:13px; flex:none;
+}
+.lp-ev-sub { font-size:10px; color:#9CA3AF; font-weight:500; }
+.lp-ev-stats { display:flex; gap:6px; margin-bottom:9px; }
+.lp-ev-stat { flex:1; background:#F8FAFF; border-radius:9px; padding:9px 6px; text-align:center; }
+.lp-ev-num { font-size:22px; font-weight:900; color:var(--blue); display:block; letter-spacing:-.5px; }
+.lp-ev-lbl { font-size:9px; color:#60A5FA; display:block; margin-top:2px; font-weight:700; }
+.lp-ev-cases { display:flex; flex-direction:column; gap:0; }
+.lp-ev-case {
+  display:grid; grid-template-columns:58px 50px 1fr; gap:4px;
+  padding:7px 0; border-top:1px solid #F3F4F6; align-items:start;
+  font-size:11px;
+}
+.lp-ev-date { color:#D1D5DB; }
+.lp-ev-type { font-weight:800; }
+.lp-ev-text { color:#9CA3AF; line-height:1.4; }
+
+/* 푸터 */
+.lp-footer {
+  text-align:center; padding:22px 16px;
+  color:#9CA3AF; font-size:10.5px; line-height:1.8;
+}
+.lp-footer strong { color:#6B7280; font-weight:700; display:block; margin-bottom:2px; font-size:11px; }
+
+/* ── 반응형 ── */
+@media (max-width:760px) {
+  .phones { gap:20px; }
+  .arrow-col { padding-top:0; }
+  .phone-frame { width:280px; height:580px; }
+}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <div class="page-title">
+    <h1>SAGO AI · 알림 플로우 프리뷰</h1>
+    <p>카카오톡 피드 카드 → 탭 → S3 랜딩페이지</p>
+  </div>
+
+  <div class="phones">
+
+    <!-- ① 카카오톡 -->
+    <div class="phone-col">
+      <div class="phone-label">① 카카오톡 채널 메시지</div>
+      <div class="phone-frame">
+        <div class="phone-screen">
+          <div class="status-bar kakao" style="padding-top:14px;">
+            <span>9:41</span>
+            <div class="status-icons">
+              <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><rect x="0" y="4" width="3" height="7" rx="1" fill="currentColor" opacity=".3"/><rect x="4.5" y="2.5" width="3" height="8.5" rx="1" fill="currentColor" opacity=".5"/><rect x="9" y="0" width="3" height="11" rx="1" fill="currentColor" opacity=".75"/><rect x="13.5" y="0" width="2.5" height="11" rx="1" fill="currentColor"/></svg>
+              <svg width="15" height="11" viewBox="0 0 15 11" fill="none"><path d="M7.5 9a1 1 0 110 2 1 1 0 010-2z" fill="currentColor"/><path d="M4.5 6.5A4.24 4.24 0 017.5 5.3a4.24 4.24 0 013 1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/><path d="M1.8 3.8A7.4 7.4 0 017.5 1.5a7.4 7.4 0 015.7 2.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none" opacity=".5"/></svg>
+              <svg width="22" height="11" viewBox="0 0 22 11" fill="none"><rect x="0" y="1" width="18" height="9" rx="2.5" stroke="currentColor" stroke-width="1.2"/><rect x="1.5" y="2.5" width="13" height="6" rx="1.5" fill="currentColor"/><path d="M19.5 3.5v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+          </div>
+
+          <div class="kakao-screen">
+            <div class="kk-header">
+              <div class="kk-back">‹</div>
+              <div class="kk-title-wrap">
+                <div class="kk-title">아성다이소 안전알림 <span class="kk-verified">✓</span></div>
+                <div class="kk-subtitle">safety@daiso.co.kr ▾</div>
+              </div>
+              <div class="kk-icons"><span>🔍</span><span>☰</span></div>
+            </div>
+
+            <div class="kk-date-badge">
+              <span>2026년 6월 15일 월요일</span>
+            </div>
+
+            <div class="kk-chat">
+              <div class="kk-msg-row">
+                <div class="kk-bot-icon">🔔</div>
+                <div class="kk-msg-body">
+                  <div class="kk-sender-name">(광고) 오늘의 안전 가이드</div>
+                  <div class="kk-feed-card">
+                    <div class="kk-card-top">
+                      <div class="kk-card-title">🔴 강남점 · 낙상 주의</div>
+                      <div class="kk-card-store-row">
+                        <div class="kk-store-icon">🏪</div>
+                        <div>
+                          <div class="kk-store-name">강남점</div>
+                          <div class="kk-store-date">2026년 6월 15일</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="kk-card-img">
+                      <div class="kk-card-img-icon">🚷</div>
+                      <div class="kk-card-img-label">낙상 위험 · 고위험</div>
+                      <div class="kk-card-risk-badge">고위험</div>
+                    </div>
+                    <div class="kk-card-body">
+                      <div class="kk-card-case-label">오늘의 안전 수칙</div>
+                      <div class="kk-card-case-title">강수량 60mm — 입구 미끄러짐 주의</div>
+                      <div class="kk-card-rule">
+                        <div class="kk-card-rule-label">안전 조치</div>
+                        <div class="kk-card-rule-text">① 지금 즉시 입구 미끄럼 방지 매트 상태 확인  ② 매 2시간마다 바닥 물기 즉시 제거</div>
+                      </div>
+                    </div>
+                    <button class="kk-card-btn" onclick="showLanding()">안전가이드 전체 보기 ›</button>
+                  </div>
+                  <div class="kk-timestamp">수신거부 | 홈 > 채널 차단</div>
+                  <div class="kk-timestamp">오전 9:00</div>
+                </div>
+                <div class="kk-home-btn">🏠</div>
+              </div>
+            </div>
+
+            <div class="kk-bottom">
+              <div class="kk-channel-menu">채널 메뉴 ⌃</div>
+              <div class="kk-input-bar">
+                <div class="kk-plus">＋</div>
+                <div class="kk-input-placeholder">챗봇에게 메시지 입력</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flow-info">버튼 클릭 → 우측 화면 전환</div>
+    </div>
+
+    <!-- 화살표 -->
+    <div class="arrow-col">
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+        <circle cx="18" cy="18" r="17" stroke="rgba(255,255,255,.12)" stroke-width="1.5"/>
+        <path d="M14 18h8M18 14l4 4-4 4" stroke="rgba(255,255,255,.4)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <!-- ② 랜딩페이지 -->
+    <div class="phone-col">
+      <div class="phone-label">② S3 안전가이드 랜딩페이지</div>
+      <div class="phone-frame">
+        <div class="phone-screen">
+          <div class="status-bar white" style="padding-top:14px;">
+            <span>9:41</span>
+            <div class="status-icons">
+              <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><rect x="0" y="4" width="3" height="7" rx="1" fill="currentColor" opacity=".3"/><rect x="4.5" y="2.5" width="3" height="8.5" rx="1" fill="currentColor" opacity=".5"/><rect x="9" y="0" width="3" height="11" rx="1" fill="currentColor" opacity=".75"/><rect x="13.5" y="0" width="2.5" height="11" rx="1" fill="currentColor"/></svg>
+              <svg width="15" height="11" viewBox="0 0 15 11" fill="none"><path d="M7.5 9a1 1 0 110 2 1 1 0 010-2z" fill="currentColor"/><path d="M4.5 6.5A4.24 4.24 0 017.5 5.3a4.24 4.24 0 013 1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/><path d="M1.8 3.8A7.4 7.4 0 017.5 1.5a7.4 7.4 0 015.7 2.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none" opacity=".5"/></svg>
+              <svg width="22" height="11" viewBox="0 0 22 11" fill="none"><rect x="0" y="1" width="18" height="9" rx="2.5" stroke="currentColor" stroke-width="1.2"/><rect x="1.5" y="2.5" width="13" height="6" rx="1.5" fill="currentColor"/><path d="M19.5 3.5v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+          </div>
+
+          <!-- 랜딩 콘텐츠 -->
+          <div class="lp-screen" id="landingScreen">
+            <div class="lp-prog" id="lpProg"></div>
+
+            <!-- 헤더 -->
+            <div class="lp-hd">
+              <div class="lp-hd-brand">㈜아성다이소 · 안전보건팀 SAGO AI</div>
+              <div class="lp-hd-top">
+                <div class="lp-hd-store">강남점</div>
+                <div class="lp-hd-grade">🔴 고위험<br><span style="font-size:9px;font-weight:600;color:#9CA3AF">오늘의 위험도</span></div>
+              </div>
+              <div class="lp-hd-meta">
+                <span class="lp-hd-region">서울</span>
+                <span class="lp-hd-sep">·</span>
+                <span class="lp-hd-date">2026. 6. 15. (월)</span>
+              </div>
+            </div>
+
+            <!-- 위험 점수 -->
+            <div class="lp-score-row">
+              <!-- 고객 -->
+              <div class="lp-score-card">
+                <div class="lp-score-top">
+                  <span class="lp-score-lbl">🛒 고객 위험</span>
+                  <span class="lp-score-grade" style="background:#FFF0F0;color:var(--red);">위험</span>
+                </div>
+                <div class="lp-score-num" style="color:var(--red);">82</div>
+                <div class="lp-score-dom">낙상 위험</div>
+                <div class="lp-score-bar">
+                  <div class="lp-score-fill" style="width:82%;background:var(--red);"></div>
+                </div>
+              </div>
+              <!-- 직원 -->
+              <div class="lp-score-card">
+                <div class="lp-score-top">
+                  <span class="lp-score-lbl">👷 직원 위험</span>
+                  <span class="lp-score-grade" style="background:#FFF7ED;color:var(--amber);">주의</span>
+                </div>
+                <div class="lp-score-num" style="color:var(--amber);">67</div>
+                <div class="lp-score-dom">베임·자상</div>
+                <div class="lp-score-bar">
+                  <div class="lp-score-fill" style="width:67%;background:var(--amber);"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 날씨 -->
+            <div class="lp-wx">
+              <div class="lp-sec-label" style="margin-top:12px;">오늘의 기상</div>
+              <div class="lp-wx-grid">
+                <div class="lp-wx-chip"><span class="lp-wx-ico">🌡</span><span class="lp-wx-val">28°C</span><span class="lp-wx-lbl">최고기온</span></div>
+                <div class="lp-wx-chip"><span class="lp-wx-ico">🥶</span><span class="lp-wx-val">18°C</span><span class="lp-wx-lbl">최저기온</span></div>
+                <div class="lp-wx-chip"><span class="lp-wx-ico">🌧</span><span class="lp-wx-val">60mm</span><span class="lp-wx-lbl">강수량</span></div>
+                <div class="lp-wx-chip"><span class="lp-wx-ico">❄</span><span class="lp-wx-val">0cm</span><span class="lp-wx-lbl">적설</span></div>
+                <div class="lp-wx-chip"><span class="lp-wx-ico">💨</span><span class="lp-wx-val">3.2m/s</span><span class="lp-wx-lbl">최대풍속</span></div>
+                <div class="lp-wx-chip"><span class="lp-wx-ico">💧</span><span class="lp-wx-val">75%</span><span class="lp-wx-lbl">습도</span></div>
+              </div>
+            </div>
+
+            <div class="lp-divider"></div>
+
+            <!-- 고객 안전 섹션 -->
+            <div class="lp-sec">
+              <div class="lp-sec-head">
+                <div class="lp-sec-dot" style="background:var(--red);"></div>
+                <span class="lp-sec-ttl">고객 안전</span>
+                <span class="lp-sec-pill" style="color:var(--red);border-color:rgba(215,0,17,.2);background:#FFF0F0;">🔴 낙상 위험</span>
+              </div>
+
+              <div class="lp-summ">
+                <div class="lp-summ-txt">강수량 60mm 예보로 매장 입구·통로 바닥 물기 위험이 높습니다. 낙상 사고 발생 가능성을 즉시 점검해야 합니다.</div>
+              </div>
+
+              <!-- 영상 슬롯 플레이스홀더 -->
+              <div style="margin-bottom:16px;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                  <div style="width:8px;height:8px;border-radius:50%;background:#D70011;flex-shrink:0;"></div>
+                  <div style="font-size:11px;font-weight:800;color:#1c1917;">안전 예방 영상</div>
+                </div>
+                <div style="background:#000;border-radius:10px;overflow:hidden;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;">
+                  <div style="font-size:28px;">&#9654;</div>
+                  <div style="color:#fff;font-size:9px;font-weight:600;opacity:0.7;">안전수칙 예방 영상</div>
+                  <div style="color:#888;font-size:8px;">(MP4 영상 삽입 예정)</div>
+                </div>
+              </div>
+
+              <div class="lp-sec-label">오늘의 안전 수칙</div>
+              <div class="lp-rules">
+                <div class="lp-rule lp-rule-first" style="animation-delay:80ms;">
+                  <div class="lp-rule-num" style="background:var(--red);">1</div>
+                  <div class="lp-rule-txt"><span class="lp-rule-kw" style="color:var(--red);">지금 즉시</span> 입구 미끄럼 방지 매트 상태 확인 및 교체</div>
+                </div>
+                <div class="lp-rule" style="animation-delay:160ms;">
+                  <div class="lp-rule-num" style="background:var(--red);">2</div>
+                  <div class="lp-rule-txt"><span class="lp-rule-kw" style="color:var(--red);">매 2시간</span>마다 바닥 물기 점검 및 즉시 제거, 경고 표지판 배치</div>
+                </div>
+                <div class="lp-rule" style="animation-delay:240ms;">
+                  <div class="lp-rule-num" style="background:var(--red);">3</div>
+                  <div class="lp-rule-txt">단차·경사로 주변에 안전 표지판 추가 배치</div>
+                </div>
+              </div>
+
+              <div class="lp-sec-label">유사 사고 사례</div>
+              <div class="lp-cases">
+                <div class="lp-case">우천 시 입구 매트 미끄러짐으로 고객 낙상, 무릎 타박상 발생</div>
+                <div class="lp-case">에어컨 응결수로 바닥 물기 제거 미흡, 미끄러짐 사고</div>
+              </div>
+
+              <div class="lp-evidence">
+                <div class="lp-ev-head">
+                  <div class="lp-ev-icon">📊</div>
+                  AI 분석 근거
+                  <span class="lp-ev-sub">· 실제 사고 데이터 기반</span>
+                </div>
+                <div class="lp-ev-stats">
+                  <div class="lp-ev-stat"><span class="lp-ev-num">7</span><span class="lp-ev-lbl">이 매장 사고</span></div>
+                  <div class="lp-ev-stat"><span class="lp-ev-num">23</span><span class="lp-ev-lbl">낙상 지역 내</span></div>
+                  <div class="lp-ev-stat"><span class="lp-ev-num">148</span><span class="lp-ev-lbl">낙상 전사</span></div>
+                </div>
+                <div class="lp-ev-cases">
+                  <div class="lp-ev-case">
+                    <span class="lp-ev-date">2025-11-03</span>
+                    <span class="lp-ev-type" style="color:var(--red);">낙상</span>
+                    <span class="lp-ev-text">입구 우천 시 미끄러짐</span>
+                  </div>
+                  <div class="lp-ev-case">
+                    <span class="lp-ev-date">2025-08-17</span>
+                    <span class="lp-ev-type" style="color:var(--red);">넘어짐</span>
+                    <span class="lp-ev-text">매트 들뜸 발걸림 낙상</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="lp-divider"></div>
+
+            <!-- 직원 안전 섹션 -->
+            <div class="lp-sec">
+              <div class="lp-sec-head">
+                <div class="lp-sec-dot" style="background:var(--amber);"></div>
+                <span class="lp-sec-ttl">직원 안전</span>
+                <span class="lp-sec-pill" style="color:var(--amber);border-color:rgba(247,104,8,.2);background:#FFF7ED;">🟠 베임·자상</span>
+              </div>
+
+              <div class="lp-summ">
+                <div class="lp-summ-txt">입고 물량 증가로 박스 개봉 빈도가 높아지는 날입니다. 커터칼 취급 안전에 각별히 주의하세요.</div>
+              </div>
+
+              <!-- 영상 슬롯 플레이스홀더 -->
+              <div style="margin-bottom:16px;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                  <div style="width:8px;height:8px;border-radius:50%;background:#D70011;flex-shrink:0;"></div>
+                  <div style="font-size:11px;font-weight:800;color:#1c1917;">안전 예방 영상</div>
+                </div>
+                <div style="background:#000;border-radius:10px;overflow:hidden;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;">
+                  <div style="font-size:28px;">&#9654;</div>
+                  <div style="color:#fff;font-size:9px;font-weight:600;opacity:0.7;">안전수칙 예방 영상</div>
+                  <div style="color:#888;font-size:8px;">(MP4 영상 삽입 예정)</div>
+                </div>
+              </div>
+
+              <div class="lp-sec-label">오늘의 안전 수칙</div>
+              <div class="lp-rules">
+                <div class="lp-rule lp-rule-first" style="animation-delay:300ms;border-color:rgba(247,104,8,.15);">
+                  <div class="lp-rule-num" style="background:var(--amber);">1</div>
+                  <div class="lp-rule-txt"><span class="lp-rule-kw" style="color:var(--amber);">출근 즉시</span> 커터칼·박스 칼 보관함 점검</div>
+                </div>
+                <div class="lp-rule" style="animation-delay:380ms;">
+                  <div class="lp-rule-num" style="background:var(--amber);">2</div>
+                  <div class="lp-rule-txt">날카로운 날 취급 시 방호장갑 착용 의무화</div>
+                </div>
+                <div class="lp-rule" style="animation-delay:460ms;">
+                  <div class="lp-rule-num" style="background:var(--amber);">3</div>
+                  <div class="lp-rule-txt">작업 후 칼날 <span class="lp-rule-kw" style="color:var(--amber);">즉시</span> 수납 — 방치 금지</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 푸터 -->
+            <div class="lp-footer">
+              <strong>㈜아성다이소 안전보건팀</strong>
+              본 가이드는 과거 사고 데이터와 기상 조건을<br>AI가 분석해 자동 생성한 참고 자료입니다.
+            </div>
+
+          </div><!-- /.lp-screen -->
+        </div>
+      </div>
+      <div class="flow-info">guide/{date}/{store_code}.html on S3</div>
+    </div>
+
+  </div><!-- /.phones -->
+</div>
+
+<script>
+var ls   = document.getElementById('landingScreen');
+var prog = document.getElementById('lpProg');
+ls.addEventListener('scroll', function() {
+  var p = ls.scrollTop / (ls.scrollHeight - ls.clientHeight) || 0;
+  prog.style.width = (p * 100) + '%';
+});
+function showLanding() {
+  ls.scrollTo({ top: 0, behavior: 'smooth' });
+  var frame = ls.closest('.phone-frame');
+  frame.style.transition = 'box-shadow .25s';
+  frame.style.boxShadow = '0 0 0 3px rgba(215,0,17,.5), 0 30px 80px rgba(0,0,0,.7)';
+  setTimeout(function(){ frame.style.boxShadow = '0 0 0 1.5px #333, 0 30px 80px rgba(0,0,0,.7)'; }, 500);
+}
+</script>
+</body>
+</html>
