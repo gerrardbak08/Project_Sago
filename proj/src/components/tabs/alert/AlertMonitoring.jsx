@@ -7,6 +7,14 @@ const FRONTEND_BASE = import.meta.env.VITE_FRONTEND_URL
   ? import.meta.env.VITE_FRONTEND_URL.replace(/\/$/, '')
   : '';
 
+const GUIDE_BASE = import.meta.env.VITE_FRONTEND_URL
+  ? import.meta.env.VITE_FRONTEND_URL.replace(/\/$/, '')
+  : '';
+
+function guideUrl(date, storeCode) {
+  return `${GUIDE_BASE}/guide/${date}/${storeCode}.html`;
+}
+
 function resolveImageUrl(url) {
   if (!url) return null;
   const value = String(url).trim();
@@ -325,9 +333,10 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
   const [error, setError] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [activeFilter, setActiveFilter] = useState('all');
 
   const load = async (d) => {
-    setLoading(true); setError(null); setResult(null);
+    setLoading(true); setError(null); setResult(null); setActiveFilter('all');
     try {
       const base = import.meta.env.VITE_ALERTS_URL
         ? import.meta.env.VITE_ALERTS_URL.replace(/\/$/, '')
@@ -367,7 +376,14 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
     load(date);
   }, [refreshTick]);
 
-  const filtered = result || [];
+  const filtered = (result || []).filter(s => {
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'high') return s.risk_score >= 0.7;
+    if (activeFilter === 'medium') return s.risk_score >= 0.4 && s.risk_score < 0.7;
+    if (activeFilter === 'low') return (s.risk_score ?? 0) < 0.4;
+    if (activeFilter === 'failed') return s.delivery_status === 'failed';
+    return true;
+  });
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -406,6 +422,71 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
           {result && <span className="text-xs text-stone-500 ml-auto">{result.length}개 매장 결과</span>}
         </div>
       </Card>
+
+      {result && (
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { label: "총 발송", value: result.length, color: "text-stone-900", bg: "bg-white" },
+            {
+              label: "성공",
+              value: result.filter(s => s.delivery_status === 'sent').length,
+              sub: result.length > 0
+                ? Math.round(result.filter(s => s.delivery_status === 'sent').length / result.length * 100) + '%'
+                : '0%',
+              color: "text-emerald-700", bg: "bg-emerald-50"
+            },
+            {
+              label: "고위험",
+              value: result.filter(s => s.risk_score >= 0.7).length,
+              color: "text-red-700", bg: "bg-red-50"
+            },
+            {
+              label: "실패",
+              value: result.filter(s => s.delivery_status === 'failed').length,
+              color: "text-stone-500", bg: "bg-stone-50"
+            },
+          ].map(({ label, value, sub, color, bg }) => (
+            <div key={label} className={`rounded-xl ${bg} border border-stone-100 p-3 text-center`}>
+              <div className={`text-xl font-extrabold tabular-nums ${color}`}>{value}</div>
+              {sub && <div className="text-[10px] text-stone-400 font-semibold">{sub}</div>}
+              <div className="text-[10px] text-stone-500 mt-0.5 font-semibold">{label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {result && (
+        <div className="flex gap-2 flex-wrap">
+          {[
+            { id: 'all', label: '전체' },
+            { id: 'high', label: '고위험' },
+            { id: 'medium', label: '중위험' },
+            { id: 'low', label: '저위험' },
+            { id: 'failed', label: '실패' },
+          ].map(f => (
+            <button
+              key={f.id}
+              onClick={() => setActiveFilter(f.id)}
+              className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors cursor-pointer ${
+                activeFilter === f.id
+                  ? 'bg-stone-900 text-white border-stone-900'
+                  : 'bg-white text-stone-500 border-stone-200 hover:border-stone-400'
+              }`}
+            >
+              {f.label}
+              {result && (
+                <span className="ml-1.5 opacity-60">
+                  {f.id === 'all' ? result.length
+                    : f.id === 'high' ? result.filter(s => s.risk_score >= 0.7).length
+                    : f.id === 'medium' ? result.filter(s => s.risk_score >= 0.4 && s.risk_score < 0.7).length
+                    : f.id === 'low' ? result.filter(s => (s.risk_score ?? 0) < 0.4).length
+                    : result.filter(s => s.delivery_status === 'failed').length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
 
       {error && (
         <div className="flex items-center gap-2 text-red-700 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3">
@@ -493,6 +574,17 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
                         >
                           재발송
                         </button>
+                      )}
+                      {s.store_code && date && (
+                        <a
+                          href={guideUrl(date, s.store_code)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-stone-50 hover:bg-stone-100 text-stone-500 text-[10px] font-semibold border border-stone-200"
+                        >
+                          가이드
+                        </a>
                       )}
                       <ChevronRight size={14} className="text-stone-300" />
                     </div>

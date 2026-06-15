@@ -35,6 +35,7 @@ function AlertSend({ onSent, preFillStore, onPreFillConsumed }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const filteredStores = (query
     ? STORES_LIST.filter(s =>
@@ -263,6 +264,66 @@ function AlertSend({ onSent, preFillStore, onPreFillConsumed }) {
               />
               <div className="text-[11px] text-stone-400">
                 현재는 테스트 단계이므로 친구 UUID를 직접 입력합니다.
+              </div>
+            </div>
+          )}
+
+          {/* 발송 전 미리보기 토글 */}
+          {selectedStores.length > 0 && !result && (
+            <button
+              type="button"
+              onClick={() => setShowPreview(v => !v)}
+              className="w-full h-8 rounded-lg border border-stone-200 bg-stone-50 hover:bg-stone-100 text-xs font-semibold text-stone-500 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+            >
+              {showPreview ? '미리보기 닫기 ↑' : '카카오 카드 미리보기 ↓'}
+            </button>
+          )}
+
+          {/* 미리보기 패널 */}
+          {showPreview && selectedStores.length > 0 && !result && (
+            <div className="rounded-xl border border-stone-100 bg-stone-50 p-3 space-y-2">
+              <div className="text-[11px] font-bold text-stone-400">발송될 카카오 피드카드 형식 미리보기</div>
+              {selectedStores.slice(0, 2).map(s => (
+                <div key={s['매장']} className="rounded-xl overflow-hidden border border-stone-200 bg-white shadow-sm">
+                  {/* 카드 헤더 */}
+                  <div className="px-3 pt-3 pb-2.5 border-b border-stone-100">
+                    <div className="text-[13px] font-extrabold text-stone-900 leading-tight">
+                      🔴 {s['매장명'] || s['매장']} · 위험유형 주의
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="w-7 h-7 rounded-lg bg-stone-100 flex items-center justify-center text-sm">🏪</div>
+                      <div>
+                        <div className="text-[12px] font-bold text-stone-800">{s['매장명'] || s['매장']}</div>
+                        <div className="text-[10px] text-stone-400">{date}</div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* 이미지 플레이스홀더 */}
+                  <div className="w-full aspect-[4/3] bg-gradient-to-br from-stone-100 to-stone-200 flex flex-col items-center justify-center gap-1.5">
+                    <div className="w-9 h-9 rounded-xl bg-white/70 flex items-center justify-center text-lg">🛡</div>
+                    <span className="text-[10px] text-stone-400 font-medium">AI 안전가이드 이미지</span>
+                  </div>
+                  {/* 수칙 플레이스홀더 */}
+                  <div className="px-3 py-2.5 border-b border-stone-100">
+                    <div className="text-[10px] font-bold text-stone-400 mb-1.5">오늘의 안전 수칙</div>
+                    <div className="space-y-1">
+                      <div className="h-2.5 bg-stone-100 rounded-full w-4/5" />
+                      <div className="h-2.5 bg-stone-100 rounded-full w-3/5" />
+                    </div>
+                  </div>
+                  {/* 버튼 */}
+                  <div className="px-3 py-2.5 text-center text-[11px] font-bold text-stone-500">
+                    안전가이드 전체 보기 &rsaquo;
+                  </div>
+                </div>
+              ))}
+              {selectedStores.length > 2 && (
+                <div className="text-center text-[10px] text-stone-400">
+                  외 {selectedStores.length - 2}개 매장 동일 형식 발송
+                </div>
+              )}
+              <div className="text-[10px] text-stone-400 bg-white rounded-lg px-3 py-2 border border-stone-100">
+                💡 실제 카드는 AI가 생성한 안전가이드 내용으로 채워집니다
               </div>
             </div>
           )}
