@@ -415,100 +415,94 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
 
       {result && (
         <Card title="매장별 알림 결과" titleIcon={Bell}>
-          <div className="overflow-x-auto -mx-5 px-5">
-            <table className="w-full min-w-[600px] text-sm">
-              <thead>
-                <tr className="border-b-2 border-stone-100 text-xs text-stone-400 uppercase">
-                  <th className="text-left py-2 px-2 font-semibold">매장</th>
-                  <th className="text-left py-2 px-2 font-semibold">지역</th>
-                  <th className="text-center py-2 px-2 font-semibold">발송 유형</th>
-                  <th className="text-center py-2 px-2 font-semibold">발송 결과</th>
-                  <th className="text-left py-2 px-2 font-semibold">수신자</th>
-                  <th className="text-center py-2 px-2 font-semibold">위험도</th>
-                  <th className="text-left py-2 px-2 font-semibold">주요 위험유형 (고객)</th>
-                  <th className="text-left py-2 px-2 font-semibold">주요 위험유형 (직원)</th>
-                  <th className="text-center py-2 px-2 font-semibold">상세</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((s, i) => (
-                  <tr key={s.store_code + i}
-                    className="border-b border-stone-50 hover:bg-stone-50/70 transition-colors dash-slide-up"
-                    style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}>
-                    <td className="py-2.5 px-2">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-semibold text-stone-900 text-xs">{s.store_name}</span>
+          <div className="space-y-2">
+            {filtered.map((s, i) => {
+              const riskColor = s.risk_score >= 0.7 ? 'border-l-red-500' : s.risk_score >= 0.4 ? 'border-l-amber-500' : 'border-l-emerald-500';
+              const riskBg = s.risk_score >= 0.7 ? 'bg-red-50' : s.risk_score >= 0.4 ? 'bg-amber-50' : 'bg-emerald-50';
+              const riskText = s.risk_score >= 0.7 ? 'text-red-700' : s.risk_score >= 0.4 ? 'text-amber-700' : 'text-emerald-700';
+              const riskLabel = s.risk_score >= 0.7 ? '고위험' : s.risk_score >= 0.4 ? '중위험' : '저위험';
+              return (
+                <div
+                  key={s.store_code + i}
+                  className={`dash-slide-up rounded-xl border border-stone-100 border-l-4 ${riskColor} bg-white shadow-sm hover:shadow-md transition-shadow p-4 cursor-pointer`}
+                  style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}
+                  onClick={() => setSelectedItem(s)}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    {/* 왼쪽: 매장 정보 */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-extrabold text-stone-900 text-sm">{s.store_name}</span>
+                        <span className="text-[10px] text-stone-400">{s.store_code}</span>
                         {s.trigger === 'batch_auto'
-                          ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">자동발송</span>
-                          : <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">수동발송</span>
+                          ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800">자동발송</span>
+                          : <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 text-indigo-700">수동발송</span>
+                        }
+                        {s.delivery_status === 'sent'
+                          ? <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 border border-emerald-200 text-emerald-700">✓ 발송 성공</span>
+                          : s.delivery_status === 'failed'
+                            ? <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 border border-red-200 text-red-700">✗ 발송 실패</span>
+                            : null
                         }
                       </div>
-                      <div className="text-[10px] text-stone-400 tabular-nums">{s.store_code}</div>
-                      {s.message_summary && (
-                        <p className="text-xs text-slate-500 mt-0.5 truncate max-w-[180px]">{s.message_summary}</p>
-                      )}
-                    </td>
-                    <td className="py-2.5 px-2 text-xs text-stone-500">{s.region}</td>
-                    <td className="py-2.5 px-2 text-center">
-                      {s.trigger_type === 'batch'
-                        ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 border border-indigo-200 text-indigo-700">⏰ 배치</span>
-                        : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-stone-100 border border-stone-200 text-stone-600">✋ 수동</span>
-                      }
-                    </td>
-                    <td className="py-2.5 px-2 text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        {s.delivery_status === 'sent'
-                          ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 border border-emerald-200 text-emerald-700">성공</span>
-                          : s.delivery_status === 'failed'
-                            ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 border border-red-200 text-red-700">실패</span>
-                            : <span className="text-xs text-stone-400">—</span>
-                        }
-                        {(s.delivery_status === 'failed' || s.status === 'failed') && onSendRequest && (
-                          <button
-                            onClick={() => onSendRequest(s.store_code)}
-                            className="flex items-center gap-1 px-2 py-1 rounded-md bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium border border-red-100"
-                          >
-                            재발송
-                          </button>
+                      <div className="text-[11px] text-stone-500 mt-1">{s.region}</div>
+                      {/* 위험유형 */}
+                      <div className="flex gap-3 mt-2 flex-wrap">
+                        {(s["주요_위험유형_cust"] || s.dominant_type_cust) && (
+                          <div className="text-[11px]">
+                            <span className="font-semibold text-sky-600">고객 </span>
+                            <span className="text-stone-600">{s["주요_위험유형_cust"] || s.dominant_type_cust}</span>
+                          </div>
+                        )}
+                        {(s["주요_위험유형_emp"] || s.dominant_type_emp) && (
+                          <div className="text-[11px]">
+                            <span className="font-semibold text-indigo-600">직원 </span>
+                            <span className="text-stone-600">{s["주요_위험유형_emp"] || s.dominant_type_emp}</span>
+                          </div>
                         )}
                       </div>
-                    </td>
-                    <td className="py-2.5 px-2 text-[11px] text-stone-500 max-w-[220px]">
-                      {s.sent_recipients?.length > 0 && (
-                        <div className="truncate text-emerald-700">성공: {s.sent_recipients.join(', ')}</div>
+                      {/* 수신자 */}
+                      {(s.sent_recipients?.length > 0 || s.failed_recipients?.length > 0) && (
+                        <div className="mt-1.5 text-[11px]">
+                          {s.sent_recipients?.length > 0 && (
+                            <span className="text-emerald-700">성공: {s.sent_recipients.join(', ')} </span>
+                          )}
+                          {s.failed_recipients?.length > 0 && (
+                            <span className="text-red-600">실패: {s.failed_recipients.join(', ')}</span>
+                          )}
+                        </div>
                       )}
-                      {s.failed_recipients?.length > 0 && (
-                        <div className="truncate text-red-600">실패: {s.failed_recipients.join(', ')}</div>
-                      )}
-                      {!s.sent_recipients?.length && !s.failed_recipients?.length && "—"}
-                    </td>
-                    <td className="py-2.5 px-2 text-center">
+                    </div>
+                    {/* 오른쪽: 위험도 + 상세 버튼 */}
+                    <div className="flex flex-col items-end gap-2 shrink-0">
                       {s.risk_score != null && (
-                        <span className={
-                          s.risk_score >= 0.7 ? "px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700" :
-                          s.risk_score >= 0.4 ? "px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700" :
-                          "px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700"
-                        }>
-                          {s.risk_score >= 0.7 ? "고위험" : s.risk_score >= 0.4 ? "중위험" : "저위험"}
-                        </span>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${riskBg} ${riskText}`}>
+                            {riskLabel}
+                          </span>
+                          <span className="text-[11px] text-stone-400 tabular-nums">
+                            {Math.round(s.risk_score * 100)}점
+                          </span>
+                        </div>
                       )}
-                      {s.risk_score == null && <span className="text-xs text-stone-400">—</span>}
-                    </td>
-                    <td className="py-2.5 px-2 text-xs text-stone-700">{s["주요_위험유형_cust"] || s.dominant_type_cust || "—"}</td>
-                    <td className="py-2.5 px-2 text-xs text-stone-700">{s["주요_위험유형_emp"] || s.dominant_type_emp || "—"}</td>
-                    <td className="py-2.5 px-2 text-center">
-                      <button onClick={() => setSelectedItem(s)}
-                        className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 flex items-center justify-center cursor-pointer text-stone-500 mx-auto">
-                        <ChevronRight size={12} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {filtered.length === 0 && (
-                  <tr><td colSpan={9} className="py-10 text-center text-stone-400 text-xs">조회된 매장이 없습니다.</td></tr>
-                )}
-              </tbody>
-            </table>
+                      {/* 재발송 버튼 */}
+                      {(s.delivery_status === 'failed' || s.status === 'failed') && onSendRequest && (
+                        <button
+                          onClick={e => { e.stopPropagation(); onSendRequest(s.store_code); }}
+                          className="flex items-center gap-1 px-2 py-1 rounded-md bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium border border-red-100"
+                        >
+                          재발송
+                        </button>
+                      )}
+                      <ChevronRight size={14} className="text-stone-300" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {filtered.length === 0 && (
+              <div className="py-10 text-center text-stone-400 text-xs">조회된 매장이 없습니다.</div>
+            )}
           </div>
         </Card>
       )}

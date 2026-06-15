@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Send, CheckCircle2, AlertCircle, RefreshCw, MessageCircle, X, Plus, Search } from 'lucide-react';
+import { Send, CheckCircle2, AlertCircle, RefreshCw, MessageCircle, X, Plus, Search, Bell } from 'lucide-react';
 import { ALERT_RED, SAFE_GREEN } from '../../../constants/colors.js';
 import { Card } from '../../shared/Card.jsx';
 import rawStores from '../../../data/raw/stores.json';
@@ -365,6 +365,40 @@ function AlertSend({ onSent, preFillStore, onPreFillConsumed }) {
                         </div>
                       )}
                       <div className="text-[11px] text-red-600">{s.error}</div>
+                    </div>
+                  )}
+                  {s.status === 'sent' && (
+                    <div className="mt-3 pt-3 border-t border-stone-100">
+                      <div className="text-[11px] font-bold text-stone-400 mb-2">발송된 카카오 피드카드 미리보기</div>
+                      {/* 카카오 피드카드 미니 시뮬레이터 */}
+                      <div className="rounded-xl overflow-hidden border border-stone-200 bg-white shadow-sm max-w-[320px]">
+                        {/* 카드 헤더 */}
+                        <div className="px-4 pt-3 pb-2.5 border-b border-stone-100">
+                          <div className="text-[15px] font-extrabold text-stone-950 leading-tight">
+                            {s.risk_cust === 'high' ? '🔴' : s.risk_cust === 'medium' ? '🟡' : '🟢'} {s.store_name || s.store_code} · 안전 가이드
+                          </div>
+                          <div className="text-[11px] text-stone-500 mt-1 leading-relaxed line-clamp-3">
+                            {s.guide_preview?.cust || s.guide_preview?.emp || '오늘의 안전가이드를 확인해주세요.'}
+                          </div>
+                        </div>
+                        {/* 이미지 플레이스홀더 */}
+                        <div className="w-full aspect-[4/3] bg-gradient-to-br from-stone-100 to-stone-200 flex flex-col items-center justify-center gap-1">
+                          <div className="w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center">
+                            <Bell size={20} className="text-stone-400" />
+                          </div>
+                          <span className="text-[10px] text-stone-400">안전가이드 이미지</span>
+                        </div>
+                        {/* 하단 버튼 */}
+                        <div className="border-t border-stone-100">
+                          <div className="w-full py-3 text-center text-[12px] font-bold text-stone-600">
+                            안전가이드 전체 보기
+                          </div>
+                        </div>
+                      </div>
+                      {/* S3 랜딩 링크 힌트 */}
+                      <div className="mt-2 text-[11px] text-stone-400 flex items-center gap-1">
+                        <span>버튼 탭 시 S3 랜딩페이지로 이동</span>
+                      </div>
                     </div>
                   )}
                 </div>
