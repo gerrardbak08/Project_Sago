@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Bell, Calendar, AlertCircle, ChevronRight, ChevronLeft, RefreshCw, X, AlertTriangle, Search, Menu, ArrowLeft, Home, ChevronDown, Send } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Line } from 'recharts';
 import { Card } from '../../shared/Card.jsx';
 
 // 이미지 URL 변환
@@ -334,6 +335,9 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
   const [selectedItem, setSelectedItem] = useState(null);
   const [refreshTick, setRefreshTick] = useState(0);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [showTrend, setShowTrend] = useState(false);
+  const [trendData, setTrendData] = useState(null);
+  const [trendLoading, setTrendLoading] = useState(false);
 
   const load = async (d) => {
     setLoading(true); setError(null); setResult(null); setActiveFilter('all');
@@ -357,6 +361,48 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
   };
 
   const handleLoad = () => load(date);
+
+  const loadTrend = async (days = 7) => {
+    setTrendLoading(true);
+    setTrendData(null);
+    const base = import.meta.env.VITE_ALERTS_URL
+      ? import.meta.env.VITE_ALERTS_URL.replace(/\/$/, '')
+      : `${import.meta.env.VITE_API_BASE ?? ''}/api/alerts`;
+
+    const dates = Array.from({ length: days }, (_, i) => {
+      const d = new Date(date);
+      d.setDate(d.getDate() - (days - 1 - i));
+      return d.toISOString().slice(0, 10);
+    });
+
+    const results = await Promise.all(
+      dates.map(d =>
+        fetch(`${base}/${d}`)
+          .then(r => r.ok ? r.json() : null)
+          .then(data => {
+            if (!data) return { date: d, total: 0, sent: 0, failed: 0, high: 0, successRate: 0 };
+            let parsed = data;
+            if (typeof data === 'object' && data !== null && typeof data.body === 'string') {
+              try { parsed = JSON.parse(data.body); } catch {}
+            }
+            const stores = Array.isArray(parsed) ? parsed : (parsed?.stores || []);
+            const total = stores.length;
+            const sent = stores.filter(s => s.delivery_status === 'sent').length;
+            const failed = stores.filter(s => s.delivery_status === 'failed').length;
+            const high = stores.filter(s => s.risk_score >= 0.7).length;
+            const successRate = total > 0 ? Math.round(sent / total * 100) : 0;
+            const label = d.slice(5).replace('-', '/');
+            return { date: d, label, total, sent, failed, high, successRate };
+          })
+          .catch(() => {
+            const label = d.slice(5).replace('-', '/');
+            return { date: d, label, total: 0, sent: 0, failed: 0, high: 0, successRate: 0 };
+          })
+      )
+    );
+    setTrendData(results);
+    setTrendLoading(false);
+  };
 
   // Sync with initialDate prop
   useEffect(() => {
@@ -422,6 +468,100 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
           {result && <span className="text-xs text-stone-500 ml-auto">{result.length}개 매장 결과</span>}
         </div>
       </Card>
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => {
+            if (!showTrend) { setShowTrend(true); loadTrend(7); }
+            else setShowTrend(false);
+          }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
+            showTrend
+              ? 'bg-stone-900 text-white border-stone-900'
+              : 'bg-white text-stone-500 border-stone-200 hover:border-stone-400'
+          }`}
+        >
+          📈 주간 트렌드
+        </button>
+        {showTrend && (
+          <div className="flex gap-1">
+            {[7, 14].map(d => (
+              <button
+                key={d}
+                onClick={() => loadTrend(d)}
+                className="px-2.5 py-1 rounded-full text-[11px] font-bold border border-stone-200 bg-white text-stone-500 hover:border-stone-400 cursor-pointer"
+              >
+                {d}일
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {showTrend && (
+        <Card title="주간 알림 트렌드" titleIcon={Bell}>
+          {trendLoading && (
+            <div className="flex items-center justify-center py-10 text-stone-400">
+              <RefreshCw size={14} className="animate-spin mr-2" /> 트렌드 데이터 로딩 중...
+            </div>
+          )}
+          {trendData && !trendLoading && (
+            <div className="space-y-4">
+              <div>
+                <div className="text-[11px] font-bold text-stone-400 mb-2">발송 현황 (매장 수)</div>
+                <ResponsiveContainer width="100%" height={160}>
+                  <ComposedChart data={trendData} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: 10, border: '1px solid #e7e5e4', fontSize: 11 }}
+                      formatter={(value, name) => [value, name === 'total' ? '총 발송' : name === 'high' ? '고위험' : '실패']}
+                      labelFormatter={label => `${label} 날짜`}
+                    />
+                    <Bar dataKey="total" name="total" fill="#d6d3d1" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                    <Bar dataKey="high" name="high" fill="#fca5a5" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                    <Line type="monotone" dataKey="successRate" name="성공률(%)" stroke="#34d399" strokeWidth={2} dot={{ r: 3, fill: '#34d399' }} yAxisId={0} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+                <div className="flex gap-4 justify-center mt-1">
+                  {[
+                    { color: '#d6d3d1', label: '총 발송' },
+                    { color: '#fca5a5', label: '고위험' },
+                    { color: '#34d399', label: '성공률(%)' },
+                  ].map(({ color, label }) => (
+                    <div key={label} className="flex items-center gap-1">
+                      <div className="w-2.5 h-2.5 rounded-sm" style={{ background: color }} />
+                      <span className="text-[10px] text-stone-500">{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-2 pt-2 border-t border-stone-100">
+                {(() => {
+                  const total = trendData.reduce((s, d) => s + d.total, 0);
+                  const sent = trendData.reduce((s, d) => s + d.sent, 0);
+                  const high = trendData.reduce((s, d) => s + d.high, 0);
+                  const failed = trendData.reduce((s, d) => s + d.failed, 0);
+                  return [
+                    { label: '총 발송', value: total, color: 'text-stone-900' },
+                    { label: '성공', value: sent, sub: total > 0 ? Math.round(sent / total * 100) + '%' : '-', color: 'text-emerald-700' },
+                    { label: '고위험', value: high, color: 'text-red-600' },
+                    { label: '실패', value: failed, color: 'text-stone-400' },
+                  ].map(({ label, value, sub, color }) => (
+                    <div key={label} className="text-center">
+                      <div className={`text-base font-extrabold tabular-nums ${color}`}>{value}</div>
+                      {sub && <div className="text-[10px] text-stone-400">{sub}</div>}
+                      <div className="text-[10px] text-stone-400 mt-0.5">{label}</div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
 
       {result && (
         <div className="grid grid-cols-4 gap-2">
