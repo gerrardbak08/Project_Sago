@@ -28,6 +28,13 @@ function resolveImageUrl(url) {
   return FRONTEND_BASE ? `${FRONTEND_BASE}/${path}` : `/${path}`;
 }
 
+// ─── 수신 확인 상태 레이블 ───────────────────────────────
+const ACK_LABEL = {
+  acknowledged: { text: '확인',  bg: 'bg-emerald-50', color: 'text-emerald-700', dot: '#15803D' },
+  viewed:       { text: '열람',  bg: 'bg-sky-50',     color: 'text-sky-700',     dot: '#0369A1' },
+  pending:      { text: '미확인', bg: 'bg-stone-50',  color: 'text-stone-400',   dot: '#a8a29e' },
+};
+
 // ─── 카카오톡 채팅창 스타일 ──────────────────────────────
 function KakaoChat({ channelName, channelEmail, storeName, date, cases, showImages = true }) {
   const [idx, setIdx] = useState(0);
@@ -338,9 +345,57 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
   const [showTrend, setShowTrend] = useState(false);
   const [trendData, setTrendData] = useState(null);
   const [trendLoading, setTrendLoading] = useState(false);
+  const [ackMap, setAckMap] = useState({});
+
+  const ACK_BASE = import.meta.env.VITE_FRONTEND_URL
+    ? import.meta.env.VITE_FRONTEND_URL.replace(/\/$/, '')
+    : '';
+
+  const loadAck = async (stores) => {
+    if (!ACK_BASE || !stores?.length) return;
+    const entries = await Promise.all(
+      stores.map(s =>
+        fetch(`${ACK_BASE}/alert_state/${s.store_code}.json`)
+          .then(r => r.ok ? r.json() : null)
+          .then(d => [s.store_code, d?.ack_status ?? null])
+          .catch(() => [s.store_code, null])
+      )
+    );
+    setAckMap(Object.fromEntries(entries));
+  };
+
+  const exportCsv = (dt, data, ackMapData) => {
+    const headers = ['날짜', '매장코드', '매장명', '지역', '위험점수', '위험등급', '발송상태', '고객위험유형', '직원위험유형', '확인상태'];
+    const rows = data.map(s => {
+      const score = s.risk_score != null ? Math.round(s.risk_score * 100) : '';
+      const grade = s.risk_score >= 0.7 ? '고위험' : s.risk_score >= 0.4 ? '중위험' : '저위험';
+      const ackStatus = ACK_LABEL[ackMapData[s.store_code]]?.text ?? '미확인';
+      return [
+        dt,
+        s.store_code ?? '',
+        s.store_name ?? '',
+        s.region ?? '',
+        score,
+        grade,
+        s.delivery_status === 'sent' ? '성공' : s.delivery_status === 'failed' ? '실패' : '',
+        s['주요_위험유형_cust'] || s.dominant_type_cust || '',
+        s['주요_위험유형_emp'] || s.dominant_type_emp || '',
+        ackStatus,
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+    });
+    const bom = '﻿';
+    const csv = bom + [headers.join(','), ...rows].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sago_alert_${dt}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const load = async (d) => {
-    setLoading(true); setError(null); setResult(null); setActiveFilter('all');
+    setLoading(true); setError(null); setResult(null); setActiveFilter('all'); setAckMap({});
     try {
       const base = import.meta.env.VITE_ALERTS_URL
         ? import.meta.env.VITE_ALERTS_URL.replace(/\/$/, '')
@@ -352,7 +407,9 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
       if (typeof data === 'object' && data !== null && typeof data.body === 'string') {
         try { parsed = JSON.parse(data.body); } catch {}
       }
-      setResult(Array.isArray(parsed) ? parsed : parsed?.stores || []);
+      const arr = Array.isArray(parsed) ? parsed : parsed?.stores || [];
+      setResult(arr);
+      loadAck(arr);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -465,7 +522,17 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
             className="h-8 px-4 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold cursor-pointer flex items-center gap-1.5 disabled:opacity-50">
             {loading ? <RefreshCw size={12} className="animate-spin" /> : <Bell size={12} />} 조회
           </button>
-          {result && <span className="text-xs text-stone-500 ml-auto">{result.length}개 매장 결과</span>}
+          {result && (
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-xs text-stone-500">{result.length}개 매장 결과</span>
+              <button
+                onClick={() => exportCsv(date, result, ackMap)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-stone-200 hover:bg-stone-50 text-stone-500 text-[11px] font-semibold cursor-pointer"
+              >
+                ↓ CSV
+              </button>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -564,7 +631,7 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
       )}
 
       {result && (
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-5 gap-2">
           {[
             { label: "총 발송", value: result.length, color: "text-stone-900", bg: "bg-white" },
             {
@@ -584,6 +651,15 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
               label: "실패",
               value: result.filter(s => s.delivery_status === 'failed').length,
               color: "text-stone-500", bg: "bg-stone-50"
+            },
+            {
+              label: "확인률",
+              value: (() => {
+                const total = result.filter(s => s.delivery_status === 'sent').length;
+                const acked = result.filter(s => ['acknowledged', 'viewed'].includes(ackMap[s.store_code])).length;
+                return total > 0 ? Math.round(acked / total * 100) + '%' : '-';
+              })(),
+              color: "text-sky-700", bg: "bg-sky-50"
             },
           ].map(({ label, value, sub, color, bg }) => (
             <div key={label} className={`rounded-xl ${bg} border border-stone-100 p-3 text-center`}>
@@ -665,6 +741,17 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
                             ? <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 border border-red-200 text-red-700">✗ 발송 실패</span>
                             : null
                         }
+                        {(() => {
+                          const ack = ackMap[s.store_code];
+                          const meta = ACK_LABEL[ack];
+                          if (!meta || s.delivery_status !== 'sent') return null;
+                          return (
+                            <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold ${meta.bg} ${meta.color}`}>
+                              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: meta.dot }} />
+                              {meta.text}
+                            </span>
+                          );
+                        })()}
                       </div>
                       <div className="text-[11px] text-stone-500 mt-1">{s.region}</div>
                       {/* 위험유형 */}
