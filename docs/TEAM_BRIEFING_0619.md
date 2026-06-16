@@ -1,8 +1,8 @@
 # SAGO AI — 팀 브리핑 (2026-06-19)
 
-> **대상**: 팀원 + 외부 매니저  
-> **목적**: 프로젝트 현황 공유 + 고도화 과제 합의  
-> **GitHub**: https://github.com/gerrardbak08/Project_Sago  
+> **대상**: 팀원 + 외부 매니저 (GS네오택)
+> **목적**: 프로젝트 현황 공유 + 고도화 과제 합의
+> **GitHub**: https://github.com/gerrardbak08/Project_Sago
 > **대시보드**: http://daiso-safety-v1-frontend.s3-website.ap-northeast-2.amazonaws.com
 
 ---
@@ -126,33 +126,75 @@
 
 ---
 
-## 5. 외부 매니저 온보딩
+## 5. GS네오택 역할 정의
+
+### 핵심 미션: ML 모델 정합성 확보
+
+지금 시스템의 **가장 큰 구조적 문제**는 위험점수 3축 중 S1이 역방향으로 작동한다는 것입니다. 위험할수록 점수가 낮게 나오고 있고, S2 혼자 변별력을 감당하고 있습니다. GS네오택이 이 문제를 해결하는 것이 최우선입니다.
+
+### 구체적 과제 (우선순위 순)
+
+#### 1순위 — S1 역변별 근본 해결
+
+- `core/rule_enrichment.py` → 리프 노드별 위험 레벨 매핑 오류 원인 분석
+- `processed/incidents_cust.csv`, `incidents_emp.csv` 기반 정합성 재검증
+- 해결 시 기대 효과: AUC 0.845 → 0.88+ 상승 + S1·S2·S3 균형 있는 변별력
+
+#### 2순위 — 데이터 품질 검증
+
+- 현재 학습 데이터 1,929건(고객 1,481 + 직원 448)의 라벨링 정확도 검토
+- 비사고(negative) 샘플 구성 방식 재검토 (`scripts/build_non_incidents.py`)
+- 사고 유형 분류 기준 통일 여부 확인
+
+#### 3순위 — 모델 고도화
+
+- 현재 로지스틱 회귀 기반 → XGBoost / LightGBM 등 앙상블 비교 실험
+- Cross-leaf kNN 재정렬 파라미터 최적화
+- 물동량 피처 신뢰도 확보 (현재 추정값 → 실 데이터 연동 후 재학습)
+
+### 역할 경계
+
+| 구분 | 내용 |
+|------|------|
+| **GS네오택 담당** | S1 정합성 분석, 모델 실험, 데이터 품질 검증 |
+| **Gerrard팀 유지** | 비즈니스 로직 결정, LLM 가이드 방향, 알림 UX, 배포 |
+| **공동** | AUC 평가 기준 합의, 파일럿 발송 결과 해석 |
+
+---
+
+## 6. GS네오택 온보딩
 
 ```
-1. 대시보드 URL 공유 + 계정 설정
-   → http://daiso-safety-v1-frontend.s3-website.ap-northeast-2.amazonaws.com
-
-2. GitHub 저장소 접근 권한 요청
+1. GitHub Collaborator 초대
    → https://github.com/gerrardbak08/Project_Sago
 
-3. docs/MANAGER_HANDOFF.md 숙지
+2. docs/MANAGER_HANDOFF.md 숙지
    → 아키텍처, 파일 지도, 절대 규칙, Claude 에이전트 활용법
 
-4. .env 템플릿 공유 (카카오 API 키 등 별도 전달)
+3. .env 템플릿 공유 (카카오 API 키 등 별도 전달)
 
-5. 첫 작업 전 한 마디:
-   ".claude/HANDOFF.md 읽어줘" → Claude가 현황 즉시 파악
+4. 절대 규칙 숙지
+   → processed/*.csv 수정 금지
+   → 배포는 ./deploy.sh 만
+   → core/llm.py 구조 변경 시 Gerrard와 합의 필수
+
+5. 첫 작업 전 실행
+   python3 scripts/simulate_triggers.py --source cust --evaluate
+   → AUC 0.845 재현 확인 후 S1 분석 시작
+
+6. Claude와 협업 시 첫 마디:
+   ".claude/HANDOFF.md 읽어줘" → 현황 즉시 파악
 ```
 
 ---
 
-## 6. 미팅 합의 체크리스트
+## 7. 미팅 합의 체크리스트
 
+- [ ] GS네오택 역할 범위 최종 확정
 - [ ] 파일럿 매장 선정 기준 및 대상
 - [ ] IT 본부 API 연동 담당자 + 일정
 - [ ] 산재 승인 DB 데이터 접근 방법
 - [ ] 알림 효과 측정 KPI 정의
-- [ ] 외부 매니저 역할 분담 (ML? 프론트? 운영?)
 - [ ] 다음 마일스톤 날짜
 
 ---
