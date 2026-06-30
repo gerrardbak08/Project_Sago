@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Bell, Calendar, AlertCircle, ChevronRight, ChevronLeft, RefreshCw, X, AlertTriangle, Search, Menu, ArrowLeft, Home, ChevronDown, Send } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Line } from 'recharts';
 import { Card } from '../../shared/Card.jsx';
+import { Odometer } from '../../shared/MotionBits.jsx';
 
 // 이미지 URL 변환
 const FRONTEND_BASE = import.meta.env.VITE_FRONTEND_URL
@@ -618,7 +619,9 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
                     { label: '실패', value: failed, color: 'text-stone-400' },
                   ].map(({ label, value, sub, color }) => (
                     <div key={label} className="text-center">
-                      <div className={`text-base font-extrabold tabular-nums ${color}`}>{value}</div>
+                      <div className={`text-base font-extrabold tabular-nums ${color}`}>
+                        {typeof value === 'number' ? <Odometer value={value} /> : value}
+                      </div>
                       {sub && <div className="text-[10px] text-stone-400">{sub}</div>}
                       <div className="text-[10px] text-stone-400 mt-0.5">{label}</div>
                     </div>
@@ -663,7 +666,9 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
             },
           ].map(({ label, value, sub, color, bg }) => (
             <div key={label} className={`rounded-xl ${bg} border border-stone-100 p-3 text-center`}>
-              <div className={`text-xl font-extrabold tabular-nums ${color}`}>{value}</div>
+              <div className={`text-xl font-extrabold tabular-nums ${color}`}>
+                {typeof value === 'number' ? <Odometer value={value} /> : value}
+              </div>
               {sub && <div className="text-[10px] text-stone-400 font-semibold">{sub}</div>}
               <div className="text-[10px] text-stone-500 mt-0.5 font-semibold">{label}</div>
             </div>

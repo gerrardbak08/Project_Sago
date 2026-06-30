@@ -73,6 +73,9 @@ function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
   const periodCount = yearFilter === "all" ? k.total : (yearFilter === "2024" ? k.y2024 : yearFilter === "2025" ? k.y2025 : k.y2026);
   const periodSudo = yearFilter === "all" ? k.sudo : yearlyFiltered.reduce((s,y)=>s+y.s,0);
   const periodJibang = yearFilter === "all" ? k.jibang : yearlyFiltered.reduce((s,y)=>s+y.j,0);
+  const cPeriodCount  = useCountUp(periodCount,  1200, kpiInView);
+  const cPeriodSudo   = useCountUp(periodSudo,   1200, kpiInView);
+  const cPeriodJibang = useCountUp(periodJibang, 1200, kpiInView);
   const bumPie = [{ name: "수도권", value: periodSudo, color: BL }, { name: "지방", value: periodJibang, color: OR }, { name: "기타", value: periodCount - periodSudo - periodJibang, color: GR }];
   const proj = D.projection ?? {};
   const submitRate = pct(k.submitted, k.submitted + k.not_submitted);
@@ -291,9 +294,9 @@ function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
       {/* === 4-KPI 메인 스트립 (실적) === */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" ref={kpiGridRef}>
         {[
-          { l: "총 사고건수", v: fmt(yearFilter === "all" ? countKTotal : periodCount), s: yearFilter === "all" ? `'24년 ${countTotal2024}건 · '25년 ${countTotal2025}건 · '26년 ${countTotal2026}건` : `${yearFilter}년 단독`, Icon: AlertTriangle, delta: yearFilter === "all" ? yoyPct : null, deltaLabel: "'24→'25 전년대비:", yearBars: yearFilter === "all" ? [{ yr:"2024", v:countTotal2024, color:"#A8A29E" }, { yr:"2025", v:countTotal2025, color:DAISO_RED }, { yr:"2026(현)", v:countTotal2026, color:"#78716C" }] : null, sparklineData: [k.y2024, k.y2025, k.y2026].filter(n => n != null) },
-          { l: "수도권", v: fmt(yearFilter === "all" ? countKSudo : periodSudo), s: `전체 ${pct(periodSudo, periodCount)}%`, Icon: Building2 },
-          { l: "지방", v: fmt(yearFilter === "all" ? countKJibang : periodJibang), s: `전체 ${pct(periodJibang, periodCount)}%`, Icon: MapIcon },
+          { l: "총 사고건수", v: fmt(yearFilter === "all" ? countKTotal : cPeriodCount), s: yearFilter === "all" ? `'24년 ${countTotal2024}건 · '25년 ${countTotal2025}건 · '26년 ${countTotal2026}건` : `${yearFilter}년 단독`, Icon: AlertTriangle, delta: yearFilter === "all" ? yoyPct : null, deltaLabel: "'24→'25 전년대비:", yearBars: yearFilter === "all" ? [{ yr:"2024", v:countTotal2024, color:"#A8A29E" }, { yr:"2025", v:countTotal2025, color:DAISO_RED }, { yr:"2026(현)", v:countTotal2026, color:"#78716C" }] : null, sparklineData: [k.y2024, k.y2025, k.y2026].filter(n => n != null) },
+          { l: "수도권", v: fmt(yearFilter === "all" ? countKSudo : cPeriodSudo), s: `전체 ${pct(periodSudo, periodCount)}%`, Icon: Building2 },
+          { l: "지방", v: fmt(yearFilter === "all" ? countKJibang : cPeriodJibang), s: `전체 ${pct(periodJibang, periodCount)}%`, Icon: MapIcon },
           { l: "2026 연 예측", v: `${proj.low ?? "—"}~${proj.high ?? "—"}`, s: `중간값 ${proj.center ?? "—"}건 · 95% CI`, Icon: TrendingUp },
         ].map((c, i) => (
           <div key={i}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Send, CheckCircle2, AlertCircle, RefreshCw, MessageCircle, X, Plus, Search, Bell } from 'lucide-react';
 import { ALERT_RED, SAFE_GREEN } from '../../../constants/colors.js';
 import { Card } from '../../shared/Card.jsx';
+import { Odometer } from '../../shared/MotionBits.jsx';
 import rawStores from '../../../data/raw/stores.json';
 import { track, ALERT_SEND_SUBMITTED, ALERT_SEND_RESULT } from '../../../utils/analytics.js';
 
@@ -582,7 +583,9 @@ function AlertSend({ onSent, preFillStore, onPreFillConsumed }) {
               ].map(({ label, value, color }) => (
                 <div key={label} className="rounded-lg bg-stone-50 border border-stone-200 p-2.5 text-center">
                   <div className="text-[10px] text-stone-500 font-semibold uppercase">{label}</div>
-                  <div className="text-xl font-extrabold tabular-nums mt-0.5" style={{ color }}>{value}</div>
+                  <div className="text-xl font-extrabold tabular-nums mt-0.5" style={{ color }}>
+                    {typeof value === 'number' ? <Odometer value={value} /> : (value ?? '-')}
+                  </div>
                 </div>
               ))}
             </div>

@@ -9,6 +9,7 @@ import { gradientCells } from '../../../components/shared/ChartHelpers.jsx';
 import { CUST_AMBER, CUST_BLUE, CUST_TEAL, TYPE_COLOR } from '../../../constants/customerColors.js';
 import { yearKey, compKey, cFilter } from '../../../utils/customerHelpers.js';
 import CUSTOMER_DATA from '../../../data/customerData.js';
+import { useCountUp, useInView } from '../../../utils/motion.js';
 
 function CDept({ D }) {
   const [selBumun, setSelBumun] = useState("전체");
@@ -23,12 +24,19 @@ function CDept({ D }) {
                        : selBumun === "전체" ? D.teams : D.teams.filter(t => t.bumun === selBumun))
                        .slice().sort((a,b) => b._show - a._show);
 
+  // ── 부문 KPI 카운트업 ──────────────────────────────────────
+  const bumunRef = useRef(null);
+  const bumunInView = useInView(bumunRef);
+  const cu_b0 = useCountUp(D.bumun[0]?._show ?? 0, 900, bumunInView);
+  const cu_b1 = useCountUp(D.bumun[1]?._show ?? 0, 900, bumunInView);
+  const cuBumun = [cu_b0, cu_b1];
+
   return (
     <div className="space-y-3 sm:space-y-4">
       {/* 부문(수도권/지방) */}
       <Card title="부문별 현황" titleIcon={Building2} sub={`${yrLabel} 수도권 vs 지방 비교`}
         right={<ExportBtn rows={D.bumun.map(b=>({부문:b.bumun,건수:b._show,보상합계:b._comp,...(D._yr ? {"보상건수(전체기간)":b.comp_count} : {보상건수:b.comp_count})}))} filename={`고객사고_부문_${yrLabel}.csv`}/>}>
-        <div className="grid grid-cols-2 gap-3">
+        <div ref={bumunRef} className="grid grid-cols-2 gap-3">
           {D.bumun.map((b,i) => {
             const ratio = D.bumun.reduce((s,x)=>s+x._show,0) > 0 ? (b._show/D.bumun.reduce((s,x)=>s+x._show,0)*100).toFixed(1) : 0;
             return (
@@ -39,7 +47,7 @@ function CDept({ D }) {
                   <span className="text-xs text-stone-400">{ratio}%</span>
                 </div>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-bold tabular-nums" style={{color: i===0 ? CUST_BLUE : CUST_AMBER}}>{b._show.toLocaleString()}</span>
+                  <span className="text-3xl font-bold tabular-nums" style={{color: i===0 ? CUST_BLUE : CUST_AMBER}}>{(cuBumun[i] ?? 0).toLocaleString()}</span>
                   <span className="text-xs text-stone-400">건</span>
                 </div>
                 <div className="text-xs text-stone-500 mt-1.5">보상 {(b._comp/100000000).toFixed(1)}억원{D._yr ? ` (${yrLabel})` : ""} · {b.comp_count}건{D._yr ? " (전체기간)" : ""}</div>

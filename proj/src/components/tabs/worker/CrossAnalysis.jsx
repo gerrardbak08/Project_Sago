@@ -4,7 +4,7 @@ import { Activity, AlertCircle, MapPin, AlertTriangle, Banknote, BarChart3, Bell
 import { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, BL, OR, NV, GR, RD, GN, PR, AM, PAL, CANVAS, rankColor } from '../../../constants/colors.js';
 import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN } from '../../../constants/metrics.js';
 import { pct, fmt, fmtKrw, TT, EmptyState } from '../../../utils/uiHelpers.jsx';
-import { useInView } from '../../../utils/motion.js';
+import { useCountUp, useInView } from '../../../utils/motion.js';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card, EstimateBadge } from '../../../components/shared/Card.jsx';
 import { CalcTip, HeatmapGrid, BarRank, Matrix } from '../../../components/shared/ChartHelpers.jsx';
@@ -30,6 +30,10 @@ function CrossAnalysis({ D, yearFilter }) {
   const genderInView = useInView(genderRef);
   const [kwExpanded, setKwExpanded] = useState(false);
   useEffect(() => { setKwExpanded(false); }, [yearFilter]);
+
+  // ── 기인물 도넛 총건수 카운트업 ───────────────────────────
+  const causeTotalRaw = Object.values(D.cause || {}).reduce((s, v) => s + v, 0);
+  const cu_causeTotal = useCountUp(causeTotalRaw, 900, causeInView);
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -84,7 +88,7 @@ function CrossAnalysis({ D, yearFilter }) {
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <div className="text-center leading-none">
-                        <div className="text-xl font-extrabold text-[#071E4A]">{causeTotal}</div>
+                        <div className="text-xl font-extrabold text-[#071E4A]">{cu_causeTotal}</div>
                         <div className="text-[10px] text-stone-500 font-medium mt-0.5">건</div>
                       </div>
                     </div>

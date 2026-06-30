@@ -3,7 +3,7 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { AlertCircle, MapPin, AlertTriangle, Banknote, BarChart3, Building, Calendar, CheckCircle2, FileText, Info, Lightbulb, Lock, Scale, Search, ShieldCheck, Store, Tag, TrendingUp, Unlock, UserCircle, Users, X, Download, ChevronRight } from 'lucide-react';
 import { CUSTOMER_BLUE, DEEP_BLUE, DAISO_RED, ALERT_RED, SAFE_GREEN, BL, OR, GR, AM, INK } from '../../../constants/colors.js';
 import { pct, fmt, fmtKrw, TT, EmptyState } from '../../../utils/uiHelpers.jsx';
-import { useInView } from '../../../utils/motion.js';
+import { useCountUp, useInView } from '../../../utils/motion.js';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card } from '../../../components/shared/Card.jsx';
 import { gradientCells } from '../../../components/shared/ChartHelpers.jsx';
@@ -33,6 +33,12 @@ function CVictim({ D }) {
   const malePct   = D.kpis.male   / gTotal;
   const R_G   = 54;
   const CIRC_G = 2 * Math.PI * R_G; // ≈339.29
+
+  // ── 성별 분포 카운트업 ─────────────────────────────────────
+  const cu_gTotal    = useCountUp(D.kpis.female + D.kpis.male, 900, genderInView);
+  const cu_femalePct = useCountUp(D.kpis.female + D.kpis.male > 0 ? Math.round(D.kpis.female / gTotal * 100) : 0, 900, genderInView);
+  const cu_malePct   = useCountUp(D.kpis.female + D.kpis.male > 0 ? Math.round(D.kpis.male   / gTotal * 100) : 0, 900, genderInView);
+  const cuGenderPct  = [cu_femalePct, cu_malePct];
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -92,7 +98,7 @@ function CVictim({ D }) {
               {/* 중앙 텍스트 */}
               <text x="70" y="63" textAnchor="middle" fontSize="11" fill="#78716C">총</text>
               <text x="70" y="81" textAnchor="middle" fontSize="22" fontWeight="700" fill="#1C1917">
-                {D.kpis.female + D.kpis.male}
+                {cu_gTotal}
               </text>
               <text x="70" y="95" textAnchor="middle" fontSize="11" fill="#78716C">명</text>
             </svg>
@@ -101,12 +107,12 @@ function CVictim({ D }) {
               {[
                 {label:'여성', n:D.kpis.female, color:CUST_ROSE},
                 {label:'남성', n:D.kpis.male,   color:CUST_BLUE},
-              ].map(s => (
+              ].map((s, idx) => (
                 <div key={s.label} className="flex items-center gap-2 min-h-[44px]">
                   <div className="w-3 h-3 rounded-full flex-shrink-0" style={{background:s.color}}/>
                   <span className="text-sm text-stone-600 w-8 break-keep">{s.label}</span>
                   <span className="text-base font-bold tabular-nums" style={{color:s.color}}>
-                    {(D.kpis.female + D.kpis.male) > 0 ? (s.n / gTotal * 100).toFixed(0) : 0}%
+                    {cuGenderPct[idx]}%
                   </span>
                   <span className="text-xs text-stone-400">({s.n}명)</span>
                 </div>
