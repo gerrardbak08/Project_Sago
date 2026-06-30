@@ -106,6 +106,37 @@ const _INIT_HASH_PARAMS = (() => {
 const NONAUTO_TABS = new Set(['human', 'riskmap', 'severity', 'parjang']);
 const NONAUTO_NOTE = '인적속성(연령·성별·고용)·매장좌표·실비용(KRW)·상병명은 라이브 시트에 없어 수동 업로드/추정값입니다. 시트 갱신으로 자동 반영되지 않습니다.';
 
+// ── 데이터 머지 헬퍼 ──────────────────────────────────────
+// 라이브(buildWorkerDataFromLive)가 채운 섹션은 라이브(최신 rows 기준),
+// workers=null 이라 비어 있는 근로자 파생 섹션(IR·인적·성별·연령·상병·비용 등)은
+// base(정적 May) 로 폴백한다.
+const _isEmpty = (v) =>
+  v == null ||
+  (Array.isArray(v) && v.length === 0) ||
+  (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0);
+
+function mergeLiveOntoStatic(live, base) {
+  if (!live) return base;
+  const out = { ...base };
+  for (const k of Object.keys(live)) {
+    const lv = live[k];
+    if (_isEmpty(lv)) continue; // 라이브가 비운 섹션 → base 유지(근로자 파생)
+    if (k === 'kpis' && lv && base && base.kpis) {
+      // 건수계 kpi(total/yearly/monthly 등)는 라이브, 근로자계(cost/loss_days 등
+      // 라이브가 null)는 base 유지
+      const mk = { ...base.kpis };
+      for (const kk of Object.keys(lv)) {
+        const v = lv[kk];
+        if (v != null && !(typeof v === 'number' && Number.isNaN(v))) mk[kk] = v;
+      }
+      out.kpis = mk;
+    } else {
+      out[k] = lv;
+    }
+  }
+  return out;
+}
+
 function App() {
   injectDashCss();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
@@ -219,8 +250,11 @@ function App() {
         if (basisRef.current === 'approval') {
           const built = buildWorkerDataFromLive(snap.rows, RAW_STORES.data, { basis: 'approval', approvalIds: liveRef.current.approvalIds });
           if (built && built.kpis) setData(built);
+        } else {
+          // basis === 'incident': 최신 라이브 rows 로 머지 갱신 (건수계 최신화)
+          const liveInc = buildWorkerDataFromLive(snap.rows, RAW_STORES.data, { basis: 'incident' });
+          setData(mergeLiveOntoStatic(liveInc, DEFAULT_DATA));
         }
-        // basis === 'incident' → rich 정적 DEFAULT_DATA 유지, setData 하지 않음
       })
       .catch((e) => { console.warn('[live] 로드 실패, 스냅샷 데이터 유지:', e?.message); });
     return () => { alive = false; };
@@ -233,7 +267,14 @@ function App() {
     basisRef.current = basis;
     if (accidentFileName || storeFileName || workerFileName) return; // 업로드 보호
     if (basis === 'incident') {
-      setData(DEFAULT_DATA);
+      // 사고경위: baked 스냅샷(liveRef 이미 LIVE_SNAPSHOT 으로 시드)으로 머지
+      // 근로자 파생 섹션(IR·인적·성별·연령·상병·비용)은 base(정적 May) 폴백 유지
+      const liveInc = buildWorkerDataFromLive(
+        liveRef.current.rows,
+        RAW_STORES.data,
+        { basis: 'incident' }
+      );
+      setData(mergeLiveOntoStatic(liveInc, DEFAULT_DATA));
       return;
     }
     // basis === 'approval'
