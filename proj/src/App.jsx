@@ -20,7 +20,7 @@ import { TABS_VIEWER, HUB_LABELS, ALERT_TABS, TAB_GROUPS } from './constants/tab
 import { pct, fmt, fmtKrw, TT, EmptyState } from './utils/uiHelpers.jsx';
 import { injectDashCss } from './utils/motion.js';
 import { track, TAB_VIEWED } from './utils/analytics.js';
-import { ExportBtn, XlsxBtn, ImageBtn } from './utils/exportUtils.jsx';
+import { ExportBtn, XlsxBtn } from './utils/exportUtils.jsx';
 import { ReportModal } from './components/shared/ReportModal.jsx';
 import { DataSearchModal } from './components/shared/DataSearchModal.jsx';
 import { getFilteredData }    from './utils/filterData.js';
@@ -570,7 +570,6 @@ function App() {
               <option value="safety">안전보건팀</option>
             </select>
             {dashMode === "worker" && <XlsxBtn D={dataFiltered} filename={`사고현황_${basis === 'approval' ? '산재승인' : '사고경위'}_요약.xlsx`} />}
-            {dashMode === "worker" && <ImageBtn targetId="dashboard-capture" filename={`사고현황_${basis === 'approval' ? '산재승인' : '사고경위'}.png`} />}
             {dashMode === "worker" && <button onClick={() => setShowSearch(true)} className="h-9 sm:h-7 px-2.5 rounded-md border border-stone-300 text-xs font-medium text-stone-700 bg-white hover:bg-stone-50 cursor-pointer flex items-center gap-1 transition active:opacity-75"><Search size={12} strokeWidth={2} /> 조회</button>}
             {dashMode === "worker" && <button onClick={() => setShowReport(true)} className="h-9 sm:h-7 px-2.5 rounded-md text-white text-xs font-semibold cursor-pointer flex items-center gap-1 transition active:opacity-75" style={{background:"#002B6D"}}><FileText size={12} strokeWidth={2} /> 보고서</button>}
           </div>
