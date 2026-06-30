@@ -61,6 +61,7 @@ import RepeatStores      from './components/tabs/worker/RepeatStores.jsx';
 import SeverityAnalysis  from './components/tabs/worker/SeverityAnalysis.jsx';
 import SevereStores      from './components/tabs/worker/SevereStores.jsx';
 import ParjangDashboard  from './components/tabs/worker/ParjangDashboard.jsx';
+import RawDbViewer       from './components/tabs/worker/RawDbViewer.jsx';
 
 // ── TabErrorBoundary ───────────────────────────────────
 class TabErrorBoundary extends Component {
@@ -721,6 +722,7 @@ function App() {
             {tab === "parjang" && <ParjangDashboard D={dataFiltered} yearFilter={yearFilter} />}
             {tab === "cost" && <CostRisk D={dataFiltered} allYearly={data.yearly} yearFilter={yearFilter} basis={basis} />}
             {tab === "legal" && <LegalReporting D={dataFiltered} yearFilter={yearFilter} allYearly={data.yearly} rawKind={data.kind} basis={basis} />}
+            {tab === "rawdb" && <RawDbViewer rows={LIVE_SNAPSHOT.rows} approvalRows={LIVE_SNAPSHOT.approvalRows} sheetUrl="https://docs.google.com/spreadsheets/d/1pWfoDWXSowQRHBbIiVDgEd_0oK2XcFxtG4R5Kryvfus/edit" />}
           </TabErrorBoundary>
         </div>
       </div>

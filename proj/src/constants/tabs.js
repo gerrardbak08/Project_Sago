@@ -1,4 +1,4 @@
-import { Activity, AlertCircle, MapPin, AlertTriangle, Banknote, BarChart3, Bell, Bone, Briefcase, Building, Building2, Calendar, CheckCircle2, Circle, ClipboardList, FileText, Flame, Folder, GitBranch, Info, Lightbulb, Lock, Map as MapIcon, Package, Pin, RefreshCw, Rocket, Ruler, Scale, Search, ShieldCheck, Siren, Smartphone, Store, Tag, Target, TrendingUp, Trophy, Unlock, UserCircle, Users, X, LayoutDashboard, Stethoscope, Download, ChevronRight, Eye, Send, ScanSearch } from 'lucide-react';
+import { Activity, AlertCircle, MapPin, AlertTriangle, Banknote, BarChart3, Bell, Bone, Briefcase, Building, Building2, Calendar, CheckCircle2, Circle, ClipboardList, Database, FileText, Flame, Folder, GitBranch, Info, Lightbulb, Lock, Map as MapIcon, Package, Pin, RefreshCw, Rocket, Ruler, Scale, Search, ShieldCheck, Siren, Smartphone, Store, Tag, Target, TrendingUp, Trophy, Unlock, UserCircle, Users, X, LayoutDashboard, Stethoscope, Download, ChevronRight, Eye, Send, ScanSearch } from 'lucide-react';
 
 import { DAISO_RED } from './colors.js';
 
@@ -17,6 +17,7 @@ const TABS_VIEWER = [
   { id: "severestore", l: "중상해 매장", short: "중상해", Icon: AlertTriangle, hub: 5 },
   { id: "legal", l: "법적 보고", short: "법적", Icon: Scale, hub: 5 },
   { id: "cost", l: "비용 손실", short: "비용", Icon: Banknote, hub: 5 },
+  { id: "rawdb", l: "사고원본DB", short: "원본DB", Icon: Database, hub: 6 },
 ];
 
 const HUB_LABELS = {
@@ -25,6 +26,7 @@ const HUB_LABELS = {
   3: { name: "지역", color: "#0891B2" },
   4: { name: "추세·분석", color: "#B45309" },
   5: { name: "리스크 관리", color: DAISO_RED },
+  6: { name: "원본데이터", color: "#475569" },
 };
 
 // ── 관리자 전용 알림 탭 ──
@@ -53,6 +55,7 @@ const TAB_GROUPS = [
   { id: 'g_human',   l: '인적·심각도', short: '인적', Icon: Stethoscope,     subs: ['human', 'severity', 'severestore'] },
   { id: 'g_risk',    l: '재발·손실',   short: '손실', Icon: Siren,           subs: ['repeat', 'repeatstore', 'cost'] },
   { id: 'g_legal',   l: '법적·산재',   short: '법적', Icon: Scale,           subs: ['legal'] },
+  { id: 'g_rawdb',   l: '사고원본DB',  short: '원본DB', Icon: Database,      subs: ['rawdb'] },
 ];
 
 export { TABS_VIEWER, HUB_LABELS, CTABS, ALERT_TABS, TAB_GROUPS };
