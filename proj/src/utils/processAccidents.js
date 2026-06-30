@@ -332,6 +332,46 @@ function processAccidents(rows, storesData, workersData) {
     ? Math.round(kpis.loss_days_total / kpis.loss_days_count * 10) / 10
     : 0;
 
+  // 중상해(근로손실 91일 이상) 실측 — 상병명 추정이 아닌 loss_days 기반
+  const severeRows91 = all.filter(x => (x.loss_days || 0) >= 91);
+  const severeStoreMap = {};
+  for (const x of severeRows91) {
+    const sk = x.store || "정보 없음";
+    const e = severeStoreMap[sk] || { store: sk, dept: x.dept, team: x.team, count: 0, lossDays: 0, maxDays: 0, recentDate: null, topType: null };
+    e.count++; e.lossDays += (x.loss_days || 0);
+    if ((x.loss_days || 0) >= e.maxDays) { e.maxDays = x.loss_days || 0; e.topType = x.type; }
+    const ds = x.date ? x.date.toISOString().slice(0, 10) : null;
+    if (ds && (!e.recentDate || ds > e.recentDate)) e.recentDate = ds;
+    severeStoreMap[sk] = e;
+  }
+  const severe91 = {
+    total: severeRows91.length,
+    y2024: severeRows91.filter(x => x.year === 2024).length,
+    y2025: severeRows91.filter(x => x.year === 2025).length,
+    y2026: severeRows91.filter(x => x.year === 2026).length,
+    loss_days_total: Math.round(severeRows91.reduce((s, x) => s + (x.loss_days || 0), 0)),
+    stores: Object.values(severeStoreMap).sort((a, b) => b.maxDays - a.maxDays),
+  };
+
+  // 반복사고 매장 (동일 매장 2건 이상) — newjuna 차용
+  const rsMap = {};
+  for (const x of all) {
+    if (!x.store) continue;
+    const e = rsMap[x.store] || { store: x.store, dept: x.dept, team: x.team, count: 0, recentDate: null, types: {} };
+    e.count += 1;
+    const rd = x.date ? x.date.toISOString().slice(0, 10) : null;
+    if (rd && (!e.recentDate || rd > e.recentDate)) e.recentDate = rd;
+    e.types[x.type] = (e.types[x.type] || 0) + 1;
+    rsMap[x.store] = e;
+  }
+  const rsList = Object.values(rsMap)
+    .filter(e => e.count >= 2)
+    .map(e => ({ ...e, topType: Object.entries(e.types).sort((a, b) => b[1] - a[1])[0]?.[0] || null }))
+    .sort((a, b) => b.count - a.count);
+  const rsByDept = {};
+  for (const e of rsList) rsByDept[e.dept || '정보 없음'] = (rsByDept[e.dept || '정보 없음'] || 0) + 1;
+  const repeat_stores = { list: rsList, byDept: rsByDept, total: rsList.length };
+
   // Yearly
   const yearly = [2024, 2025, 2026].map(y => {
     const yearRows = all.filter(x => x.year === y);
@@ -646,7 +686,7 @@ function processAccidents(rows, storesData, workersData) {
   }
 
   return {
-    kpis, yearly, monthly, depts, teams, stores, weekday, wd_month,
+    kpis, severe91, repeat_stores, yearly, monthly, depts, teams, stores, weekday, wd_month,
     cross, crossTypes: topTypes, crossCauses: topCauses, ageTenure, deptType,
     gender, genderType, emp, empType, kind, site,
     costType, costDept: {}, risk, keywords, projection,

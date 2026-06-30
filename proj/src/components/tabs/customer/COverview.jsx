@@ -8,41 +8,99 @@ import { Card } from '../../../components/shared/Card.jsx';
 import { CUST_AMBER, CUST_ROSE, CUST_TEAL, CUST_BLUE, CUST_PAL, TYPE_COLOR } from '../../../constants/customerColors.js';
 import { yearKey, compKey, cFilter } from '../../../utils/customerHelpers.js';
 import CUSTOMER_DATA from '../../../data/customerData.js';
+import { useCountUp, useInView } from '../../../utils/motion.js';
 
 function COverview({ D }) {
   const k = D.kpis;
   const yrLabel = D._yr ? `${D._yr}년` : "전체";
   const monthly = D._yr ? D.monthly.filter(m => m.y === parseInt(D._yr)) : D.monthly;
-  
+
   // 연도 비교는 항상 전체 데이터로
   const yearlyAll = CUSTOMER_DATA.yearly;
-  
+
+  // ── KPI count-up (뷰포트 진입 게이팅) ──────────────────────
+  const kpiGridRef = useRef(null);
+  const kpiInView = useInView(kpiGridRef);
+
+  // rawV: 정수 기준으로 변환 후 useCountUp
+  const cu0 = useCountUp(k.total, 900, kpiInView);                                         // 총 사고건수
+  const cu1 = useCountUp(Math.round(k.total_comp / 10000000), 900, kpiInView);             // 총 보상금액 (× 0.1억 단위)
+  const cu2 = useCountUp(Math.round(k.avg_comp / 10000), 900, kpiInView);                  // 평균 보상 (만원 단위)
+  const cu3 = useCountUp(Math.round(k.avg_days * 10), 900, kpiInView);                     // 평균 처리기간 (×10 정밀도)
+  const cu4 = useCountUp(k.still_open, 900, kpiInView);                                    // 진행중
+  const cu5 = useCountUp(
+    k.female + k.male > 0 ? Math.round(k.female / (k.female + k.male) * 100) : 0,
+    900, kpiInView
+  );                                                                                         // 여성 피해자 %
+
   const kpiCards = [
-    { l:"총 사고건수", v:k.total.toLocaleString(), unit:"건",
-      sub: D._yr ? `${yrLabel}` : `2024·${CUSTOMER_DATA.kpis_all.female ? CUSTOMER_DATA.yearly[0].t : 0} / 2025·${CUSTOMER_DATA.yearly[1].t} / 2026·${CUSTOMER_DATA.yearly[2].t}`, color: CUST_ROSE },
-    { l:"총 보상금액", v:(k.total_comp/100000000).toFixed(1), unit:"억원", sub:`보상 ${k.comp_count}건`, color: CUST_AMBER },
-    { l:"평균 보상금액", v:k.avg_comp > 0 ? (k.avg_comp/10000).toFixed(0) : "0", unit:"만원", sub:"보상 발생 건 기준", color: CUST_TEAL },
-    { l:"평균 처리기간", v:k.avg_days, unit:"일", sub:"접수→종결 평균", color: CUST_BLUE },
-    { l:"진행중", v:k.still_open, unit:"건", sub:"미종결 건", color:"#F97316" },
-    { l:"여성 피해자", v:k.female+k.male > 0 ? Math.round(k.female/(k.female+k.male)*100) : 0, unit:"%", sub:`${k.female}명 / 전체 ${k.female+k.male}명`, color:"#E879F9" },
+    {
+      l: "총 사고건수",
+      v: cu0.toLocaleString(),
+      unit: "건",
+      sub: D._yr ? `${yrLabel}` : `2024·${CUSTOMER_DATA.yearly[0]?.t ?? 0} / 2025·${CUSTOMER_DATA.yearly[1]?.t ?? 0} / 2026·${CUSTOMER_DATA.yearly[2]?.t ?? 0}`,
+      color: CUST_ROSE,
+    },
+    {
+      l: "총 보상금액",
+      v: (cu1 / 10).toFixed(1),
+      unit: "억원",
+      sub: `보상 ${k.comp_count}건`,
+      color: CUST_AMBER,
+    },
+    {
+      l: "평균 보상금액",
+      v: cu2 > 0 ? cu2.toLocaleString() : "0",
+      unit: "만원",
+      sub: "보상 발생 건 기준",
+      color: CUST_TEAL,
+    },
+    {
+      l: "평균 처리기간",
+      v: (cu3 / 10).toFixed(1),
+      unit: "일",
+      sub: "접수→종결 평균",
+      color: CUST_BLUE,
+    },
+    {
+      l: "진행중",
+      v: cu4,
+      unit: "건",
+      sub: "미종결 건",
+      color: "#F97316",
+    },
+    {
+      l: "여성 피해자",
+      v: cu5,
+      unit: "%",
+      sub: `${k.female}명 / 전체 ${k.female + k.male}명`,
+      color: "#E879F9",
+    },
   ];
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-        {kpiCards.map(c => (
-          <div key={c.l} className="bg-white border border-stone-200 rounded-xl p-4">
-            <div className="text-xs text-stone-400 mb-1">{c.l}</div>
+
+      {/* ── KPI 6-카드 ─────────────────────────────────────── */}
+      <div ref={kpiGridRef} className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        {kpiCards.map((c, i) => (
+          <Card key={c.l} delay={i * 30}>
+            <div className="text-[10px] font-semibold uppercase tracking-widest text-stone-400 mb-1">
+              {c.l}
+            </div>
             <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-bold tabular-nums" style={{color:c.color}}>{c.v}</span>
+              <span className="text-3xl font-bold tabular-nums" style={{ color: c.color }}>
+                {c.v}
+              </span>
               <span className="text-sm text-stone-400">{c.unit}</span>
             </div>
             <div className="text-xs text-stone-500 mt-1">{c.sub}</div>
-          </div>
+          </Card>
         ))}
       </div>
 
-      <Card title={`월별 사고 추이`} titleIcon={TrendingUp} sub={`${yrLabel} 월별 발생건수`}>
+      {/* ── 월별 추이 ────────────────────────────────────────── */}
+      <Card title="월별 사고 추이" titleIcon={TrendingUp} sub={`${yrLabel} 월별 발생건수`}>
         <ResponsiveContainer width="100%" height={220} debounce={50}>
           <AreaChart data={monthly}>
             <defs>
@@ -60,17 +118,18 @@ function COverview({ D }) {
         </ResponsiveContainer>
       </Card>
 
+      {/* ── 연도별 + 사고유형 ─────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card title="연도별 현황" titleIcon={Calendar} sub="2024~2026 사고건수 비교">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            {yearlyAll.map((y,i) => {
+            {(() => { const maxYear = Math.max(...yearlyAll.map(y => y.y)); return yearlyAll.map((y,i) => {
               const isFiltered = D._yr === String(y.y);
               const prev = i > 0 ? yearlyAll[i-1].t : null;
-              const isCurrentYear = y.y === 2026;
+              const isCurrentYear = y.y === maxYear;
               let diff = null, diffLabel = null;
-              if (prev && !isCurrentYear) {
-                diff = ((y.t - prev)/prev*100).toFixed(1);
-                diffLabel = `${diff > 0 ? "▲" : "▼"}${Math.abs(diff)}%`;
+              if (prev !== null && !isCurrentYear) {
+                diff = +((y.t - prev)/prev*100).toFixed(1);
+                diffLabel = diff === 0 ? "→0%" : `${diff > 0 ? "▲" : "▼"}${Math.abs(diff)}%`;
               } else if (isCurrentYear) {
                 diffLabel = "진행중";
               }
@@ -81,28 +140,41 @@ function COverview({ D }) {
                     <span className="text-xl sm:text-2xl font-bold tabular-nums leading-none" style={{color:CUST_PAL[i]}}>{y.t}</span>
                     <span className="text-[10px] text-stone-400">건</span>
                   </div>
-                  {diffLabel && <div className={`text-[10px] mt-1 font-semibold whitespace-nowrap ${isCurrentYear ? "text-orange-500" : diff > 0 ? "text-red-500" : "text-green-600"}`}>{diffLabel}</div>}
+                  {diffLabel && <div className={`text-[10px] mt-1 font-semibold whitespace-nowrap ${isCurrentYear ? "text-orange-500" : diff > 0 ? "text-red-500" : "text-emerald-600"}`}>{diffLabel}</div>}
                 </div>
               );
-            })}
+            }); })()}
           </div>
         </Card>
 
+        {/* ── 사고유형 파이: flex-col(모바일) → flex-row(sm+) ── */}
         <Card title="사고유형 분포" titleIcon={GitBranch} sub={`${yrLabel} 기준`}>
-          <div className="flex items-center gap-4">
-            <ResponsiveContainer width={180} height={180}>
-              <PieChart>
-                <Pie data={D.types.filter(t => t._show > 0)} dataKey="_show" nameKey="type" cx="50%" cy="50%" startAngle={90} endAngle={-270} innerRadius={45} outerRadius={75}>
-                  {D.types.map((t,i) => <Cell key={t.type} fill={TYPE_COLOR[t.type] || CUST_PAL[i]}/>)}
-                </Pie>
-                <Tooltip formatter={(v,n) => [`${v}건`,n]}/>
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex-1 space-y-1.5">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="w-full sm:w-[180px] sm:flex-shrink-0">
+              <ResponsiveContainer width="100%" height={160}>
+                <PieChart>
+                  <Pie
+                    data={D.types.filter(t => t._show > 0)}
+                    dataKey="_show"
+                    nameKey="type"
+                    cx="50%"
+                    cy="50%"
+                    startAngle={90}
+                    endAngle={-270}
+                    innerRadius={42}
+                    outerRadius={68}
+                  >
+                    {D.types.filter(t=>t._show>0).map((t,i) => <Cell key={t.type} fill={TYPE_COLOR[t.type] || CUST_PAL[i]}/>)}
+                  </Pie>
+                  <Tooltip formatter={(v,n) => [`${v}건`,n]}/>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex-1 space-y-1.5 self-center">
               {D.types.filter(t => t._show > 0).map((t,i) => (
-                <div key={t.type} className="flex items-center gap-2 text-xs">
+                <div key={t.type} className="flex items-center gap-2 text-xs min-h-[28px]">
                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background:TYPE_COLOR[t.type] || CUST_PAL[i]}}/>
-                  <span className="text-stone-700 font-medium">{t.type}</span>
+                  <span className="text-stone-700 font-medium break-keep">{t.type}</span>
                   <span className="ml-auto tabular-nums text-stone-500">{t._show}건</span>
                 </div>
               ))}
@@ -111,6 +183,7 @@ function COverview({ D }) {
         </Card>
       </div>
 
+      {/* ── 발생 장소 + 원인 Top 6 ───────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card title="발생 장소 Top 6" titleIcon={MapIcon} sub={`${yrLabel} 장소별 분포`}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">

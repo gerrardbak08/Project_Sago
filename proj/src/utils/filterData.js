@@ -43,6 +43,10 @@ function getFilteredData(D, yearFilter) {
     etc: yearly1.e,
     cost_total: Math.round((D.kpis.cost_total || 0) * ratio),
     cost_count: Math.round((D.kpis.cost_count || 0) * ratio),
+    // 근로손실일수 — 연도 필터 시 해당 연도 실측값 사용(누적 사용 시 최대 2.56x 과대)
+    loss_days_total: yearly1.loss_days ?? D.kpis.loss_days_total,
+    loss_days_count: yearly1.loss_days_count ?? D.kpis.loss_days_count,
+    loss_days_avg: (yearly1.loss_days != null && yearly1.loss_days_count) ? Math.round(yearly1.loss_days / yearly1.loss_days_count * 10) / 10 : D.kpis.loss_days_avg,
     submitted: Math.round((D.kpis.submitted || 0) * ratio),
     not_submitted: Math.round((D.kpis.not_submitted || 0) * ratio),
     female: Math.round((D.kpis.female || 0) * ratio),
@@ -118,7 +122,7 @@ function getFilteredData(D, yearFilter) {
     } : D.store_coverage,
     parjang: D.parjang ? {
       ...D.parjang,
-      total: D.parjang.total,
+      total: Math.round(D.parjang.total * ratio),
       active: Math.round(D.parjang.active * ratio),
       top: D.parjang.top?.map(p => ({ ...p, incidents: Math.round(p.incidents * ratio) })).filter(p => p.incidents > 0),
     } : D.parjang,

@@ -82,7 +82,7 @@ function UploadPanel({ onAccidentFile, onStoreFile, onWorkerFile, accidentFileNa
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* ① 사고DB */}
-        <div className={`border-2 border-dashed rounded-lg p-3 bg-white transition ${accidentFileName ? "border-green-500 bg-green-50" : validation.acc?.errors?.length > 0 ? "border-red-400 bg-red-50" : "border-stone-300"}`}>
+        <div className={`border-2 border-dashed rounded-lg p-3 bg-white transition ${accidentFileName ? "border-emerald-500 bg-emerald-50" : validation.acc?.errors?.length > 0 ? "border-red-400 bg-red-50" : "border-stone-300"}`}>
           <input ref={accRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={e => e.target.files[0] && handleFile(e.target.files[0], SCHEMA_ACCIDENT, "acc", onAccidentFile)} />
           <div onClick={() => accRef.current?.click()} className="cursor-pointer">
             <div className="flex items-center gap-3">
@@ -97,7 +97,7 @@ function UploadPanel({ onAccidentFile, onStoreFile, onWorkerFile, accidentFileNa
         </div>
         
         {/* ② 매장DB */}
-        <div className={`border-2 border-dashed rounded-lg p-3 bg-white transition ${storeFileName ? "border-green-500 bg-green-50" : validation.store?.errors?.length > 0 ? "border-red-400 bg-red-50" : "border-stone-300"}`}>
+        <div className={`border-2 border-dashed rounded-lg p-3 bg-white transition ${storeFileName ? "border-emerald-500 bg-emerald-50" : validation.store?.errors?.length > 0 ? "border-red-400 bg-red-50" : "border-stone-300"}`}>
           <input ref={storeRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={e => e.target.files[0] && handleFile(e.target.files[0], SCHEMA_STORE, "store", onStoreFile)} />
           <div onClick={() => storeRef.current?.click()} className="cursor-pointer">
             <div className="flex items-center gap-3">
@@ -112,7 +112,7 @@ function UploadPanel({ onAccidentFile, onStoreFile, onWorkerFile, accidentFileNa
         </div>
         
         {/* ③ 근로자DB */}
-        <div className={`border-2 border-dashed rounded-lg p-3 bg-white transition ${workerFileName ? "border-green-500 bg-green-50" : validation.worker?.errors?.length > 0 ? "border-red-400 bg-red-50" : "border-stone-300"}`}>
+        <div className={`border-2 border-dashed rounded-lg p-3 bg-white transition ${workerFileName ? "border-emerald-500 bg-emerald-50" : validation.worker?.errors?.length > 0 ? "border-red-400 bg-red-50" : "border-stone-300"}`}>
           <input ref={workerRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={e => e.target.files[0] && onWorkerFile && handleFile(e.target.files[0], SCHEMA_WORKER, "worker", onWorkerFile)} />
           <div onClick={() => workerRef.current?.click()} className="cursor-pointer">
             <div className="flex items-center gap-3">

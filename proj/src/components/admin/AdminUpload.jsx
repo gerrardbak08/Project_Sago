@@ -124,11 +124,11 @@ function AdminUpload({ onAccidentFile, onStoreFile, onWorkerFile, accidentFileNa
             <div className="text-xs text-stone-600 mt-1">필수 컬럼: 년, 월, 부서, 팀명, 매장명, 재해자명, 사번, 나이대, 근속기간, 재해 종류, 재해 유형, 기인물, 상병명, 사고 내용, 파트장 등 32개</div>
           </div>
           <div className="p-3 rounded-lg bg-white border border-stone-200 break-keep">
-            <div className="text-sm font-bold text-violet-900 mb-1">② 매장현황DB (선택)</div>
+            <div className="text-sm font-bold text-[#071E4A] mb-1">② 매장현황DB (선택)</div>
             <div className="text-xs text-stone-700">파일명 예: <code className="bg-white px-1.5 py-0.5 rounded font-mono">매장리스트_260408.xlsx</code></div>
             <div className="text-xs text-stone-600 mt-1">필수 컬럼: 매장, 매장명, 지역(팀명), 형태, 폐점여부, 구분, 오픈일, 평수, 창고, 진열평수, 신주소</div>
           </div>
-          <div className="p-3 rounded-lg bg-white border border-stone-200 border-l-2 border-l-emerald-600 break-keep">
+          <div className="p-3 rounded-lg bg-white border border-stone-200 break-keep">
             <div className="text-sm font-bold text-emerald-900 mb-1">③ 매장근로자DB (선택, 신규)</div>
             <div className="text-xs text-stone-700">파일명 예: <code className="bg-white px-1.5 py-0.5 rounded font-mono">현장사원_인원현황_조회_YYYYMMDD.xlsx</code></div>
             <div className="text-xs text-stone-600 mt-1">필수 컬럼 (시트 '영업부'): 부문, 부서, 팀, 조직명, 사번, 성명, 사원상태, 입사일자(YYYYMMDD), 퇴직일자, 사원유형, 채용구분, 입사경로, 직책</div>

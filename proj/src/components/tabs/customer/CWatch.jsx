@@ -28,10 +28,21 @@ function CWatch({ D }) {
       <Card title="매장별 고객사고 워치리스트" titleIcon={Siren} sub={`${yrLabel} 다발 매장 — 개별 관리 대상`}
         right={<ExportBtn rows={list.map(s=>({매장:s.store,부문:s.bumun,영업부:s.dept,팀:s.team,건수:s._show,보상:s._comp,주요유형:s.tp}))} filename={`고객사고_워치_${yrLabel}.csv`}/>}>
         <div className="flex items-center gap-2 mb-3">
-          <Search size={14} className="text-stone-400"/>
-          <input type="text" placeholder="매장명 · 영업부 · 팀 검색"
-            value={search} onChange={e => setSearch(e.target.value)}
-            className="text-xs border border-stone-200 rounded-md px-3 py-1.5 bg-white w-48"/>
+          <div className="relative flex items-center">
+            <Search size={14} className="absolute left-2.5 text-stone-400 pointer-events-none"/>
+            <input type="text" placeholder="매장명 · 영업부 · 팀 검색"
+              value={search} onChange={e => setSearch(e.target.value)}
+              className="text-xs border border-stone-200 rounded-md pl-7 pr-6 py-1.5 bg-white w-48 outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300 transition"/>
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-2 text-stone-400 hover:text-stone-600 transition min-h-[44px] flex items-center"
+                aria-label="검색어 지우기"
+              >
+                <X size={12}/>
+              </button>
+            )}
+          </div>
           <span className="text-xs text-stone-400">{filtered.length}개 매장</span>
         </div>
         <div className="overflow-x-auto -mx-5 px-5">

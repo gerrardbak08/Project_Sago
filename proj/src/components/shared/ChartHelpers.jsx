@@ -62,7 +62,8 @@ function HeatmapGrid({ rows, yearFilter }) {
   const allV = rows.flatMap(r => valid.map(ym => r.hm[ym] || 0));
   const mx = Math.max(...allV, 1);
   return (
-    <div className="overflow-x-auto pb-2">
+    <div className="relative">
+      <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-stone-200 scrollbar-track-transparent">
       <div style={{ minWidth: yearFilter && yearFilter !== "all" ? 480 : 980 }}>
         <div style={{ display: "grid", gridTemplateColumns: `132px repeat(${valid.length}, 26px)`, gap: 2 }}>
           <div />
@@ -77,7 +78,7 @@ function HeatmapGrid({ rows, yearFilter }) {
               {valid.map(ym => {
                 const v = r.hm[ym] || 0;
                 const ratio = v / mx;
-                const bg = v === 0 ? "#FAFAF9" : `rgba(79,70,229,${0.08 + ratio * 0.75})`;
+                const bg = v === 0 ? "#FAFAF9" : `rgba(0,59,143,${0.08 + ratio * 0.75})`;
                 const clr = ratio > 0.45 ? "#fff" : "#292524";
                 return <div key={ym} className="flex items-center justify-center rounded" style={{ height: 26, background: bg, color: clr, fontSize: 10, fontWeight: 700 }}>{v || ""}</div>;
               })}
@@ -85,6 +86,8 @@ function HeatmapGrid({ rows, yearFilter }) {
           ))}
         </div>
       </div>
+      </div>
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent" />
     </div>
   );
 }
@@ -94,11 +97,11 @@ function BarRank({ items, color, total }) {
   return (
     <div className="space-y-1">
       {items.map((it, i) => (
-        <div key={it.name} className="flex items-center gap-2 py-1">
+        <div key={it.name} className="group flex items-center gap-2 py-1 px-1 rounded-md hover:bg-stone-50 transition-colors">
           <div className="w-5 text-right text-xs font-bold text-stone-400">{i + 1}</div>
-          <div className="w-20 text-xs font-semibold text-stone-800 truncate flex-shrink-0">{it.name}</div>
+          <div className="w-20 text-xs font-semibold text-stone-800 group-hover:text-[#003B8F] truncate flex-shrink-0 transition-colors">{it.name}</div>
           <div className="flex-1 h-2 bg-stone-100 rounded-full overflow-hidden">
-            <div className="h-full rounded-full" style={{ width: `${(it.value / mx) * 100}%`, background: color || PAL[i % PAL.length] }} />
+            <div className="h-full rounded-full group-hover:opacity-90 transition-opacity" style={{ width: `${(it.value / mx) * 100}%`, background: color || PAL[i % PAL.length] }} />
           </div>
           <div className="w-20 text-right text-xs font-bold tabular-nums">{it.value} <span className="text-stone-400 font-normal">({pct(it.value, total)}%)</span></div>
         </div>
@@ -110,10 +113,17 @@ function BarRank({ items, color, total }) {
 function Matrix({ data, rowKey, cols, rowLabels }) {
   const values = data.flatMap(r => cols.map(c => r[c] || 0));
   const mx = Math.max(...values, 1);
-  const CELL = 42;          // 정사각형 셀 한 변 (텍스트 길이와 무관하게 통일)
+  const [CELL, setCell] = useState(typeof window !== 'undefined' && window.innerWidth < 640 ? 32 : 42);
+  useEffect(() => {
+    const h = () => setCell(window.innerWidth < 640 ? 32 : 42);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
   const LABEL_W = 84;       // 행 라벨 열 고정 폭
+  const vertical = cols.length > 6;
   return (
-    <div className="overflow-x-auto pb-2">
+    <div className="relative">
+      <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-stone-200 scrollbar-track-transparent">
       <table className="text-xs"
              style={{ tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: 3 }}>
         <colgroup>
@@ -125,7 +135,8 @@ function Matrix({ data, rowKey, cols, rowLabels }) {
           <th className="text-left text-stone-500 font-semibold align-bottom pb-1" style={{ fontSize: 10 }}>-</th>
           {cols.map(c => (
             <th key={c} className="text-center text-stone-500 font-semibold align-bottom pb-1 leading-tight"
-                style={{ fontSize: 9, letterSpacing: "-0.05em" }}>{c}</th>
+                style={{ fontSize: 10, letterSpacing: "-0.05em", ...(vertical ? { writingMode: 'vertical-rl', transform: 'rotate(180deg)', height: 64 } : {}) }}
+                title={c}>{c}</th>
           ))}
           <th className="text-right text-stone-500 font-semibold align-bottom pb-1" style={{ fontSize: 10 }}>합계</th>
         </tr></thead>
@@ -143,8 +154,9 @@ function Matrix({ data, rowKey, cols, rowLabels }) {
                 const clr = ratio > 0.45 ? "#fff" : "#292524";
                 return (
                   <td key={c} style={{ padding: 0 }}>
-                    <div className="rounded flex items-center justify-center tabular-nums font-bold"
-                         style={{ width: CELL, height: CELL, background: bg, color: clr, fontSize: 11 }}>
+                    <div className="rounded flex items-center justify-center tabular-nums font-bold hover:ring-2 hover:ring-blue-400/40 hover:scale-105 transition-transform cursor-default"
+                         style={{ width: CELL, height: CELL, background: bg, color: clr, fontSize: 11 }}
+                         title={`${rowLabels ? rowLabels[i] : r[rowKey]} × ${c}: ${v}건`}>
                       {v || ""}
                     </div>
                   </td>
@@ -155,6 +167,8 @@ function Matrix({ data, rowKey, cols, rowLabels }) {
           );
         })}</tbody>
       </table>
+      </div>
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent" />
     </div>
   );
 }

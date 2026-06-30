@@ -110,7 +110,7 @@ export default function AlertReview({ onSendRequest }) {
             return (
               <div
                 key={item.store_code || i}
-                className={`bg-white rounded-xl border border-stone-100 border-l-4 ${borderColor} shadow-sm p-4 hover:shadow-md transition-shadow`}
+                className={`bg-white rounded-xl border border-stone-100 shadow-sm p-4 hover:shadow-md transition-shadow`}
               >
                 <div className="flex items-start justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-2 min-w-0">
@@ -130,7 +130,7 @@ export default function AlertReview({ onSendRequest }) {
                     {onSendRequest && (
                       <button
                         onClick={() => onSendRequest(item.store_code)}
-                        className="flex items-center gap-1 px-2 py-1 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-medium border border-indigo-100 shrink-0 cursor-pointer"
+                        className="flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 hover:bg-blue-100 text-[#1D4ED8] text-xs font-medium border border-blue-100 shrink-0 cursor-pointer"
                       >
                         <Send size={11} />발송
                       </button>
@@ -150,7 +150,7 @@ export default function AlertReview({ onSendRequest }) {
                   <div className="mt-2.5 grid grid-cols-1 gap-1">
                     {rationale.accident_pattern && (
                       <div className="flex items-start gap-1.5 text-xs text-stone-600">
-                        <Activity size={11} className="mt-0.5 text-indigo-400 shrink-0" />
+                        <Activity size={11} className="mt-0.5 text-blue-400 shrink-0" />
                         <span>{rationale.accident_pattern}</span>
                       </div>
                     )}

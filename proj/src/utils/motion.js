@@ -53,11 +53,12 @@ export function injectDashCss() {
  * @param {number} duration 애니메이션 ms (기본 1200)
  * @returns {number} 현재 표시 값
  */
-export function useCountUp(target, duration = 1200) {
+export function useCountUp(target, duration = 1200, enabled = true) {
   const [count, setCount] = useState(0);
   const rafRef = useRef(null);
 
   useEffect(() => {
+    if (!enabled) { setCount(0); return; }            // 뷰포트 진입 전: 0 유지 (스크롤 진입 시 카운트업)
     if (target == null || isNaN(target)) { setCount(0); return; }
     const startTime = performance.now();
     const startVal = 0;
@@ -73,7 +74,7 @@ export function useCountUp(target, duration = 1200) {
 
     rafRef.current = requestAnimationFrame(tick);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [target, duration]);
+  }, [target, duration, enabled]);
 
   return count;
 }

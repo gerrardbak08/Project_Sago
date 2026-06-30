@@ -24,7 +24,9 @@ function useAiGuide() {
 
   const stop = () => abortRef.current?.abort();
   const reset = () => { setText(''); setError(null); };
-  return { text, loading, error, run, stop, reset };
+  // 규칙기반 폴백 등 외부에서 결과 텍스트를 직접 주입할 때 사용
+  const setResult = (t) => { setError(null); setLoading(false); setText(t); };
+  return { text, loading, error, run, stop, reset, setResult };
 }
 
 export { useAiGuide };

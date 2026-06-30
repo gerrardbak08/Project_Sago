@@ -502,7 +502,7 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
           {onSendRequest && (
             <button
               onClick={onSendRequest}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold cursor-pointer ml-auto"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1D4ED8] hover:bg-[#003B8F] text-white text-xs font-semibold cursor-pointer ml-auto"
             >
               <Send size={13} /> 새 알림 발송
             </button>
@@ -721,7 +721,7 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
               return (
                 <div
                   key={s.store_code + i}
-                  className={`dash-slide-up rounded-xl border border-stone-100 border-l-4 ${riskColor} bg-white shadow-sm hover:shadow-md transition-shadow p-4 cursor-pointer`}
+                  className={`dash-slide-up rounded-xl border border-stone-100 bg-white shadow-sm hover:shadow-md transition-shadow p-4 cursor-pointer`}
                   style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}
                   onClick={() => setSelectedItem(s)}
                 >
@@ -733,7 +733,7 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
                         <span className="text-[10px] text-stone-400">{s.store_code}</span>
                         {s.trigger === 'batch_auto'
                           ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800">자동발송</span>
-                          : <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 text-indigo-700">수동발송</span>
+                          : <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-[#1D4ED8]">수동발송</span>
                         }
                         {s.delivery_status === 'sent'
                           ? <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 border border-emerald-200 text-emerald-700">✓ 발송 성공</span>
@@ -764,7 +764,7 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
                         )}
                         {(s["주요_위험유형_emp"] || s.dominant_type_emp) && (
                           <div className="text-[11px]">
-                            <span className="font-semibold text-indigo-600">직원 </span>
+                            <span className="font-semibold text-[#1D4ED8]">직원 </span>
                             <span className="text-stone-600">{s["주요_위험유형_emp"] || s.dominant_type_emp}</span>
                           </div>
                         )}

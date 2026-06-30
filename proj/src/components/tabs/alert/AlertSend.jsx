@@ -619,7 +619,7 @@ function AlertSend({ onSent, preFillStore, onPreFillConsumed }) {
                       )}
                       {s.guide_preview.emp && (
                         <div className="text-[11px] text-stone-600">
-                          <span className="font-medium text-indigo-700">직원:</span> {s.guide_preview.emp}
+                          <span className="font-medium text-[#1D4ED8]">직원:</span> {s.guide_preview.emp}
                         </div>
                       )}
                       <div className="flex gap-1.5 mt-1">

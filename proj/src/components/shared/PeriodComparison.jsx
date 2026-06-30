@@ -4,6 +4,7 @@ import { Calendar, Plus, X } from 'lucide-react';
 import { Card } from './Card.jsx';
 import { fmt } from '../../utils/uiHelpers.jsx';
 import { ALERT_RED, SAFE_GREEN } from '../../constants/colors.js';
+import { useInView } from '../../utils/motion.js';
 
 const KST_OFFSET_MIN = 9 * 60;
 
@@ -14,19 +15,20 @@ function todayKstMonth() {
   return { y: kst.getFullYear(), m: kst.getMonth() + 1 };
 }
 
+// 기본 시점: 최신 연도의 1월 ~ 해당(최신 데이터)월 — 올해 누적(YTD) 월별 추이
 function deriveDefaultPoints(monthly) {
-  const { y, m } = todayKstMonth();
-  const mm = String(m).padStart(2, '0');
-  const candidates = [`${y - 2}-${mm}`, `${y - 1}-${mm}`, `${y}-${mm}`];
+  if (!monthly || monthly.length === 0) return [];
   const known = new Set(monthly.map(x => x.ym));
-  const filtered = candidates.filter(c => known.has(c));
-  if (filtered.length >= 2) return filtered;
   const sorted = [...monthly].sort((a, b) => a.ym.localeCompare(b.ym));
-  const last = sorted[sorted.length - 1]?.ym;
-  if (!last) return [];
-  const ly = parseInt(last.slice(0, 4), 10);
-  const lm = last.slice(5, 7);
-  return [`${ly - 2}-${lm}`, `${ly - 1}-${lm}`, last].filter(c => known.has(c));
+  const last = sorted[sorted.length - 1].ym;       // 예: "2026-06"
+  const ly = last.slice(0, 4);                       // "2026"
+  const lm = parseInt(last.slice(5, 7), 10);         // 6
+  const pts = [];
+  for (let m = 1; m <= lm; m++) {
+    const ym = `${ly}-${String(m).padStart(2, '0')}`;
+    if (known.has(ym)) pts.push(ym);
+  }
+  return pts.length >= 2 ? pts : [last];
 }
 
 const arrow = (d) => d > 0 ? '▲' : (d < 0 ? '▼' : '—');
@@ -37,6 +39,8 @@ function PeriodComparison({ monthly, storeSnapshots, workerSnapshots }) {
   const [refYm, setRefYm] = useState(null);          // 사용자가 클릭으로 지정한 기준
   const [showPicker, setShowPicker] = useState(false);
   const pickerRef = useRef(null);
+  const chartRef = useRef(null);
+  const chartInView = useInView(chartRef);
 
   const availableYears = useMemo(
     () => Array.from(new Set(monthly.map(x => x.y))).sort(),
@@ -270,8 +274,8 @@ function PeriodComparison({ monthly, storeSnapshots, workerSnapshots }) {
       title="동기간 비교"
       titleIcon={Calendar}
       sub="원하는 년·월을 자유롭게 골라 사고건수와 매장·근로자 변화를 함께 비교합니다"
-      right={insightStrip}
     >
+      {insightStrip}
 
       {/* 시점 칩 + 추가 버튼 */}
       <div className="flex items-center flex-wrap gap-1.5 mb-2">
@@ -284,7 +288,7 @@ function PeriodComparison({ monthly, storeSnapshots, workerSnapshots }) {
               key={ym}
               type="button"
               onClick={() => setRefYm(ym)}
-              className="inline-flex items-center gap-1 text-xs px-2.5 py-1 border cursor-pointer transition"
+              className="inline-flex items-center gap-1 text-xs px-3 py-1.5 min-h-[36px] border cursor-pointer transition active:scale-[0.93]"
               style={{
                 background: isRef ? '#1C1917' : 'white',
                 borderColor: missing ? '#FCD34D' : (isRef ? '#1C1917' : '#E7E5E4'),
@@ -312,7 +316,7 @@ function PeriodComparison({ monthly, storeSnapshots, workerSnapshots }) {
         })}
         <div className="relative" ref={pickerRef}>
           <button onClick={() => setShowPicker(v => !v)}
-                  className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 border border-dashed border-stone-300 text-stone-500 hover:border-stone-400 hover:text-stone-700 cursor-pointer"
+                  className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 min-h-[36px] border border-dashed border-stone-300 text-stone-500 hover:border-stone-400 hover:text-stone-700 cursor-pointer transition active:scale-[0.93]"
                   style={{ borderRadius: 999 }}>
             <Plus size={11} /> 시점 추가
           </button>
@@ -352,7 +356,7 @@ function PeriodComparison({ monthly, storeSnapshots, workerSnapshots }) {
       </div>
 
       {/* 메인 사고건수 라인 차트 + 매장·근로자 라벨 */}
-      <div className="mb-3">
+      <div ref={chartRef} className={`mb-3 ${chartInView ? 'dash-fade-in' : 'opacity-0'}`}>
         <div className="flex items-baseline justify-between mb-2">
           <h3 className="text-sm font-bold text-stone-800 tracking-tight">
             사고건수 추이 + 시점별 매장·근로자·평수
@@ -380,7 +384,7 @@ function PeriodComparison({ monthly, storeSnapshots, workerSnapshots }) {
               <Line yAxisId="right" type="natural" dataKey="매장수_idx"
                     name="매장수"
                     stroke="#1D4ED8" strokeWidth={2} strokeDasharray="10 4"
-                    dot={(p) => (
+                    dot={(p) => (p.value == null || !Number.isFinite(p.cy)) ? null : (
                       <rect key={p.index} x={p.cx - 4} y={p.cy - 4} width={8} height={8}
                             fill="white" stroke="#1D4ED8" strokeWidth={1.8} />
                     )}
@@ -389,7 +393,7 @@ function PeriodComparison({ monthly, storeSnapshots, workerSnapshots }) {
               <Line yAxisId="right" type="natural" dataKey="근로자수_idx"
                     name="근로자수"
                     stroke="#0F766E" strokeWidth={2} strokeDasharray="4 2 1 2"
-                    dot={(p) => (
+                    dot={(p) => (p.value == null || !Number.isFinite(p.cy)) ? null : (
                       <polygon key={p.index}
                                points={`${p.cx},${p.cy - 5} ${p.cx + 4.5},${p.cy + 3} ${p.cx - 4.5},${p.cy + 3}`}
                                fill="white" stroke="#0F766E" strokeWidth={1.8} />
@@ -398,18 +402,19 @@ function PeriodComparison({ monthly, storeSnapshots, workerSnapshots }) {
                     connectNulls isAnimationActive={false} />
               <Line yAxisId="right" type="natural" dataKey="평수_idx"
                     name="매장 평균 평수"
-                    stroke="#B45309" strokeWidth={2} strokeDasharray="2 3"
-                    dot={(p) => (
+                    stroke="#D97706" strokeWidth={2} strokeDasharray="2 3"
+                    dot={(p) => (p.value == null || !Number.isFinite(p.cy)) ? null : (
                       <polygon key={p.index}
                                points={`${p.cx},${p.cy - 5} ${p.cx + 5},${p.cy} ${p.cx},${p.cy + 5} ${p.cx - 5},${p.cy}`}
-                               fill="white" stroke="#B45309" strokeWidth={1.8} />
+                               fill="white" stroke="#D97706" strokeWidth={1.8} />
                     )}
-                    activeDot={{ r: 6, fill: '#B45309' }}
+                    activeDot={{ r: 6, fill: '#D97706' }}
                     connectNulls isAnimationActive={false} />
               {/* 메인 사고건수 라인 (좌측 Y축, 실수치, 굵은 실선) */}
               <Line yAxisId="left" type="monotone" dataKey="사고건수"
                     stroke={ALERT_RED} strokeWidth={3}
                     dot={(p) => {
+                      if (p.value == null || !Number.isFinite(p.cy)) return null;
                       const isRef = chartData[p.index]?.isRef;
                       return (
                         <circle key={p.index} cx={p.cx} cy={p.cy} r={isRef ? 7 : 5}
@@ -454,10 +459,10 @@ function PeriodComparison({ monthly, storeSnapshots, workerSnapshots }) {
           </span>
           <span className="inline-flex items-center gap-1.5">
             <svg width={32} height={12}>
-              <line x1={0} y1={6} x2={32} y2={6} stroke="#B45309" strokeWidth={2} strokeDasharray="2 3" />
-              <polygon points="16,1 21,6 16,11 11,6" fill="white" stroke="#B45309" strokeWidth={1.8} />
+              <line x1={0} y1={6} x2={32} y2={6} stroke="#D97706" strokeWidth={2} strokeDasharray="2 3" />
+              <polygon points="16,1 21,6 16,11 11,6" fill="white" stroke="#D97706" strokeWidth={1.8} />
             </svg>
-            <span style={{ color: '#B45309' }}>매장 평균 평수 ◆</span>
+            <span style={{ color: '#D97706' }}>매장 평균 평수 ◆</span>
           </span>
           <span className="text-stone-400 text-[10px]">(우축은 기준 시점=100 인덱스)</span>
         </div>
@@ -471,7 +476,7 @@ function PeriodComparison({ monthly, storeSnapshots, workerSnapshots }) {
 function BanCard({ title, unit, snapshot, field, refYm, decimals = 0 }) {
   if (!snapshot || snapshot.length === 0) {
     return (
-      <div>
+      <div className="bg-white border border-stone-100 rounded-xl p-3 sm:p-4 flex flex-col">
         <div className="text-[11px] font-bold uppercase tracking-wider text-stone-500">{title}</div>
         <div className="text-2xl font-bold text-stone-300 tabular-nums mt-1">—</div>
         <div className="text-[10px] text-stone-400 italic mt-1">데이터 준비 중</div>
@@ -487,7 +492,7 @@ function BanCard({ title, unit, snapshot, field, refYm, decimals = 0 }) {
   const delta = (cur != null && prevVal != null) ? cur - prevVal : null;
   const pct = (delta != null && prevVal) ? (delta / prevVal) * 100 : null;
   return (
-    <div>
+    <div className="bg-white border border-stone-100 rounded-xl p-3 sm:p-4 flex flex-col">
       <div className="text-[11px] font-bold uppercase tracking-wider text-stone-500">{title}</div>
       <div className="flex items-baseline gap-1.5 mt-1">
         <span className="text-2xl sm:text-3xl font-bold text-stone-900 tabular-nums">
@@ -509,7 +514,7 @@ function BanCard({ title, unit, snapshot, field, refYm, decimals = 0 }) {
 
 function BanAccidentCard({ current, comparisons }) {
   return (
-    <div>
+    <div className="bg-white border border-stone-100 rounded-xl p-3 sm:p-4 flex flex-col">
       <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: ALERT_RED }}>사고건수</div>
       <div className="flex items-baseline gap-1.5 mt-1">
         <span className="text-2xl sm:text-3xl font-bold tabular-nums" style={{ color: ALERT_RED }}>

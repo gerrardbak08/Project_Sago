@@ -13,7 +13,7 @@ function AiOutput({ text, loading, compact = false }) {
           </div>
         );
       })}
-      {loading && <span className="inline-block w-1.5 h-3.5 bg-violet-500 animate-pulse ml-0.5 rounded-sm" />}
+      {loading && <span className="inline-block w-1.5 h-3.5 bg-[#1D4ED8] animate-pulse ml-0.5 rounded-sm" />}
     </div>
   );
 }

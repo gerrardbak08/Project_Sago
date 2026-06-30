@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from 'react';
 import { BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList, ComposedChart, ScatterChart, Scatter, ZAxis, ReferenceLine } from 'recharts';
-import { Activity, AlertCircle, MapPin, AlertTriangle, Banknote, BarChart3, Bell, Bone, Briefcase, Building, Building2, Calendar, CheckCircle2, Circle, ClipboardList, FileText, Flame, Folder, GitBranch, Info, Lightbulb, Lock, Map as MapIcon, Package, Pin, RefreshCw, Rocket, Ruler, Scale, Search, ShieldCheck, Siren, Smartphone, Store, Tag, Target, TrendingUp, Trophy, Unlock, UserCircle, Users, X, LayoutDashboard, Stethoscope, Download, ChevronRight, Sparkles } from 'lucide-react';
+import { Activity, AlertCircle, MapPin, AlertTriangle, Banknote, BarChart3, Bell, Bone, Briefcase, Building, Building2, Calendar, CheckCircle2, ChevronDown, Circle, ClipboardList, FileText, Flame, Folder, FolderOpen, GitBranch, Info, Lightbulb, Lock, Map as MapIcon, Package, Pin, RefreshCw, Rocket, Ruler, Scale, Search, ShieldCheck, Siren, Smartphone, Store, Tag, Target, TrendingUp, Trophy, Unlock, UserCircle, Users, X, LayoutDashboard, Stethoscope, Download, ChevronRight, Sparkles } from 'lucide-react';
 import { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, BL, OR, NV, GR, RD, GN, PR, AM, PAL, CANVAS } from '../../../constants/colors.js';
 import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN } from '../../../constants/metrics.js';
 import { pct, fmt, fmtKrw, TT, EmptyState } from '../../../utils/uiHelpers.jsx';
@@ -11,19 +11,21 @@ import { RISK_COLORS } from '../../../constants/riskColors.js';
 import MAP_STORES from '../../../data/storesData.js';
 import { requestAiGuide } from '../../../constants/ai.js';
 import { track, AI_GUIDE_REQUESTED, AI_GUIDE_RESULT } from '../../../utils/analytics.js';
+import { useCountUp, useInView } from '../../../utils/motion.js';
+import { normalizeStoreName } from '../../../utils/processStores.js';
 
 // ── 영업부별 경계선 색상 ──────────────────────────────────
 const DEPT_COLORS_MAP = {
   '강남/구리영업부':    '#3B82F6',
   '강북영업부':         '#10B981',
-  '강원영업부':         '#8B5CF6',
+  '강원영업부':         '#0369A1',
   '경남영업부':         '#F59E0B',
   '경북영업부':         '#EF4444',
   '관악/평택/안산영업부': '#06B6D4',
   '수원/용인영업부':    '#EC4899',
   '인천영업부':         '#84CC16',
   '충청영업부':         '#F97316',
-  '호남영업부':         '#6366F1',
+  '호남영업부':         '#1E40AF',
 };
 
 // Andrew's Monotone Chain — O(n log n) convex hull
@@ -158,6 +160,23 @@ function StoreRiskMap({ D = {}, yearFilter = "all", setYearFilter = () => {}, sy
     return { total: filteredStores.length, incident: inc.length, safe: filteredStores.length - inc.length, topStore: top || null };
   }, [filteredStores, getYearCount]);
 
+  // 최다 사고 매장 — 라이브 D.accidents 기준(필터 반영). 정적 storesData 카운트는 고정값이라 라이브 실데이터로 산출.
+  const liveTopStore = useMemo(() => {
+    const recs = (D.accidents || []).filter(a => {
+      if (yearFilter === "2024" && a.year !== 2024) return false;
+      if (yearFilter === "2025" && a.year !== 2025) return false;
+      if (yearFilter === "2026" && a.year !== 2026) return false;
+      if (bumFilter !== "전체" && a.bum !== bumFilter) return false;
+      if (deptFilter !== "전체" && a.dept !== deptFilter) return false;
+      if (teamFilter !== "전체" && a.team !== teamFilter) return false;
+      return true;
+    });
+    const cnt = {};
+    recs.forEach(a => { if (a.store) cnt[a.store] = (cnt[a.store] || 0) + 1; });
+    const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
+    return top ? { n: top[0], c: top[1] } : null;
+  }, [D.accidents, yearFilter, bumFilter, deptFilter, teamFilter]);
+
   // 선택된 매장이 현재 필터 범위에서 벗어났다면 자동 해제 (stale 선택 정리)
   useEffect(() => {
     if (!selectedStore) return;
@@ -177,7 +196,7 @@ function StoreRiskMap({ D = {}, yearFilter = "all", setYearFilter = () => {}, sy
   }, [filteredStores, selectedStore]);
 
   // ── AI 안전가이드 (Bedrock Claude) ───────────────────────
-  function buildPrompt(store, accidents, teamIr, deptIr, workerRec) {
+  function buildPrompt(store, accidents, teamIr, deptIr, workerRec, storeWorkerCnt) {
     const byType = {};
     accidents.forEach(a => { byType[a.type || "미상"] = (byType[a.type || "미상"] || 0) + 1; });
     const topType = Object.entries(byType).sort((a,b) => b[1]-a[1]);
@@ -187,8 +206,8 @@ function StoreRiskMap({ D = {}, yearFilter = "all", setYearFilter = () => {}, sy
     const teamAvgIr = teamRow ? teamRow.ir_per100 : null;
     const teamAvgCov = teamRow ? (teamRow.coverage_rate ?? teamRow.rate) : null;
 
-    const workerInfo = workerRec
-      ? `재직인원: ${workerRec.workers}명 | 매장 100명당 IR: ${workerRec.workers > 0 ? (accidents.length / workerRec.workers * 100).toFixed(2) : "—"}건`
+    const workerInfo = storeWorkerCnt != null
+      ? `재직인원: ${storeWorkerCnt}명 | 매장 100명당 IR: ${storeWorkerCnt > 0 ? (accidents.length / storeWorkerCnt * 100).toFixed(2) : "—"}건`
       : "근로자DB 미업로드";
 
     const accLines = accidents.map(a =>
@@ -249,7 +268,8 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
     });
 
     const workerRec = D.worker_kpis ? (D.team_ir || []).find(t => t.team === store.tm) : null;
-    const prompt = buildPrompt(store, storeAccidents, D.team_ir, D.dept_ir, workerRec);
+    const storeWorkerCnt = D.store_workers?.[store.n];
+    const prompt = buildPrompt(store, storeAccidents, D.team_ir, D.dept_ir, workerRec, storeWorkerCnt);
 
     try {
       const result = await requestAiGuide(prompt, { signal: abortRef.current.signal });
@@ -793,6 +813,14 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
 
   const yearLabel = yearFilter === "all" ? "전체" : yearFilter + "년";
 
+  // ── KPI 카운트업 ─────────────────────────────────────────
+  const kpiRef     = useRef(null);
+  const kpiInView  = useInView(kpiRef);
+  const cuTotal    = useCountUp(stats.total,    900, kpiInView);
+  const cuIncident = useCountUp(stats.incident, 900, kpiInView);
+  const cuSafe     = useCountUp(stats.safe,     900, kpiInView);
+  const cuTopC     = useCountUp(liveTopStore?.c ?? 0, 900, kpiInView);
+
   // 현재 선택 경로 표시 (breadcrumb)
   const breadcrumb = [
     bumFilter !== "전체" ? bumFilter : null,
@@ -803,43 +831,38 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
   return (
     <div className="space-y-3">
 
-      {/* ── 상단 바: 기간 + 표시 모드 ── */}
+      {/* ── 상단 바: 표시 모드 (기간은 상단 글로벌 토글 사용) ── */}
       <div className="bg-white border border-stone-200 rounded-xl p-3 flex flex-wrap gap-2 items-center">
-        <span className="text-xs font-semibold text-stone-500">기간</span>
-        {["all","2024","2025","2026"].map(y => (
-          <button key={y} onClick={() => setYearFilter(y)}
-            className={`min-h-[40px] px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${yearFilter===y ? "bg-[#D70011] text-white border-[#D70011]" : "bg-white border-stone-200 text-stone-600 hover:bg-stone-50"}`}>
-            {y==="all"?"전체":y}
-          </button>
-        ))}
-        <div className="w-px h-4 bg-stone-200 mx-1" />
+        <span className="text-xs font-semibold text-stone-500">표시</span>
         {[["all","전체 매장"],["incident","사고 발생만"]].map(([v,l]) => (
           <button key={v} onClick={() => setShowMode(v)}
-            className={`px-2.5 py-1 rounded-md text-xs border transition-colors ${showMode===v ? (v==="incident" ? "bg-[#D70011] text-white border-[#D70011]" : "bg-stone-800 text-white border-stone-800") : "bg-white border-stone-200 text-stone-600 hover:bg-stone-50"}`}>
+            className={`px-2.5 py-1 rounded-md text-xs border transition-all duration-200 ${showMode===v ? (v==="incident" ? "bg-[#D70011] text-white border-[#D70011]" : "bg-stone-800 text-white border-stone-800") : "bg-white border-stone-200 text-stone-600 hover:bg-stone-50"}`}>
             {l}
           </button>
         ))}
         <div className="w-px h-4 bg-stone-200 mx-1" />
         <button onClick={() => setShowDeptBounds(v => !v)}
-          className={`px-2.5 py-1 rounded-md text-xs border transition-colors flex items-center gap-1 ${showDeptBounds ? "bg-indigo-600 text-white border-indigo-600" : "bg-white border-stone-200 text-stone-600 hover:bg-stone-50"}`}>
+          className={`px-2.5 py-1 rounded-md text-xs border transition-all duration-200 flex items-center gap-1 ${showDeptBounds ? "bg-[#071E4A] text-white border-[#071E4A]" : "bg-white border-stone-200 text-stone-600 hover:bg-stone-50"}`}>
           영업부 경계
         </button>
         {/* 모바일: 트리 토글 버튼 */}
         <button onClick={() => setTreeOpen(o => !o)}
-          className="ml-auto lg:hidden px-2.5 py-1 rounded-md text-xs border border-stone-200 bg-white text-stone-600 flex items-center gap-1">
-          🗂 조직 {treeOpen ? "접기" : "펼치기"}
+          className="ml-auto lg:hidden px-2.5 py-1 rounded-md text-xs border border-stone-200 bg-white text-stone-600 flex items-center gap-1 transition-all duration-200">
+          <GitBranch size={13} /> 조직 {treeOpen ? "접기" : "펼치기"}
         </button>
       </div>
 
       {/* ── KPI 타일 ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+      <div ref={kpiRef} className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         {[
-          {l:"표시 매장",       v:stats.total.toLocaleString()+"개",                     c:"text-stone-900"},
-          {l:`${yearLabel} 사고`, v:stats.incident+"개",                                 c:"text-[#D70011]"},
-          {l:"사고 없음",       v:stats.safe.toLocaleString()+"개",                      c:"text-stone-500"},
-          {l:"최다 사고 매장",  v:stats.topStore ? `${stats.topStore.n} (${getYearCount(stats.topStore)}건)` : "-", c:"text-stone-800"},
-        ].map(k => (
-          <div key={k.l} className="bg-white border border-stone-200 rounded-lg p-3">
+          {l:"표시 매장",        v:`${cuTotal.toLocaleString()}개`,                          c:"text-stone-900"},
+          {l:`${yearLabel} 사고`, v:`${cuIncident.toLocaleString()}개`,                       c:"text-[#D70011]"},
+          {l:"사고 없음",        v:`${cuSafe.toLocaleString()}개`,                           c:"text-stone-500"},
+          {l:"최다 사고 매장",   v:liveTopStore ? `${liveTopStore.n} (${cuTopC}건)` : "-",   c:"text-stone-800"},
+        ].map((k, i) => (
+          <div key={k.l}
+            className="bg-white border border-stone-200 rounded-lg p-3 dash-slide-up"
+            style={{animationDelay:`${i * 0.06}s`}}>
             <div className="text-[11px] text-stone-400 mb-1">{k.l}</div>
             <div className={"text-sm font-semibold truncate "+k.c}>{k.v}</div>
           </div>
@@ -876,7 +899,7 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                   <button onClick={() => setStoreSearch("")}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-sm leading-none cursor-pointer">✕</button>
                 ) : (
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-300 text-xs">🔍</span>
+                  <Search size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-300 pointer-events-none" />
                 )}
               </div>
             </div>
@@ -925,13 +948,13 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
 
             {/* breadcrumb */}
             {breadcrumb && !storeSearch && (
-              <div className="px-3 py-1.5 border-b border-stone-100 text-[10px] text-stone-400 truncate flex-shrink-0 bg-stone-50/50">
-                📍 {breadcrumb}
+              <div className="px-3 py-1.5 border-b border-stone-100 text-[10px] text-stone-400 flex items-center gap-1 flex-shrink-0 bg-stone-50/50 min-w-0">
+                <MapPin size={10} className="flex-shrink-0" /><span className="truncate">{breadcrumb}</span>
               </div>
             )}
 
-            {/* 트리 — 스크롤 영역 */}
-            <div className="flex-1 overflow-y-auto py-1" style={{scrollbarWidth:"thin", scrollbarColor:"#D6D3D1 transparent"}}>
+            {/* 트리 — 스크롤 영역 (min-h-0: flex-col 내 자식이 줄어들어 스크롤되도록 — 없으면 패널 넘쳐 잘림) */}
+            <div className="flex-1 min-h-0 overflow-y-auto py-1" style={{scrollbarWidth:"thin", scrollbarColor:"#D6D3D1 transparent"}}>
               {TREE.map(({ bum, color, depts }) => {
                 const bs = storesByBum[bum] || { total:0, inc:0 };
                 const isBumSel = bumFilter === bum && deptFilter === "전체";
@@ -941,8 +964,8 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                     {/* 부문 행 */}
                     <div className={`flex items-center gap-1 mx-1.5 my-0.5 px-2 py-2 cursor-pointer select-none rounded-lg transition-colors
                       ${isBumSel ? "bg-stone-800" : "hover:bg-stone-50"}`}>
-                      <button onClick={() => toggleBum(bum)} className="w-5 h-5 flex items-center justify-center flex-shrink-0 text-sm leading-none rounded hover:bg-black/10 transition-colors">
-                        {isBumExp ? "🔽" : "▶️"}
+                      <button onClick={() => toggleBum(bum)} className="w-5 h-5 flex items-center justify-center flex-shrink-0 rounded hover:bg-black/10 transition-colors">
+                        {isBumExp ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                       </button>
                       <button onClick={() => selectBum(bum)} className="flex-1 text-left min-w-0">
                         <div className="flex items-center gap-2">
@@ -965,8 +988,8 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                           {/* 부서 행 */}
                           <div className={`flex items-center gap-1 mx-1.5 ml-4 my-0.5 px-2 py-1.5 cursor-pointer select-none rounded-lg transition-colors
                             ${isDeptSel ? "bg-stone-700" : "hover:bg-stone-50"}`}>
-                            <button onClick={() => toggleDept(dept)} className="w-5 h-5 flex items-center justify-center flex-shrink-0 text-sm leading-none rounded hover:bg-black/10 transition-colors">
-                              {isDeptExp ? "📂" : "📁"}
+                            <button onClick={() => toggleDept(dept)} className="w-5 h-5 flex items-center justify-center flex-shrink-0 rounded hover:bg-black/10 transition-colors">
+                              {isDeptExp ? <FolderOpen size={14} className="text-amber-500"/> : <Folder size={14} className="text-stone-400"/>}
                             </button>
                             <button onClick={() => selectDept(dept, bum)} className="flex-1 text-left min-w-0">
                               <div className={`text-xs font-medium truncate leading-tight ${isDeptSel ? "text-white" : "text-stone-700"}`}>{dept}</div>
@@ -1008,7 +1031,9 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
             {mapStatus === "loading" && (
               <div className="absolute inset-0 flex items-center justify-center bg-stone-50 z-10">
                 <div className="text-center">
-                  <div className="text-3xl mb-2 animate-pulse">🗺️</div>
+                  <div className="flex justify-center mb-3">
+                    <div className="w-8 h-8 border-[3px] border-stone-200 border-t-[#071E4A] rounded-full animate-spin" />
+                  </div>
                   <div className="text-sm font-semibold text-stone-600">지도 로딩 중...</div>
                   <div className="text-xs text-stone-400 mt-1">최대 15초 소요</div>
                 </div>
@@ -1165,13 +1190,13 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
         >
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-stone-900/45 backdrop-blur-[2px] transition-opacity"
+            className="absolute inset-0 bg-stone-900/45 backdrop-blur-[2px] animate-[fadeIn_.2s_ease-out]"
             onClick={() => { setSelectedStore(null); setGuideText(""); setGuideError(null); setRvOpen(false); setRvStatus("idle"); }}
           />
 
           {/* Panel */}
           <div
-            className="relative ml-auto h-full bg-white shadow-2xl flex flex-col animate-[slideIn_.22s_ease-out]"
+            className="relative ml-auto h-full bg-white shadow-2xl flex flex-col animate-[slideIn_.3s_cubic-bezier(.2,.7,.3,1)]"
             style={{
               width: "min(560px, 100vw)",
             }}
@@ -1186,11 +1211,11 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     {(() => {
-                      const cnt = getYearCount(selectedStore) || 0;
+                      const yearCnt = getYearCount(selectedStore) || 0;
                       const tot = selectedStore.tot || 0;
-                      const badge = tot >= 5 ? {l:"고위험", c: DAISO_RED, bg:"#FEE2E2"}
-                        : tot >= 2 ? {l:"주의", c:"#C2410C", bg:"#FED7AA"}
-                        : tot >= 1 ? {l:"관찰", c:"#A16207", bg:"#FEF3C7"}
+                      const badge = yearCnt >= 5 ? {l:"고위험", c: DAISO_RED, bg:"#FEE2E2"}
+                        : yearCnt >= 2 ? {l:"주의", c:"#C2410C", bg:"#FED7AA"}
+                        : yearCnt >= 1 ? {l:"관찰", c:"#A16207", bg:"#FEF3C7"}
                         : {l:"안전", c: SAFE_GREEN, bg:"#DCFCE7"};
                       return (
                         <>
@@ -1222,7 +1247,10 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
 
             {/* 스카이뷰 — 매장 위치 위성사진 */}
             {typeof selectedStore.lat === 'number' && (
-              <div ref={drawerSkyRef} className="flex-shrink-0 border-b border-stone-100" style={{height:'130px'}} />
+              <div className="flex-shrink-0 border-b border-stone-100 relative" style={{height:'130px'}}>
+                <div className="absolute inset-0 animate-pulse bg-stone-100" />
+                <div ref={drawerSkyRef} className="absolute inset-0" />
+              </div>
             )}
 
             {/* 요약 카드 그리드 */}
@@ -1252,19 +1280,19 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
             {/* 탭 헤더 */}
             <div className="flex-shrink-0 border-b border-stone-200 px-3 flex items-center gap-0 overflow-x-auto" role="tablist">
               {[
-                {id:"basic",     l:"기본 정보"},
-                {id:"hr",        l:"인원·면적"},
-                {id:"accident",  l:`사고 현황${(selectedStore.tot||0) > 0 ? ` (${selectedStore.tot})` : ""}`},
+                {id:"basic",     l:"기본"},
+                {id:"hr",        l:"인원"},
+                {id:"accident",  l:`사고${storeAccidents.length > 0 ? ` (${storeAccidents.length})` : ""}`},
                 {id:"map",       l:"지도"},
                 {id:"roadview",  l:"로드뷰"},
-                {id:"ai",        l:"AI 분석"},
+                {id:"ai",        l:"AI"},
               ].map(t => (
                 <button
                   key={t.id}
                   role="tab"
                   aria-selected={drawerTab === t.id}
                   onClick={() => setDrawerTab(t.id)}
-                  className={`flex-shrink-0 text-xs font-semibold px-3 py-2.5 border-b-2 transition-colors whitespace-nowrap focus:outline-none focus:bg-stone-50
+                  className={`flex-shrink-0 text-xs font-semibold px-3 py-3 min-h-[44px] border-b-2 transition-colors whitespace-nowrap focus:outline-none focus:bg-stone-50
                     ${drawerTab === t.id
                       ? "border-stone-800 text-stone-900"
                       : "border-transparent text-stone-500 hover:text-stone-700 hover:bg-stone-50"}`}>
@@ -1355,10 +1383,10 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                             <span className="text-xs text-stone-500">팀 내 매장 평균 인원</span>
                             <span className="text-sm font-bold text-stone-800 tabular-nums">{avgPerStore}명</span>
                           </div>
-                          {teamRow.ir_per100 != null && (
+                          {teamRow?.ir_per100 != null && (
                             <div className="flex items-center justify-between px-3 py-2.5 bg-rose-50/50">
                               <span className="text-xs text-stone-600 font-semibold">팀 100명당 IR</span>
-                              <span className="text-sm font-bold text-rose-700 tabular-nums">{teamRow.ir_per100.toFixed(2)}건</span>
+                              <span className="text-sm font-bold text-rose-700 tabular-nums">{teamRow?.ir_per100.toFixed(2)}건</span>
                             </div>
                           )}
                         </div>
@@ -1502,7 +1530,7 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                       onClick={() => fetchGuide(selectedStore)}
                       disabled={guideLoading}
                       className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-lg text-xs font-semibold text-white transition-all cursor-pointer disabled:opacity-50"
-                      style={{background: guideLoading ? "#9CA3AF" : "linear-gradient(135deg,#4F46E5,#7C3AED)"}}>
+                      style={{background: guideLoading ? "#9CA3AF" : "linear-gradient(135deg,#071E4A,#1D4ED8)"}}>
                       <span className="text-sm leading-none">{guideLoading ? "⏳" : "✨"}</span>
                       {guideLoading ? "AI 분석 중..." : guideText ? "가이드 재생성" : "AI 안전가이드 생성"}
                     </button>
@@ -1550,7 +1578,7 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                           </div>
                         );
                       })}
-                      {guideLoading && <span className="inline-block w-1.5 h-3.5 bg-violet-500 animate-pulse ml-0.5 rounded-sm" />}
+                      {guideLoading && <span className="inline-block w-1.5 h-3.5 bg-[#1D4ED8] animate-pulse ml-0.5 rounded-sm" />}
                     </div>
                   )}
                 </div>
@@ -1571,8 +1599,11 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
             </div>
           </div>
 
-          {/* drawer slide-in keyframes */}
-          <style>{`@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
+          {/* drawer slide-in + backdrop fade-in keyframes */}
+          <style>{`
+            @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+            @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+          `}</style>
         </div>
       )}
     </div>

@@ -16,7 +16,7 @@ function CDept({ D }) {
   const yrLabel = D._yr ? `${D._yr}년` : "전체";
 
   // Bug fix: reset dept selection when year filter changes
-  useEffect(() => { setSelDept(null); }, [D._yr]);
+  useEffect(() => { setSelDept(null); }, [D._yr, selBumun]);
 
   const filteredDepts = (selBumun === "전체" ? D.depts : D.depts.filter(d => d.bumun === selBumun)).slice().sort((a,b) => b._show - a._show);
   const filteredTeams = (selDept ? D.teams.filter(t => t.dept === selDept)
@@ -27,7 +27,7 @@ function CDept({ D }) {
     <div className="space-y-3 sm:space-y-4">
       {/* 부문(수도권/지방) */}
       <Card title="부문별 현황" titleIcon={Building2} sub={`${yrLabel} 수도권 vs 지방 비교`}
-        right={<ExportBtn rows={D.bumun.map(b=>({부문:b.bumun,건수:b._show,보상합계:b._comp,보상건수:b.comp_count}))} filename={`고객사고_부문_${yrLabel}.csv`}/>}>
+        right={<ExportBtn rows={D.bumun.map(b=>({부문:b.bumun,건수:b._show,보상합계:b._comp,...(D._yr ? {"보상건수(전체기간)":b.comp_count} : {보상건수:b.comp_count})}))} filename={`고객사고_부문_${yrLabel}.csv`}/>}>
         <div className="grid grid-cols-2 gap-3">
           {D.bumun.map((b,i) => {
             const ratio = D.bumun.reduce((s,x)=>s+x._show,0) > 0 ? (b._show/D.bumun.reduce((s,x)=>s+x._show,0)*100).toFixed(1) : 0;
@@ -42,7 +42,7 @@ function CDept({ D }) {
                   <span className="text-3xl font-bold tabular-nums" style={{color: i===0 ? CUST_BLUE : CUST_AMBER}}>{b._show.toLocaleString()}</span>
                   <span className="text-xs text-stone-400">건</span>
                 </div>
-                <div className="text-xs text-stone-500 mt-1.5">보상 {(b._comp/100000000).toFixed(1)}억원 · {b.comp_count}건</div>
+                <div className="text-xs text-stone-500 mt-1.5">보상 {(b._comp/100000000).toFixed(1)}억원{D._yr ? ` (${yrLabel})` : ""} · {b.comp_count}건{D._yr ? " (전체기간)" : ""}</div>
                 <div className="mt-2 bg-stone-100 rounded-full h-1.5 overflow-hidden">
                   <div className="h-full rounded-full" style={{width:`${ratio}%`,background:i===0 ? CUST_BLUE : CUST_AMBER}}/>
                 </div>
@@ -63,27 +63,46 @@ function CDept({ D }) {
       <Card title={`영업부별 현황 ${selBumun!=="전체" ? `(${selBumun})` : ""}`} titleIcon={Building2} sub={`${yrLabel} 영업부 사고건수 + 보상금액`}
         right={<ExportBtn rows={filteredDepts.map(d=>({부문:d.bumun,영업부:d.dept,건수:d._show,보상:d._comp,보상건수:d._comp_count}))} filename={`고객사고_영업부_${yrLabel}.csv`}/>}>
         <ResponsiveContainer width="100%" height={Math.max(220, filteredDepts.length*30)} debounce={50}>
-          <ComposedChart data={filteredDepts} layout="vertical" margin={{left:0, right:60}}>
+          <BarChart data={filteredDepts} layout="vertical" margin={{left:0, right:72}}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false}/>
-            <XAxis type="number" yAxisId="cnt" tick={{fontSize:11,fill:"#78716C"}} axisLine={false} tickLine={false}/>
-            <XAxis type="number" yAxisId="comp" orientation="top" hide/>
+            <XAxis type="number" tick={{fontSize:11,fill:"#78716C"}} axisLine={false} tickLine={false}/>
             <YAxis type="category" dataKey="dept" tick={{fontSize:10,fill:"#44403C"}} axisLine={false} tickLine={false} width={140} interval={0} tickFormatter={d=>d.replace("영업부","")}/>
             <Tooltip content={<TT/>}/>
-            <Legend verticalAlign="top" iconSize={10} wrapperStyle={{fontSize:11,paddingBottom:4}}/>
-            <Bar yAxisId="cnt" dataKey="_show" radius={[0,4,4,0]} name="사고건수">
+            <Bar dataKey="_show" radius={[0,4,4,0]} name="사고건수">
               {filteredDepts.map((d,i) => (
                 <Cell key={d.dept} fill={d.bumun==="수도권" ? CUST_BLUE : CUST_AMBER} cursor="pointer"
                       onClick={() => setSelDept(selDept===d.dept ? null : d.dept)}/>
               ))}
-              <LabelList dataKey="_show" position="right" style={{fontSize:11,fill:INK,fontWeight:700}}/>
+              <LabelList
+                dataKey="_show"
+                position="right"
+                content={(props) => {
+                  const { x, y, width, height, value, index } = props;
+                  const comp = filteredDepts[index]?._comp ?? 0;
+                  const compStr = comp >= 100000000
+                    ? `${(comp / 100000000).toFixed(1)}억`
+                    : comp >= 10000
+                    ? `${Math.round(comp / 10000)}만`
+                    : '';
+                  const cx = (x ?? 0) + (width ?? 0) + 6;
+                  const cy = (y ?? 0) + (height ?? 0) / 2;
+                  return (
+                    <g>
+                      <text x={cx} y={cy - (compStr ? 5 : 0)} fill={INK} fontSize={11} fontWeight="700" dominantBaseline="middle">{value}</text>
+                      {compStr && (
+                        <text x={cx} y={cy + 8} fill="#0284c7" fontSize={9} dominantBaseline="middle">{compStr}</text>
+                      )}
+                    </g>
+                  );
+                }}
+              />
             </Bar>
-            <Line yAxisId="comp" dataKey="_comp" name="보상금액(원)" dot={{r:3,fill:CUST_TEAL}} stroke={CUST_TEAL} strokeWidth={2} type="monotone"/>
-          </ComposedChart>
+          </BarChart>
         </ResponsiveContainer>
         <div className="flex items-center gap-4 mt-2 text-xs text-stone-500">
           <span className="flex items-center gap-1.5"><div style={{width:10,height:10,borderRadius:2,background:CUST_BLUE}}/>수도권</span>
           <span className="flex items-center gap-1.5"><div style={{width:10,height:10,borderRadius:2,background:CUST_AMBER}}/>지방</span>
-          <span className="flex items-center gap-1.5"><div style={{width:10,height:2,background:CUST_TEAL}}/>보상금액</span>
+          <span className="flex items-center gap-1.5" style={{color:'#0284c7'}}>우측 소자: 보상금액(억원)</span>
           <span className="ml-auto">막대 클릭 시 해당 영업부 팀별 차트로 필터</span>
         </div>
       </Card>
@@ -102,7 +121,7 @@ function CDept({ D }) {
           ))}
         </div>
         <ResponsiveContainer width="100%" height={Math.max(280, Math.min(filteredTeams.length, 15)*22)} debounce={50}>
-          <BarChart data={filteredTeams.slice(0,15)} layout="vertical" margin={{left:0}}>
+          <BarChart data={filteredTeams.slice(0,15)} layout="vertical" margin={{left:0, right:40}}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false}/>
             <XAxis type="number" tick={{fontSize:11,fill:"#78716C"}} axisLine={false} tickLine={false}/>
             <YAxis type="category" dataKey="team" tick={{fontSize:11,fill:"#44403C"}} axisLine={false} tickLine={false} width={80} interval={0}/>

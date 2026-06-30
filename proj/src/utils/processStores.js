@@ -32,7 +32,7 @@ function processStores(rows) {
     stores.push({
       // 엑셀 실제 헤더: 매장코드 / 매장명 / 팀 / 부서 / 부문 / 형태 / 폐점여부 / 단품관리 / 오픈일 / 평수 / 실평수 / 창고 / 계약면적(㎡) / 진열평수 / 신주소 / 출고물류센터
       code: r["매장코드"], store: r["매장명"],
-      team: r["팀"], dept: r["부서"], bum: r["부문"],
+      team: r["팀"] || r["지역"], dept: r["부서"], bum: r["부문"],
       form: r["형태"], type: r["단품관리"],
       area, size: sizeBucket(area),
       warehouse, display,

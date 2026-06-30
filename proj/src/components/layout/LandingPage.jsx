@@ -53,7 +53,7 @@ const CSS = `
 .lp-feat-title::after {
   content:""; position:absolute; left:0; bottom:-3px;
   height:2px; width:100%;
-  background:var(--lp-feat-color, #6366F1);
+  background:var(--lp-feat-color, #1D4ED8);
   transform:scaleX(0); transform-origin:left;
   transition:transform .28s ease;
 }
@@ -125,11 +125,11 @@ const THEMES = {
     glowAnim:         'lp-glow-dark 3s ease-in-out 1.6s infinite',
     aurora: [
       { color:'rgba(215,0,17,.13)',  size:580, top:'-22%', right:'-18%', anim:'lp-aurora-a 18s ease-in-out infinite' },
-      { color:'rgba(99,102,241,.10)',size:500, bottom:'-22%', left:'-16%', anim:'lp-aurora-b 22s ease-in-out 3s infinite' },
+      { color:'rgba(29,78,216,.10)',size:500, bottom:'-22%', left:'-16%', anim:'lp-aurora-b 22s ease-in-out 3s infinite' },
       { color:'rgba(8,145,178,.08)', size:380, top:'45%',  right:'5%',    anim:'lp-aurora-c 15s ease-in-out 6s infinite' },
       { color:'rgba(180,83,9,.07)',  size:320, top:'10%',  left:'5%',     anim:'lp-aurora-d 20s ease-in-out 1s infinite' },
     ],
-    particle: ['rgba(215,0,17,.42)','rgba(99,102,241,.36)','rgba(255,255,255,.20)'],
+    particle: ['rgba(215,0,17,.42)','rgba(29,78,216,.36)','rgba(255,255,255,.20)'],
   },
   light: {
     bg:               'linear-gradient(145deg, #F8FAFF 0%, #FFFFFF 50%, #EEF2FF 100%)',
@@ -150,17 +150,17 @@ const THEMES = {
     glowAnim:         'lp-glow-light 3s ease-in-out 1.6s infinite',
     aurora: [
       { color:'rgba(215,0,17,.07)',  size:600, top:'-22%', right:'-18%', anim:'lp-aurora-a 18s ease-in-out infinite' },
-      { color:'rgba(99,102,241,.06)',size:520, bottom:'-22%', left:'-16%', anim:'lp-aurora-b 22s ease-in-out 3s infinite' },
+      { color:'rgba(29,78,216,.06)',size:520, bottom:'-22%', left:'-16%', anim:'lp-aurora-b 22s ease-in-out 3s infinite' },
       { color:'rgba(8,145,178,.05)', size:400, top:'45%',  right:'5%',    anim:'lp-aurora-c 15s ease-in-out 6s infinite' },
       { color:'rgba(180,83,9,.05)',  size:330, top:'10%',  left:'5%',     anim:'lp-aurora-d 20s ease-in-out 1s infinite' },
     ],
-    particle: ['rgba(215,0,17,.22)','rgba(99,102,241,.18)','rgba(0,0,0,.10)'],
+    particle: ['rgba(215,0,17,.22)','rgba(29,78,216,.18)','rgba(0,0,0,.10)'],
   },
 };
 
 /* ── 사고유형 Orbit 배경 ── */
 const ORBIT_DOTS = [
-  '#D70011', '#F59E0B', '#6366F1', '#0891B2', '#10B981', '#8B5CF6',
+  '#D70011', '#F59E0B', '#1D4ED8', '#0891B2', '#10B981', '#003B8F',
 ];
 
 function OrbitBg({ isDark }) {
@@ -203,7 +203,7 @@ function OrbitBg({ isDark }) {
 
 /* ── 3단계 플로우 다이어그램 ── */
 const FLOW_STEPS = [
-  { icon: Database, label: '데이터 수집', sub: '사고·날씨·물동량', color: '#6366F1' },
+  { icon: Database, label: '데이터 수집', sub: '사고·날씨·물동량', color: '#1D4ED8' },
   { icon: Cpu,      label: 'AI 분석',    sub: '위험점수 산출',    color: '#D70011' },
   { icon: Bell,     label: '카카오 알림', sub: '선제 발송',        color: '#0891B2' },
 ];
@@ -267,7 +267,7 @@ const PARTICLES = Array.from({ length: 20 }, (_, i) => ({
 
 /* ── 피처 데이터 ── */
 const FEATURES = [
-  { icon: Brain,     title: 'AI 위험 예측',       color: '#6366F1', delay: 0,
+  { icon: Brain,     title: 'AI 위험 예측',       color: '#1D4ED8', delay: 0,
     desc: '사고 이력·날씨·물동량 3축 데이터를 학습한 AI가 매일 아침 매장별 위험도를 자동 산출합니다.' },
   { icon: Bell,      title: '카카오톡 선제 알림', color: '#D70011', delay: 90,
     desc: '위험 임계치를 초과한 매장에만 맞춤 안전 수칙을 발송해 사고를 사전에 막습니다.' },
@@ -383,7 +383,7 @@ function AnimTitle({ th }) {
       ))}
       <span style={{
         display: 'inline-block',
-        background: 'linear-gradient(90deg,#ff6b6b,#ffa64d,#4dd0ff,#b06aff,#ff6b6b)',
+        background: 'linear-gradient(90deg,#ff6b6b,#ffa64d,#4dd0ff,#1D4ED8,#ff6b6b)',
         backgroundSize: '300% 100%',
         WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent',
         animation: `lp-slideUp .5s cubic-bezier(.2,.8,.3,1) 520ms both,
