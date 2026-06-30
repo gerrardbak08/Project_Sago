@@ -115,10 +115,19 @@ const _isEmpty = (v) =>
   (Array.isArray(v) && v.length === 0) ||
   (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0);
 
+// 근로자/IR·rate 파생 섹션 — 라이브는 건수만 채우고 ir_per100/rate는 null이라
+// 비어있지않은 배열로 base(IR값 보유)를 덮어쓰는 문제 방지 → 항상 정적 May 유지
+const STATIC_KEEP = new Set([
+  'worker_ir_summary', 'worker_kpis', 'team_ir', 'dept_ir',
+  'form_stats', 'size_stats', 'age_stats', 'sido_stats', 'sigungu_top',
+  'guibun', 'warehouse',
+]);
+
 function mergeLiveOntoStatic(live, base) {
   if (!live) return base;
   const out = { ...base };
   for (const k of Object.keys(live)) {
+    if (STATIC_KEEP.has(k)) continue; // 근로자/IR 파생 → 정적 유지(라이브가 IR을 못 채움)
     const lv = live[k];
     if (_isEmpty(lv)) continue; // 라이브가 비운 섹션 → base 유지(근로자 파생)
     if (k === 'kpis' && lv && base && base.kpis) {

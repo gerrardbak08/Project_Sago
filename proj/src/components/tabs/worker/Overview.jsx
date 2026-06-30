@@ -5,7 +5,7 @@ import { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, BL, OR, NV,
 import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN } from '../../../constants/metrics.js';
 import { pct, fmt, fmtKrw, TT, EmptyState } from '../../../utils/uiHelpers.jsx';
 import { useCountUp, useInView } from '../../../utils/motion.js';
-import { Odometer, Sparkline } from '../../../components/shared/MotionBits.jsx';
+import { Sparkline } from '../../../components/shared/MotionBits.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card, EstimateBadge } from '../../../components/shared/Card.jsx';
 import { CalcTip, HeatmapGrid, BarRank, Matrix, gradientCells } from '../../../components/shared/ChartHelpers.jsx';
@@ -149,96 +149,9 @@ function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
     <div className="space-y-3 sm:space-y-4">
 
 
-      {/* === 100명당 IR 배너 (3개 독립 카드, yearFilter 연동) === */}
-      {D.worker_ir_summary && D.worker_ir_summary.total && (() => {
-        // 분자: yearFilter 적용 (전체 사고 → 연도별 사고로 동적)
-        const yr = yearFilter !== "all" ? D.yearly?.find(y => String(y.year) === yearFilter) : null;
-        const sudoBumun = D.worker_ir_summary.by_bumun.find(b => b.bum === "수도권");
-        const jibangBumun = D.worker_ir_summary.by_bumun.find(b => b.bum === "지방");
-        const totalIncidents = yr ? (yr.s + yr.j) : D.worker_ir_summary.total.incidents;
-        const sudoIncidents = yr ? yr.s : (sudoBumun?.incidents ?? 0);
-        const jibangIncidents = yr ? yr.j : (jibangBumun?.incidents ?? 0);
-        const totalWorkers = D.worker_ir_summary.total.workers;
-        const totalStores = D.worker_ir_summary.total.stores_count;
-        const sudoWorkers = sudoBumun?.workers ?? 0;
-        const jibangWorkers = jibangBumun?.workers ?? 0;
-        const sudoStores = sudoBumun?.stores_count ?? 0;
-        const jibangStores = jibangBumun?.stores_count ?? 0;
-        const totalIr = totalWorkers ? (totalIncidents / totalWorkers * 100) : null;
-        const sudoIr = sudoWorkers ? (sudoIncidents / sudoWorkers * 100) : null;
-        const jibangIr = jibangWorkers ? (jibangIncidents / jibangWorkers * 100) : null;
-        const periodLabel = yearFilter === "all" ? "전체 기간" : `${yearFilter}년`;
-        const warmBg = "linear-gradient(135deg, #FEFCF7 0%, #FAF5EB 30%, #F1E5CC 70%, #E8D3A8 100%)";
-        const cards = [
-          { label: "영업부문 100명당 IR", labelColor: ALERT_RED, ir: totalIr, incidents: totalIncidents, workers: totalWorkers, stores: totalStores, valueColor: "#1C1917", icon: true, spkData: D.yearly?.map(y => (y.s||0)+(y.j||0)+(y.e||0)) ?? [] },
-          { label: "수도권", labelColor: "#1D4ED8", ir: sudoIr, incidents: sudoIncidents, workers: sudoWorkers, stores: sudoStores, valueColor: "#1D4ED8", spkData: D.yearly?.map(y => y.s||0) ?? [] },
-          { label: "지방", labelColor: "#C2410C", ir: jibangIr, incidents: jibangIncidents, workers: jibangWorkers, stores: jibangStores, valueColor: "#C2410C", spkData: D.yearly?.map(y => y.j||0) ?? [] },
-        ];
-        // 좌→우로 흐르는 하나의 그라데이션 — 3개 분리 카드가 각자 전체의 1/3 구간을 배경으로
-        // (카드 N의 끝색 = 카드 N+1의 시작색 → gap이 있어도 연속처럼 보임)
-        const GRAD_STOPS = ["#FEFCF7", "#F7EFDA", "#EFE1C2", "#E6D0A0"];
-        return (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-              {cards.map((c, i) => (
-                <div key={c.label}
-                     className="rounded-lg p-3 sm:p-4 dash-slide-up"
-                     style={{
-                       background: `linear-gradient(to right, ${GRAD_STOPS[i]} 0%, ${GRAD_STOPS[i + 1]} 100%)`,
-                       border: "1px solid #E8D3A8",
-                       animationDelay: `${i * 80}ms`,
-                     }}>
-                  <div className="flex items-center gap-2 mb-1">
-                    {c.icon && <Users size={14} style={{color: c.labelColor}} />}
-                    <span className="text-[11px] font-bold uppercase tracking-wider" style={{color: c.labelColor}}>{c.label}</span>
-                  </div>
-                  <div className="flex items-end justify-between gap-2">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-3xl lg:text-4xl font-bold tracking-tight" style={{color: c.valueColor}}>
-                        {c.ir != null
-                          ? <Odometer value={Math.round(c.ir * 100)} duration={1100} format={(n) => (n / 100).toFixed(2)} />
-                          : "—"}
-                      </span>
-                      <span className="text-sm text-stone-500 font-medium">건/100명</span>
-                    </div>
-                    {c.spkData && c.spkData.length >= 2 && (
-                      <Sparkline data={c.spkData} color={c.labelColor} width={60} height={20} />
-                    )}
-                  </div>
-                  <div className="text-[11px] text-stone-600 mt-1.5 leading-tight">
-                    사고 {c.incidents.toLocaleString()}건 · 재직 {c.workers.toLocaleString()}명 · 매장 {c.stores}개
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="rounded-lg px-4 py-2 text-[11px] break-keep" style={{ background: "rgba(255,251,240,0.7)", border: "1px solid #F1E5CC", color: "#78716C" }}>
-              <b style={{color: ALERT_RED}}>지표 해석</b> · <b>100명당 IR</b>은 인원 노출량을 보정한 사고 강도.
-              분자 사고는 <b>{periodLabel}</b> 기준 (연도 토글 연동) · 수도권+지방 영업부문만 집계(기타부문 제외).
-              분모(재직자)는 근로자DB 스냅샷({D.worker_kpis?.ref_date}) 고정 — 매년 5월 19일 시점. 연도별 정확한 분모는 추후 부문별 시계열 작업 시 갱신 예정.
-            </div>
-          </>
-        );
-      })()}
-
       {/* === 임계값 알림 배너 === */}
       {(() => {
         const alerts = [];
-        // 팀 IR 임계값: 평균의 1.5배 이상
-        const teamIrs = (D.team_ir || []).filter(t => t.ir_per100 != null);
-        if (teamIrs.length > 0) {
-          const avgIr = teamIrs.reduce((s,t) => s+t.ir_per100, 0) / teamIrs.length;
-          const threshold = avgIr * 1.5;
-          const overTeams = teamIrs.filter(t => t.ir_per100 > threshold);
-          if (overTeams.length > 0) {
-            alerts.push({
-              level: "warn",
-              icon: "⚠",
-              title: `팀 IR 임계값 초과 — ${overTeams.length}개 팀`,
-              desc: `평균(${avgIr.toFixed(2)}건/100명)의 1.5배(${threshold.toFixed(2)}건/100명) 초과: ${overTeams.slice(0,3).map(t=>t.team).join("·")}${overTeams.length>3?` 외 ${overTeams.length-3}개`:""}`,
-              tab: "dept",
-            });
-          }
-        }
         // 동일 매장 재발 (3건 이상)
         const hotStores = (D.stores || []).filter(s => s.total >= 3);
         if (hotStores.length > 0) {
