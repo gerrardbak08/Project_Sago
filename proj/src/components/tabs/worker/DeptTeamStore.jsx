@@ -144,11 +144,6 @@ function DeptTeamStore({ D, yearFilter }) {
                 </div>
               ))}
             </div>
-            <div className="rounded-lg px-4 py-2 text-[11px] break-keep" style={{ background: "rgba(255,251,240,0.7)", border: "1px solid #F1E5CC", color: "#78716C" }}>
-              <b style={{color: ALERT_RED}}>지표 해석</b> · <b>100명당 IR</b>은 인원 노출량을 보정한 사고 강도.
-              분자 사고는 <b>{periodLabel}</b> 기준 (연도 토글 연동) · 수도권+지방 영업부문만 집계(기타부문 제외).
-              분모(재직자)는 근로자DB 스냅샷({D.worker_kpis?.ref_date}) 고정 — 매년 5월 19일 시점. 연도별 정확한 분모는 추후 부문별 시계열 작업 시 갱신 예정.
-            </div>
           </>
         );
       })()}
@@ -176,40 +171,7 @@ function DeptTeamStore({ D, yearFilter }) {
         );
       })()}
 
-      <Card title="영업부 전체 사고 랭킹" titleIcon={Building2} delay={0} sub={`${isYearFilter ? `${yearFilter}년` : "전체 기간"} — ${bum === "전체" ? "전체 10개 영업부" : `${bum} 부문 강조`} · 막대 클릭 시 부문 전환`} right={<ExportBtn rows={allD.map(d => ({부문: d.bum, 부서: d.dept, 총: d.total, Y24: d.y24, Y25: d.y25, Y26: d.y26, 매장수: d.stores, 매장당: d.per_store}))} filename="부서별_사고현황.csv" />}>
-        <ResponsiveContainer width="100%" height={360} debounce={50}>
-          <BarChart key={`allD-${bum}-${yearFilter}`} data={allD} layout="vertical" margin={{ left: 0 }} onClick={(e) => { if (e?.activePayload?.length > 0) { const p = e.activePayload[0].payload; setBum(p.bum); setSelDept(p.dept); } }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false} />
-            <XAxis type="number" tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
-            <YAxis type="category" dataKey="dept" tick={{ fontSize: 10, fill: "#44403C" }} axisLine={false} tickLine={false} width={140} interval={0} />
-            <Tooltip content={<TT />} />
-            <Legend wrapperStyle={{ fontSize: 12 }} iconType="circle" />
-            {isYearFilter ? (
-              <Bar dataKey="total" name={`${yearFilter}년`} radius={[0, 6, 6, 0]} animationDuration={700}>
-                {(() => { const ranked = [...allD].sort((a, b) => (b.total || 0) - (a.total || 0)); return allD.map((d, i) => (
-                  <Cell key={i} fill={rankColor(ranked.indexOf(d))} opacity={(bum === "전체" || d.bum === bum) ? 1 : 0.45} />
-                )); })()}
-                <LabelList dataKey="total" position="right" style={{ fontSize: 12, fill: NV, fontWeight: 700 }} />
-              </Bar>
-            ) : (
-              <>
-                <Bar dataKey="y24" stackId="a" fill="#D6D3D1" name="2024" animationDuration={700}>
-                  {allD.map((d, i) => <Cell key={i} fill="#D6D3D1" opacity={(bum === "전체" || d.bum === bum) ? 1 : 0.35} />)}
-                </Bar>
-                <Bar dataKey="y25" stackId="a" fill={BL} name="2025" animationDuration={700} animationBegin={120}>
-                  {allD.map((d, i) => <Cell key={i} fill={BL} opacity={(bum === "전체" || d.bum === bum) ? 1 : 0.35} />)}
-                </Bar>
-                <Bar dataKey="y26" stackId="a" fill={OR} name="2026" radius={[0, 6, 6, 0]} animationDuration={700} animationBegin={240}>
-                  {allD.map((d, i) => <Cell key={i} fill={OR} opacity={(bum === "전체" || d.bum === bum) ? 1 : 0.35} />)}
-                  <LabelList dataKey="total" position="right" style={{ fontSize: 12, fill: NV, fontWeight: 700 }} />
-                </Bar>
-              </>
-            )}
-          </BarChart>
-        </ResponsiveContainer>
-      </Card>
-
-      {/* Normalized metric */}
+      {/* Normalized metric (랭킹 카드는 부서별 연도와 중복되어 제거) */}
       <Card title="매장당 사고율 정규화" titleIcon={Target} delay={70} sub="절대건수는 규모 반영 — 매장당 건수로 진짜 위험도 판단">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <ResponsiveContainer width="100%" height={220} debounce={50}>

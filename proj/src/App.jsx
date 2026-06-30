@@ -171,14 +171,13 @@ function App() {
   const ROLE_LANDING = { ceo: "overview", manager: "dept", team: "parjang", part: "store", safety: "overview" };
   const ROLE_LABELS = { ceo: "경영진", manager: "영업부문장", team: "팀장", part: "파트장", safety: "안전보건팀" };
 
-  const [tab, setTabState] = useState(
-    _INIT_HASH_PARAMS.tab || (initialRole && ROLE_LANDING[initialRole] ? ROLE_LANDING[initialRole] : "overview")
-  );
+  // 첫 화면은 어떤 경우에도(해시·역할 무관) 요약 탭 고정
+  const [tab, setTabState] = useState("overview");
   const [alertTab, setAlertTab] = useState("alert_monitor"); // 알림 모드 내 탭
   const [lastSentDate, setLastSentDate] = useState(null);
   const [preFillStore, setPreFillStore] = useState(null);
   const [currentRole, setCurrentRole] = useState(_INIT_HASH_PARAMS.role || initialRole || null);
-  const [yearFilter, setYearState] = useState(_INIT_HASH_PARAMS.year || String(CURRENT_YEAR));
+  const [yearFilter, setYearState] = useState(String(CURRENT_YEAR)); // 첫 화면 항상 2026 고정 (해시 무관)
 
   // 랜딩 → 대시보드 페이드 전환
   const handleLandingEnter = () => {
@@ -186,9 +185,7 @@ function App() {
     setTimeout(() => setShowLanding(false), 400);
   };
   const handleLandingRoleSelect = (roleId) => {
-    setCurrentRole(roleId);
-    const ROLE_LANDING = { ceo: "overview", manager: "dept", team: "parjang", part: "store", safety: "overview" };
-    if (ROLE_LANDING[roleId]) setTabState(ROLE_LANDING[roleId]);
+    setCurrentRole(roleId); // 역할은 데이터 필터용 — 첫 탭은 항상 요약 고정(역할 랜딩 비활성)
   };
 
   // URL hash 동기화 — history.replaceState (리로드 없음)
