@@ -8,6 +8,7 @@ import DAISO_LOGO   from './data/logo.js';
 import { STORE_SNAPSHOTS } from './data/snapshots.js';
 import RAW_STORES   from './data/raw/stores.json';
 import { fetchLiveSnapshot, buildWorkerDataFromLive } from './utils/liveSource.js';
+import LIVE_SNAPSHOT from './data/liveSnapshot.js';
 
 // ── 색상 + 상수 ────────────────────────────────────────
 import { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, DAISO_GRAY,
@@ -195,29 +196,49 @@ function App() {
   const [basis, setBasis] = useState('incident');         // 'incident'(사고경위) | 'approval'(산재승인)
   const [showReport, setShowReport] = useState(false);    // 요약 보고서 모달
   const [showSearch, setShowSearch] = useState(false);    // 데이터 조회 모달
-  const liveRef = useRef(null);                           // { rows, approvalIds } — 기준 전환 재빌드용 원본
+  const liveFetchedRef = useRef(false);                   // StrictMode 이중호출 방지
+  const basisRef = useRef('incident');                    // 라이브 fetch 콜백에서 최신 basis 읽기용
+  const liveRef = useRef({                               // { rows, approvalIds } — 기준 전환 재빌드용 원본
+    rows: LIVE_SNAPSHOT.rows,
+    approvalIds: new Set((LIVE_SNAPSHOT.approvalRows || []).map(r => r.recordId)),
+  });
 
-  // 라이브 연동: 마운트 시 시트(Apps Script v4.0)에서 raw rows 를 받아 정적 데이터를 교체한다.
-  // 초기엔 DEFAULT_DATA(정적)로 즉시 렌더 → 실패해도 정적 유지(폴백). 시트 갱신 = 자동 수치 전환.
+  // 라이브 연동: 마운트 시 시트(Apps Script v4.0)에서 raw rows 를 받아 liveRef 를 갱신한다.
+  // 초기엔 baked 스냅샷(LIVE_SNAPSHOT)이 liveRef 에 이미 들어 있어 토글이 즉시 작동한다.
+  // 라이브 fetch 성공 시 liveRef 를 최신으로 덮어쓰고, approval 기준이면 재빌드.
+  // incident 기준이면 rich 정적 DEFAULT_DATA 를 그대로 유지 (setData 호출 안 함).
   useEffect(() => {
+    if (liveFetchedRef.current) return; // StrictMode 이중호출 방지
+    liveFetchedRef.current = true;
     let alive = true;
     fetchLiveSnapshot({ division: '안전보건팀', year: '전체', month: '전체' })
       .then((snap) => {
         if (!alive) return;
         liveRef.current = { rows: snap.rows, approvalIds: new Set((snap.approvalRows || []).map((r) => r.recordId)) };
-        const built = buildWorkerDataFromLive(snap.rows, RAW_STORES.data, { basis: 'incident' });
-        if (built && built.kpis && built.kpis.total > 0) { setData(built); setDataSource('live'); }
+        setDataSource('live');
+        if (basisRef.current === 'approval') {
+          const built = buildWorkerDataFromLive(snap.rows, RAW_STORES.data, { basis: 'approval', approvalIds: liveRef.current.approvalIds });
+          if (built && built.kpis) setData(built);
+        }
+        // basis === 'incident' → rich 정적 DEFAULT_DATA 유지, setData 하지 않음
       })
-      .catch((e) => { console.warn('[live] 로드 실패, 정적 데이터 유지:', e?.message); if (alive) setDataSource('fallback'); });
+      .catch((e) => { console.warn('[live] 로드 실패, 스냅샷 데이터 유지:', e?.message); });
     return () => { alive = false; };
   }, []);
 
-  // 기준(사고경위/산재승인) 전환 시 라이브 원본에서 재빌드 (라이브 로드된 경우만)
+  // 기준(사고경위/산재승인) 전환: 하이브리드
+  //   incident → rich 정적 DEFAULT_DATA (모든 섹션 보존, 현재 기본 화면 불변)
+  //   approval → baked 스냅샷(또는 라이브 갱신 후 최신 liveRef)에서 재집계
   useEffect(() => {
+    basisRef.current = basis;
+    if (accidentFileName || storeFileName || workerFileName) return; // 업로드 보호
+    if (basis === 'incident') {
+      setData(DEFAULT_DATA);
+      return;
+    }
+    // basis === 'approval'
     const live = liveRef.current;
-    if (!live) return;
-    if (accidentFileName || storeFileName || workerFileName) return; // 업로드 데이터 보호 — basis 전환이 덮어쓰지 않음
-    const built = buildWorkerDataFromLive(live.rows, RAW_STORES.data, { basis, approvalIds: live.approvalIds });
+    const built = buildWorkerDataFromLive(live.rows, RAW_STORES.data, { basis: 'approval', approvalIds: live.approvalIds });
     if (built && built.kpis) setData(built);
   }, [basis]);
 
@@ -492,7 +513,7 @@ function App() {
         {/* ── 2행: 기간 필터 + 건수 + 역할 ── */}
         <div className="bg-white border-b border-stone-100">
           <div className="max-w-[1400px] mx-auto px-3 sm:px-5 h-11 sm:h-10 flex items-center gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-            {dataSource === 'live' && (
+            {isDefault && (
               <>
                 <span className="text-xs text-stone-400 font-medium hidden sm:inline flex-shrink-0">기준:</span>
                 <SegmentedToggle

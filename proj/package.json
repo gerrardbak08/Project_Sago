@@ -10,7 +10,8 @@
     "data": "node scripts/regenerate-data.mjs && node scripts/extract-snapshots.mjs",
     "data:accidents": "node scripts/regenerate-data.mjs",
     "data:snapshots": "node scripts/extract-snapshots.mjs",
-    "data:approval": "node scripts/extract-approval.mjs"
+    "data:approval": "node scripts/extract-approval.mjs",
+    "data:livesnapshot": "node scripts/bake-live-snapshot.mjs"
   },
   "dependencies": {
     "@amplitude/analytics-browser": "^2.43.0",

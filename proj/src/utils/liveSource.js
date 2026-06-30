@@ -21,12 +21,12 @@ export const SOURCE = {
 };
 
 // ── PII 마스킹 ──
-function maskName(name) {
+export function maskName(name) {
   const s = String(name ?? '').trim();
   if (!s) return null;
   return s[0] + '*'.repeat(Math.max(1, s.length - 1));   // 홍길동 → 홍**
 }
-function hashEmp(emp) {
+export function hashEmp(emp) {
   const s = String(emp ?? '').trim();
   if (!s) return null;
   let h = 0x811c9dc5;                                     // FNV-1a 32bit
@@ -34,7 +34,7 @@ function hashEmp(emp) {
   return 'AD-' + h.toString(36).toUpperCase().slice(0, 6); // 사번 → 안정적 익명 키(재발재해자 추적용)
 }
 // 자유텍스트(사고 내용)에 등장하는 알려진 성명 일괄 마스킹 — 본인/타인 교차언급 모두 차단
-function scrubNames(text, nameSet) {
+export function scrubNames(text, nameSet) {
   let s = String(text ?? '');
   if (!s || !nameSet || !nameSet.size) return s || null;
   for (const nm of nameSet) {
