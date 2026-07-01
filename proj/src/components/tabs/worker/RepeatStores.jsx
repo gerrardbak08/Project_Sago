@@ -56,7 +56,7 @@ function RepeatStores({ D, yearFilter }) {
   const cMaxDeptN = useCountUp(maxDept ? maxDept[1] : 0, 900, kpiInView);
 
   const displayDate = (s) => yr
-    ? ((accidents.filter(a => a.store === s.store && a.year === +yr)
+    ? (String(accidents.filter(a => a.store === s.store && a.year === +yr)
         .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
       [0]?.date || '').slice(0, 10) || '-')
     : (s.recentDate || '-');
