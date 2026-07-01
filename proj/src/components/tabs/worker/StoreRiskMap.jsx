@@ -128,12 +128,32 @@ function StoreRiskMap({ D = {}, yearFilter = "all", setYearFilter = () => {}, sy
       .sort((a, b) => (toDate(b.date)?.getTime() || 0) - (toDate(a.date)?.getTime() || 0));
   }, [selectedStore, D.accidents]);
 
+  // 매장별 사고수 — 라이브 D.accidents 기준. 기준 토글(사고경위↔산재승인) 전환 시
+  // D.accidents가 바뀌므로 지도 마커·통계·요약이 즉시 전환된다.
+  // (정적 MAP_STORES 카운트 s.tot/y24…는 기준 무관 고정값이라 더는 쓰지 않음)
+  const liveCount = useMemo(() => {
+    const m = {};
+    (D.accidents || []).forEach(a => {
+      if (!a.store) return;
+      const k = normalizeStoreName(a.store);
+      if (!m[k]) m[k] = { tot: 0, y24: 0, y25: 0, y26: 0 };
+      m[k].tot++;
+      if (a.year === 2024) m[k].y24++;
+      else if (a.year === 2025) m[k].y25++;
+      else if (a.year === 2026) m[k].y26++;
+    });
+    return m;
+  }, [D.accidents]);
+
   const getYearCount = useCallback((s) => {
-    if (yearFilter === "2024") return s.y24;
-    if (yearFilter === "2025") return s.y25;
-    if (yearFilter === "2026") return s.y26;
-    return s.tot;
-  }, [yearFilter]);
+    if (!s) return 0;
+    const c = liveCount[normalizeStoreName(s.n)];
+    if (!c) return 0;
+    if (yearFilter === "2024") return c.y24;
+    if (yearFilter === "2025") return c.y25;
+    if (yearFilter === "2026") return c.y26;
+    return c.tot;
+  }, [yearFilter, liveCount]);
 
   // 영업부/부서/팀 필터 → 기간/위험도 필터 조합 결과
   const filteredStores = useMemo(() => {
