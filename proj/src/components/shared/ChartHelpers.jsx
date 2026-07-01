@@ -135,7 +135,7 @@ function Matrix({ data, rowKey, cols, rowLabels }) {
           <th className="text-left text-stone-500 font-semibold align-bottom pb-1" style={{ fontSize: 10 }}>-</th>
           {cols.map(c => (
             <th key={c} className="text-center text-stone-500 font-semibold align-bottom pb-1 leading-tight"
-                style={{ fontSize: 10, letterSpacing: "-0.05em", ...(vertical ? { writingMode: 'vertical-rl', transform: 'rotate(180deg)', height: 64 } : {}) }}
+                style={{ fontSize: 10, letterSpacing: "-0.05em", ...(vertical ? { writingMode: 'vertical-rl', height: 64, whiteSpace: 'nowrap' } : {}) }}
                 title={c}>{c}</th>
           ))}
           <th className="text-right text-stone-500 font-semibold align-bottom pb-1" style={{ fontSize: 10 }}>합계</th>
