@@ -176,8 +176,9 @@ function StoreRiskMap({ D = {}, yearFilter = "all", setYearFilter = () => {}, sy
 
   const stats = useMemo(() => {
     const inc = filteredStores.filter(s => getYearCount(s) > 0);
+    const accidentCount = filteredStores.reduce((sum, s) => sum + getYearCount(s), 0); // 사고 건수(합)
     const top = [...inc].sort((a, b) => getYearCount(b) - getYearCount(a))[0];
-    return { total: filteredStores.length, incident: inc.length, safe: filteredStores.length - inc.length, topStore: top || null };
+    return { total: filteredStores.length, incident: inc.length, safe: filteredStores.length - inc.length, accidentCount, topStore: top || null };
   }, [filteredStores, getYearCount]);
 
   // 최다 사고 매장 — 라이브 D.accidents 기준(필터 반영). 정적 storesData 카운트는 고정값이라 라이브 실데이터로 산출.
@@ -838,6 +839,7 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
   const kpiInView  = useInView(kpiRef);
   const cuTotal    = useCountUp(stats.total,    900, kpiInView);
   const cuIncident = useCountUp(stats.incident, 900, kpiInView);
+  const cuAccidents = useCountUp(stats.accidentCount, 900, kpiInView);
   const cuSafe     = useCountUp(stats.safe,     900, kpiInView);
   const cuTopC     = useCountUp(liveTopStore?.c ?? 0, 900, kpiInView);
 
@@ -875,16 +877,17 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
       {/* ── KPI 타일 ── */}
       <div ref={kpiRef} className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         {[
-          {l:"표시 매장",        v:`${cuTotal.toLocaleString()}개`,                          c:"text-stone-900"},
-          {l:`${yearLabel} 사고`, v:`${cuIncident.toLocaleString()}개`,                       c:"text-[#D70011]"},
-          {l:"사고 없음",        v:`${cuSafe.toLocaleString()}개`,                           c:"text-stone-500"},
-          {l:"최다 사고 매장",   v:liveTopStore ? `${liveTopStore.n} (${cuTopC}건)` : "-",   c:"text-stone-800"},
+          {l:"표시 매장",         v:`${cuTotal.toLocaleString()}개`,                        c:"text-stone-900"},
+          {l:`${yearLabel} 사고`,  v:`${cuAccidents.toLocaleString()}건`, sub:`발생 매장 ${cuIncident.toLocaleString()}개`, c:"text-[#D70011]"},
+          {l:"무사고 매장",       v:`${cuSafe.toLocaleString()}개`,                         c:"text-stone-500"},
+          {l:"최다 사고 매장",    v:liveTopStore ? `${liveTopStore.n} (${cuTopC}건)` : "-", c:"text-stone-800"},
         ].map((k, i) => (
           <div key={k.l}
             className="bg-white border border-stone-200 rounded-lg p-3 dash-slide-up"
             style={{animationDelay:`${i * 0.06}s`}}>
             <div className="text-[11px] text-stone-400 mb-1">{k.l}</div>
             <div className={"text-sm font-semibold truncate "+k.c}>{k.v}</div>
+            {k.sub && <div className="text-[10px] text-stone-400 mt-0.5 truncate">{k.sub}</div>}
           </div>
         ))}
       </div>

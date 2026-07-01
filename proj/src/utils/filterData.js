@@ -115,11 +115,13 @@ function getFilteredData(D, yearFilter) {
         count: Math.round(v.count * ratio),
       }])
     ) : D.costDept,
-    store_coverage: D.store_coverage ? {
-      ...D.store_coverage,
-      involved: Math.round(D.store_coverage.involved * ratio),
-      safe: D.store_coverage.total - Math.round(D.store_coverage.involved * ratio),
-    } : D.store_coverage,
+    store_coverage: D.store_coverage ? (() => {
+      // 연도 필터 시 사고발생 매장수 = 실제 사고기록의 distinct 매장(위험지도와 정합).
+      // 비례추정은 매장별 연도 breakdown 부재 시 폴백.
+      const involvedActual = new Set((D.accidents || []).filter(a => String(a.year) === yearFilter).map(a => a.store).filter(Boolean)).size;
+      const inv = involvedActual || Math.round(D.store_coverage.involved * ratio);
+      return { ...D.store_coverage, involved: inv, safe: Math.max(0, D.store_coverage.total - inv) };
+    })() : D.store_coverage,
     parjang: D.parjang ? {
       ...D.parjang,
       total: Math.round(D.parjang.total * ratio),
