@@ -1,7 +1,7 @@
 // 사고원본DB 뷰어 — 마스킹된 라이브 스냅샷 2시트(사고경위DB·산재승인DB) 인페이지 표
 // 대시보드 디자인 언어(Card 래퍼·SegmentedToggle·컴팩트 테이블)와 통일.
 import { useState, useMemo } from 'react';
-import { Shield, ExternalLink, Database } from 'lucide-react';
+import { Shield, Database } from 'lucide-react';
 import { SegmentedToggle } from '../../shared/MotionBits.jsx';
 import { Card } from '../../shared/Card.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
@@ -106,13 +106,6 @@ export default function RawDbViewer({ rows = [], approvalRows = [], sheetUrl }) 
     return <EmptyState message="스냅샷 데이터가 없습니다." />;
   }
 
-  const linkBtn = sheetUrl ? (
-    <a href={sheetUrl} target="_blank" rel="noopener noreferrer"
-      className="h-7 px-2.5 rounded-md border border-stone-200 text-xs font-medium text-stone-600 bg-white hover:bg-stone-50 cursor-pointer flex items-center gap-1 transition">
-      <ExternalLink size={12} strokeWidth={2} /> 원본 시트<span className="text-stone-400">↗</span>
-    </a>
-  ) : null;
-
   return (
     <div className="space-y-3 sm:space-y-4">
       <Card
@@ -120,7 +113,6 @@ export default function RawDbViewer({ rows = [], approvalRows = [], sheetUrl }) 
         titleIcon={Database}
         sub="라이브 시트 스냅샷 — 사고경위DB / 산재승인DB (성명·사번 마스킹)"
         delay={0}
-        right={linkBtn}
       >
         {/* 시트 토글 + CSV */}
         <div className="flex flex-wrap items-center gap-2 mb-2.5">
