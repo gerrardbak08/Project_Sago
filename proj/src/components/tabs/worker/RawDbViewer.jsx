@@ -98,8 +98,8 @@ export default function RawDbViewer({ rows = [], approvalRows = [], sheetUrl }) 
   const hasFilter = year || month || dept || team || query;
 
   const sheetOptions = [
-    { value: 'incident', label: `사고경위DB ${rows.length}` },
-    { value: 'approval', label: `산재승인DB ${approvalRows.length}` },
+    { value: 'incident', label: '사고경위' },
+    { value: 'approval', label: '산재승인' },
   ];
 
   if (!rows.length && !approvalRows.length) {
