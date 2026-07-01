@@ -560,7 +560,7 @@ function App() {
 
         {/* ── 2행: 기간 필터 + 건수 + 역할 ── */}
         <div className="bg-white border-b border-stone-100">
-          <div className="max-w-[1400px] mx-auto px-3 sm:px-5 h-11 sm:h-10 flex items-center gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+          <div className="max-w-[1400px] mx-auto px-3 sm:px-5 h-12 sm:h-10 flex items-center gap-2.5 sm:gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
             {isDefault && (
               <>
                 <span className="text-xs text-stone-400 font-medium hidden sm:inline flex-shrink-0">기준:</span>
@@ -600,6 +600,17 @@ function App() {
               return (
                 <span className="text-xs text-stone-500 hidden sm:inline flex-shrink-0">
                   · {label} <b className="text-stone-900 tabular-nums">{fmt(storeCount)}개</b>
+                </span>
+              );
+            })()}
+            {isDefault && (() => {
+              const live = dataSource === 'live';
+              const bd = LIVE_SNAPSHOT?.bakedAt ? LIVE_SNAPSHOT.bakedAt.slice(5, 10).replace('-', '/').replace(/^0/, '') : '';
+              return (
+                <span className={`hidden sm:inline-flex items-center gap-1 flex-shrink-0 ml-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${live ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-500'}`}
+                  title={live ? '라이브 실시간 연동됨' : `데이터 스냅샷 (${LIVE_SNAPSHOT?.bakedAt?.slice(0, 10) || ''} 기준)`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${live ? 'bg-emerald-500' : 'bg-stone-400'}`} />
+                  {live ? '실시간' : `스냅샷 ${bd}`}
                 </span>
               );
             })()}
@@ -664,10 +675,10 @@ function App() {
       {/* ═══ 산업재해 현황 대시보드 히어로 타이틀 ═══ */}
       {dashMode === "worker" && (
         <div className="max-w-[1400px] mx-auto px-3 sm:px-5 pt-3 sm:pt-5">
-          <div className="rounded-[22px] bg-white/75 border border-stone-200/60 px-5 sm:px-8 py-5 sm:py-6 relative overflow-hidden" style={{ boxShadow: '0 8px 22px rgba(7,30,74,0.05)' }}>
+          <div className="rounded-[20px] bg-white/75 border border-stone-200/60 px-5 sm:px-8 py-4 relative overflow-hidden" style={{ boxShadow: '0 8px 22px rgba(7,30,74,0.05)' }}>
             <div className="text-[11px] font-extrabold tracking-[0.18em] text-[#E60033] flex items-center gap-1.5"><span className="text-[#003B8F]">✦</span> ASUNG DAISO · SAFETY FIRST</div>
-            <h1 className="text-2xl sm:text-[34px] font-black text-[#071E4A] mt-1.5 tracking-tight">산업재해 현황 분석 대시보드</h1>
-            <p className="text-stone-500 text-xs sm:text-sm mt-2">매장 사고 흐름을 한눈에 보고, 오늘의 안전 행동을 바로 정합니다.</p>
+            <h1 className="text-2xl sm:text-[30px] font-black text-[#071E4A] mt-1 tracking-tight">산업재해 현황 분석 대시보드</h1>
+            <p className="text-stone-500 text-xs sm:text-sm mt-1.5">매장 사고 흐름을 한눈에 보고, 오늘의 안전 행동을 바로 정합니다.</p>
           </div>
         </div>
       )}

@@ -383,30 +383,30 @@ function PeriodComparison({ monthly, storeSnapshots, workerSnapshots }) {
               {/* 보조 곡선 라인 (우측 Y축, 인덱스) — 색·dash·마커 모양으로 구별 */}
               <Line yAxisId="right" type="natural" dataKey="매장수_idx"
                     name="매장수"
-                    stroke="#1D4ED8" strokeWidth={2} strokeDasharray="10 4"
+                    stroke="#1D4ED8" strokeWidth={1.3} strokeOpacity={0.5} strokeDasharray="10 4"
                     dot={(p) => (p.value == null || !Number.isFinite(p.cy)) ? null : (
                       <rect key={p.index} x={p.cx - 4} y={p.cy - 4} width={8} height={8}
-                            fill="white" stroke="#1D4ED8" strokeWidth={1.8} />
+                            fill="white" stroke="#1D4ED8" strokeWidth={1.2} opacity={0.6} />
                     )}
                     activeDot={{ r: 6, fill: '#1D4ED8' }}
                     connectNulls isAnimationActive={false} />
               <Line yAxisId="right" type="natural" dataKey="근로자수_idx"
                     name="근로자수"
-                    stroke="#0F766E" strokeWidth={2} strokeDasharray="4 2 1 2"
+                    stroke="#0F766E" strokeWidth={1.3} strokeOpacity={0.5} strokeDasharray="4 2 1 2"
                     dot={(p) => (p.value == null || !Number.isFinite(p.cy)) ? null : (
                       <polygon key={p.index}
                                points={`${p.cx},${p.cy - 5} ${p.cx + 4.5},${p.cy + 3} ${p.cx - 4.5},${p.cy + 3}`}
-                               fill="white" stroke="#0F766E" strokeWidth={1.8} />
+                               fill="white" stroke="#0F766E" strokeWidth={1.2} opacity={0.6} />
                     )}
                     activeDot={{ r: 6, fill: '#0F766E' }}
                     connectNulls isAnimationActive={false} />
               <Line yAxisId="right" type="natural" dataKey="평수_idx"
                     name="매장 평균 평수"
-                    stroke="#D97706" strokeWidth={2} strokeDasharray="2 3"
+                    stroke="#D97706" strokeWidth={1.3} strokeOpacity={0.5} strokeDasharray="2 3"
                     dot={(p) => (p.value == null || !Number.isFinite(p.cy)) ? null : (
                       <polygon key={p.index}
                                points={`${p.cx},${p.cy - 5} ${p.cx + 5},${p.cy} ${p.cx},${p.cy + 5} ${p.cx - 5},${p.cy}`}
-                               fill="white" stroke="#D97706" strokeWidth={1.8} />
+                               fill="white" stroke="#D97706" strokeWidth={1.2} opacity={0.6} />
                     )}
                     activeDot={{ r: 6, fill: '#D97706' }}
                     connectNulls isAnimationActive={false} />
@@ -476,7 +476,7 @@ function PeriodComparison({ monthly, storeSnapshots, workerSnapshots }) {
 function BanCard({ title, unit, snapshot, field, refYm, decimals = 0 }) {
   if (!snapshot || snapshot.length === 0) {
     return (
-      <div className="bg-white border border-stone-100 rounded-xl p-3 sm:p-4 flex flex-col">
+      <div className="bg-white border border-stone-200 rounded-lg p-3 sm:p-4 flex flex-col">
         <div className="text-[11px] font-bold uppercase tracking-wider text-stone-500">{title}</div>
         <div className="text-2xl font-bold text-stone-300 tabular-nums mt-1">—</div>
         <div className="text-[10px] text-stone-400 italic mt-1">데이터 준비 중</div>
@@ -492,7 +492,7 @@ function BanCard({ title, unit, snapshot, field, refYm, decimals = 0 }) {
   const delta = (cur != null && prevVal != null) ? cur - prevVal : null;
   const pct = (delta != null && prevVal) ? (delta / prevVal) * 100 : null;
   return (
-    <div className="bg-white border border-stone-100 rounded-xl p-3 sm:p-4 flex flex-col">
+    <div className="bg-white border border-stone-200 rounded-lg p-3 sm:p-4 flex flex-col">
       <div className="text-[11px] font-bold uppercase tracking-wider text-stone-500">{title}</div>
       <div className="flex items-baseline gap-1.5 mt-1">
         <span className="text-2xl sm:text-3xl font-bold text-stone-900 tabular-nums">

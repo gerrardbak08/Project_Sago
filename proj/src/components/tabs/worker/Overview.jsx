@@ -337,15 +337,7 @@ ${(D.dept_ir || []).slice(0,5).map(d => `- ${d.dept}: 사고 ${d.incidents}건 /
           </div>
         )}
         {!aiSummary.text && !aiSummary.error && !aiSummary.loading && (
-          <div className="flex flex-col items-center gap-2 py-6">
-            <Sparkles size={22} className="text-stone-300" />
-            <div className="text-xs text-stone-400 text-center break-keep">
-              AI가 전체 사고 데이터를 종합 분석합니다
-            </div>
-            <div className="text-[11px] text-stone-300 text-center break-keep">
-              위 버튼을 누르면 핵심 패턴 · 위험 요소 · 개선 포인트를 요약합니다
-            </div>
-          </div>
+          <p className="text-[11px] text-stone-400 break-keep mt-1">버튼을 누르면 핵심 패턴 · 위험요소 · 개선 포인트를 요약합니다</p>
         )}
         <AiOutput text={aiSummary.text} loading={aiSummary.loading} />
       </Card>
