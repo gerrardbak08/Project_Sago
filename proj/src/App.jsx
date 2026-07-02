@@ -394,11 +394,12 @@ function App() {
   const TABS = visibleTabs;
 
   // 7그룹 통폐합 네비 — 역할 가시성 반영 후 그룹 구성 (탭 id·컴포넌트는 그대로)
-  const _tabById = Object.fromEntries(TABS.map(t => [t.id, t]));
+  const _tabById = Object.fromEntries([...TABS, ...ALERT_TABS].map(t => [t.id, t]));
   const visibleGroups = TAB_GROUPS
     .map(g => ({ ...g, items: g.subs.map(id => _tabById[id]).filter(Boolean) }))
     .filter(g => g.items.length > 0);
   const activeGroup = visibleGroups.find(g => g.items.some(t => t.id === tab)) || visibleGroups[0];
+  const inAlert = activeGroup?.id === 'g_alert';   // 알림 그룹 활성 여부 (사이드바 유지형 통합)
 
   // 랜딩 페이지
   if (showLanding) return (
@@ -476,7 +477,7 @@ function App() {
   if (dashMode === "customer") return (
     <CustomerDashboard
       onBack={() => setDashMode("worker")}
-      onAlertClick={() => setDashMode("alert")}
+      onAlertClick={() => { setDashMode("worker"); setTab("alert_monitor"); }}
       onSwitchMode={switchMode}
     />
   );
@@ -536,10 +537,10 @@ function App() {
             <div className="flex-1" />
             {/* 모드 토글 */}
             <div className="flex items-center gap-1 flex-shrink-0">
-              <button onClick={() => switchMode("worker")} className="cursor-pointer whitespace-nowrap min-h-[36px] flex items-center justify-center active:opacity-75"
+              <button onClick={() => { switchMode("worker"); if (inAlert) setTab("overview"); }} className="cursor-pointer whitespace-nowrap min-h-[36px] flex items-center justify-center active:opacity-75"
                 style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,
-                  background: DAISO_RED, color:"white", border:"none",
-                  transition:"all .2s", transform:"scale(1.05)"}}>
+                  background: inAlert ? "#F5F5F4" : DAISO_RED, color: inAlert ? "#78716C" : "white", border:"none",
+                  transition:"all .2s", transform: inAlert ? "none" : "scale(1.05)"}}>
                 근로자 사고
               </button>
               <button onClick={() => switchMode("customer")} className="cursor-pointer whitespace-nowrap min-h-[36px] flex items-center justify-center active:opacity-75"
@@ -548,10 +549,10 @@ function App() {
                   transition:"all .2s"}}>
                 고객 사고
               </button>
-              <button onClick={() => switchMode("alert")} className="cursor-pointer whitespace-nowrap min-h-[36px] flex items-center justify-center gap-1 active:opacity-75"
+              <button onClick={() => setTab("alert_monitor")} className="cursor-pointer whitespace-nowrap min-h-[36px] flex items-center justify-center gap-1 active:opacity-75"
                 style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,
-                  background:"#F5F5F4", color:"#78716C", border:"none",
-                  transition:"all .2s"}}>
+                  background: inAlert ? DAISO_RED : "#F5F5F4", color: inAlert ? "white" : "#78716C", border:"none",
+                  transition:"all .2s", transform: inAlert ? "scale(1.05)" : "none"}}>
                 <Bell size={11} />알림 관리
               </button>
             </div>
@@ -691,7 +692,7 @@ function App() {
       </div>
       
       {/* ═══ 산업재해 현황 대시보드 히어로 타이틀 ═══ */}
-      {dashMode === "worker" && (
+      {dashMode === "worker" && !inAlert && (
         <div className="max-w-[1400px] mx-auto px-3 sm:px-5 pt-3 sm:pt-5">
           <div className="rounded-[20px] bg-white/75 border border-stone-200/60 px-5 sm:px-8 py-4 relative overflow-hidden" style={{ boxShadow: '0 8px 22px rgba(7,30,74,0.05)' }}>
             <div className="text-[11px] font-extrabold tracking-[0.18em] text-[#E60033] flex items-center gap-1.5"><span className="text-[#003B8F]">✦</span> ASUNG DAISO · SAFETY FIRST</div>
@@ -752,6 +753,10 @@ function App() {
             {tab === "cost" && <CostRisk D={dataFiltered} allYearly={data.yearly} yearFilter={yearFilter} basis={basis} />}
             {tab === "legal" && <LegalReporting D={dataFiltered} yearFilter={yearFilter} allYearly={data.yearly} rawKind={data.kind} basis={basis} />}
             {tab === "rawdb" && <RawDbViewer rows={LIVE_SNAPSHOT.rows} approvalRows={LIVE_SNAPSHOT.approvalRows} sheetUrl="https://docs.google.com/spreadsheets/d/1pWfoDWXSowQRHBbIiVDgEd_0oK2XcFxtG4R5Kryvfus/edit" />}
+            {/* 알림 관리 — 사이드바 유지형 통합 (근로자 셸 안에서 렌더) */}
+            {tab === "alert_monitor" && <AlertMonitoring initialDate={lastSentDate} onSendRequest={(storeCode) => { if (storeCode) setPreFillStore(storeCode); setTab("alert_send"); }} />}
+            {tab === "alert_send" && <AlertSend onSent={(sentDate) => { setLastSentDate(sentDate); setTab("alert_monitor"); }} preFillStore={preFillStore} onPreFillConsumed={() => setPreFillStore(null)} />}
+            {tab === "alert_review" && <AlertReview onSendRequest={(storeCode) => { if (storeCode) setPreFillStore(storeCode); setTab("alert_send"); }} />}
           </TabErrorBoundary>
         </div>
       </div>

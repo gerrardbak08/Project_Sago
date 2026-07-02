@@ -56,6 +56,7 @@ const TAB_GROUPS = [
   { id: 'g_risk',    l: '재발·손실',   short: '손실', Icon: Siren,           subs: ['repeat', 'repeatstore', 'cost'] },
   { id: 'g_legal',   l: '법적·산재',   short: '법적', Icon: Scale,           subs: ['legal'] },
   { id: 'g_rawdb',   l: '사고원본DB',  short: '원본DB', Icon: Database,      subs: ['rawdb'] },
+  { id: 'g_alert',   l: '알림 관리',   short: '알림', Icon: Bell,            subs: ['alert_monitor', 'alert_send', 'alert_review'] },
 ];
 
 export { TABS_VIEWER, HUB_LABELS, CTABS, ALERT_TABS, TAB_GROUPS };
