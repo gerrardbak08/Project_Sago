@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from 'react';
+import { createPortal } from 'react-dom';
 import { BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList, ComposedChart, ScatterChart, Scatter, ZAxis, ReferenceLine } from 'recharts';
 import { Activity, AlertCircle, MapPin, AlertTriangle, Banknote, BarChart3, Bell, Bone, Briefcase, Building, Building2, Calendar, CheckCircle2, Circle, ClipboardList, FileText, Flame, Folder, GitBranch, Info, Lightbulb, Lock, Map as MapIcon, Package, Pin, RefreshCw, Rocket, Ruler, Scale, Search, ShieldCheck, Siren, Smartphone, Store, Tag, Target, TrendingDown, TrendingUp, Trophy, Unlock, UserCircle, Users, X, LayoutDashboard, Stethoscope, Download, ChevronRight, Sparkles } from 'lucide-react';
 import { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, BL, OR, NV, GR, RD, GN, PR, AM, PAL, CANVAS, rankColor } from '../../../constants/colors.js';
@@ -28,6 +29,7 @@ function DeptTeamStore({ D, yearFilter }) {
   const [selDept, setSelDept] = useState(null);
   const [storeSearch, setStoreSearch] = useState("");
   const [metric, setMetric] = useState("per_store"); // 'per_store' | 'ir_per100'
+  const [worstDetail, setWorstDetail] = useState(null); // 워스트 매장 클릭 → 사고이력 모달
 
   const isYearFilter = yearFilter !== "all";
   const yearKey = isYearFilter ? `y${yearFilter.slice(2)}` : "total";
@@ -452,7 +454,7 @@ function DeptTeamStore({ D, yearFilter }) {
       </Card>
 
       {/* 매장 드릴다운 */}
-      <Card title="매장별 워스트 Top 25" titleIcon={Store} delay={420} sub={isYearFilter ? `${yearFilter}년 사고 발생 매장${bum !== "전체" ? ` · ${bum}` : ""}` : `사고 3건 이상 발생 매장 — 집중관리 대상${bum !== "전체" ? ` · ${bum}` : ""}`} right={
+      <Card title="매장별 워스트 Top 25" titleIcon={Store} delay={420} sub={`${isYearFilter ? `${yearFilter}년 사고 발생 매장` : "사고 3건 이상 발생 매장 — 집중관리 대상"}${bum !== "전체" ? ` · ${bum}` : ""} · 행 클릭 → 사고이력`} right={
         <div className="flex gap-2 items-center">
           <input type="text" value={storeSearch} onChange={e => setStoreSearch(e.target.value)} placeholder="검색..." className="text-xs px-2.5 py-1 rounded-lg border border-stone-200 w-28 sm:w-36 outline-none focus:ring-2 focus:ring-[#1D4ED8]/40 focus:border-[#1D4ED8] transition-colors" />
           <ExportBtn rows={stores} filename="매장별_사고랭킹.csv" />
@@ -473,11 +475,15 @@ function DeptTeamStore({ D, yearFilter }) {
               const { border, bg } = rowAccent(i);
               const barWidth = maxStore > 0 ? Math.round((s.total || 0) / maxStore * 100) : 0;
               return (
-                <tr key={s.store + i} className={`border-b border-stone-100 hover:bg-stone-50/60 ${bg}`}>
+                <tr key={s.store + i} onClick={() => setWorstDetail(s.store)}
+                    className={`border-b border-stone-100 hover:bg-blue-50/50 cursor-pointer transition-colors ${bg}`}
+                    title={`${s.store} 사고이력 보기`}>
                   <td className={`py-2 px-3 whitespace-nowrap ${border}`}>
                     <span className={`text-xs font-bold tabular-nums px-1.5 py-0.5 rounded ${rankBadge(i)}`}>{i + 1}</span>
                   </td>
-                  <td className="py-2 px-3 font-semibold text-stone-900 whitespace-nowrap">{s.store}</td>
+                  <td className="py-2 px-3 font-semibold text-stone-900 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1 group">{s.store}<ChevronRight size={13} className="text-stone-300 group-hover:text-[#1D4ED8] transition-colors" /></span>
+                  </td>
                   <td className="py-2 px-3 whitespace-nowrap"><span className={`text-xs px-2 py-0.5 rounded-full ${s.bum === "수도권" ? "bg-blue-50 text-[#003B8F] border border-stone-200" : "bg-stone-100 text-stone-700 border border-stone-200"}`}>{s.bum}</span></td>
                   <td className="py-2 px-3 text-xs text-stone-600 whitespace-nowrap">{s.dept}</td>
                   <td className="py-2 px-3 text-xs text-stone-600 whitespace-nowrap">{s.team}</td>
@@ -496,6 +502,59 @@ function DeptTeamStore({ D, yearFilter }) {
           </table>
         </div>
       </Card>
+
+      {/* 워스트 매장 클릭 → 사고이력 모달 */}
+      {worstDetail && (() => {
+        const recs = (D.accidents || [])
+          .filter(a => a.store === worstDetail
+            && (!isYearFilter || String(a.year) === yearFilter)
+            && (bum === "전체" || a.bum === bum))
+          .map(a => {
+            let d = "";
+            if (a.date instanceof Date && !isNaN(a.date)) d = a.date.toISOString().slice(0, 10);
+            else if (a.date) d = String(a.date).slice(0, 10);
+            else d = `${a.year}-${String(a.month || 0).padStart(2, "0")}`;
+            return { ...a, _d: d };
+          })
+          .sort((a, b) => b._d.localeCompare(a._d));
+        const meta = stores.find(s => s.store === worstDetail);
+        return createPortal((
+          <div className="fixed inset-0 bg-stone-900/50 z-[100] flex items-center justify-center p-4" onClick={() => setWorstDetail(null)}>
+            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] flex flex-col shadow-[0_20px_60px_rgba(7,30,74,0.25)]" onClick={e => e.stopPropagation()}>
+              <div className="flex items-start justify-between p-5 border-b border-stone-100 flex-shrink-0">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Store size={16} className="text-[#003B8F] flex-shrink-0" />
+                    <span className="text-base font-bold text-[#071E4A] truncate">{worstDetail}</span>
+                  </div>
+                  <div className="text-xs text-stone-500 mt-1">
+                    {meta?.dept}{meta?.team ? ` · ${meta.team}` : ""}{meta?.bum ? ` · ${meta.bum}` : ""} — 사고 <b className="text-[#1D4ED8]">{recs.length}건</b>
+                    {isYearFilter ? ` (${yearFilter}년)` : " (전체 기간)"}
+                  </div>
+                </div>
+                <button onClick={() => setWorstDetail(null)} className="text-stone-400 hover:text-stone-700 cursor-pointer flex-shrink-0" aria-label="닫기"><X size={20} /></button>
+              </div>
+              <div className="overflow-y-auto p-4 space-y-2">
+                {recs.length === 0 ? (
+                  <div className="text-sm text-stone-400 text-center py-8">표시할 사고 이력이 없습니다</div>
+                ) : recs.map((a, i) => (
+                  <div key={i} className="rounded-lg border border-stone-200 p-3 hover:border-[#93C5FD] transition-colors">
+                    <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                      <span className="text-xs font-bold tabular-nums text-stone-700">{a._d}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-100 font-semibold">{a.type || "-"}</span>
+                        {a.cause && <span className="text-[11px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 border border-stone-200">{a.cause}</span>}
+                      </div>
+                    </div>
+                    {a.content && <div className="text-xs text-stone-600 leading-relaxed break-keep">{a.content}</div>}
+                    {(a.workerName || a.team) && <div className="text-[10px] text-stone-400 mt-1.5">{a.workerName || ""}{a.workerName && a.team ? " · " : ""}{a.team || ""}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ), document.body);
+      })()}
 
     </div>
   );
