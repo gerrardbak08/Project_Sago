@@ -42,7 +42,7 @@ import AlertReview     from './components/tabs/alert/AlertReview.jsx';
 import { Card }              from './components/shared/Card.jsx';
 import AdminUpload           from './components/admin/AdminUpload.jsx';
 import CustomerDashboard     from './components/layout/CustomerDashboard.jsx';
-import ModeSidebar, { SidebarFlatNav } from './components/layout/ModeSidebar.jsx';
+import ModeSidebar from './components/layout/ModeSidebar.jsx';
 import { SegmentedToggle } from './components/shared/MotionBits.jsx';
 import LandingPage           from './components/layout/LandingPage.jsx';
 
@@ -166,7 +166,7 @@ function App() {
   const [showLanding, setShowLanding] = useState(!_skipLanding);
   const [landingFading, setLandingFading] = useState(false);
 
-  const [dashMode, setDashMode] = useState("worker"); // "worker" | "customer" | "alert"
+  const [dashMode, setDashMode] = useState("worker"); // "worker" | "customer" (알림은 worker 셸 내 g_alert 그룹으로 통합)
   // === 역할 기반 랜딩 ===
   const initialRole = (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("role")) || null;
   const ROLE_LANDING = { ceo: "overview", manager: "dept", team: "parjang", part: "store", safety: "overview" };
@@ -174,7 +174,6 @@ function App() {
 
   // 첫 화면은 어떤 경우에도(해시·역할 무관) 요약 탭 고정
   const [tab, setTabState] = useState("overview");
-  const [alertTab, setAlertTab] = useState("alert_monitor"); // 알림 모드 내 탭
   const [lastSentDate, setLastSentDate] = useState(null);
   const [preFillStore, setPreFillStore] = useState(null);
   const [currentRole, setCurrentRole] = useState(_INIT_HASH_PARAMS.role || initialRole || null);
@@ -412,67 +411,6 @@ function App() {
     </div>
   );
 
-  // 알림 모드 — customer 대시보드와 동일하게 별도 렌더
-  if (dashMode === "alert") return (
-    <div className="min-h-screen lg:flex" style={{background:"#FFFFFF"}}>
-      {/* 좌측 사이드바 (데스크톱) — 모드 공용 */}
-      <ModeSidebar dashMode={dashMode} onSwitchMode={switchMode} title="안전 알림 관리" subtitle="㈜아성다이소 · 안전보건팀">
-        <SidebarFlatNav items={ALERT_TABS} active={alertTab} onSelect={setAlertTab} />
-      </ModeSidebar>
-
-      <div className="flex-1 min-w-0 lg:ml-[232px]">
-        {/* 모바일 헤더 + 탭바 (lg:hidden — 데스크톱은 사이드바) */}
-        <div className="sticky top-0 z-40 shadow-sm lg:hidden">
-          <div className="bg-white border-b border-stone-200">
-            <div className="max-w-[1400px] mx-auto px-3 sm:px-5 flex items-center gap-2 sm:gap-4" style={{height:56}}>
-              <img src={DAISO_LOGO} alt="DAISO" className="flex-shrink-0" style={{height:32,width:"auto",objectFit:"contain"}} />
-              <div className="flex flex-col justify-center min-w-0">
-                <span className="text-stone-900 font-extrabold leading-none tracking-tight whitespace-nowrap text-base sm:text-xl">안전 알림 관리</span>
-                <span className="text-stone-400 text-[10px] sm:text-xs font-medium leading-none mt-0.5 whitespace-nowrap">㈜아성다이소 · 안전보건팀</span>
-              </div>
-              <div className="flex-1" />
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <button onClick={() => switchMode("worker")} style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:"#F5F5F4",color:"#78716C",border:"none"}} className="cursor-pointer whitespace-nowrap min-h-[36px] flex items-center justify-center active:opacity-75">근로자</button>
-                <button onClick={() => switchMode("customer")} style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:"#F5F5F4",color:"#78716C",border:"none"}} className="cursor-pointer whitespace-nowrap min-h-[36px] flex items-center justify-center active:opacity-75">고객</button>
-                <button onClick={() => switchMode("alert")} style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:"#1D4ED8",color:"white",border:"none"}} className="cursor-pointer whitespace-nowrap min-h-[36px] flex items-center justify-center active:opacity-75">알림</button>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white border-b border-stone-200">
-            <div className="max-w-[1400px] mx-auto px-2 sm:px-4 flex gap-0 overflow-x-auto">
-              {ALERT_TABS.map(t => (
-                <button key={t.id} onClick={() => setAlertTab(t.id)}
-                  className={`min-h-[42px] px-3 py-2.5 text-xs font-medium whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 border-b-2 ${alertTab === t.id ? "border-[#1D4ED8] text-[#003B8F] font-bold" : "border-transparent text-stone-400 hover:text-stone-700"}`}
-                  style={{ minWidth: 48, flexShrink: 0 }}>
-                  <t.Icon size={13} strokeWidth={2} className="flex-shrink-0" />
-                  <span>{t.short}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* 데스크톱 슬림 헤더 */}
-        <div className="hidden lg:block sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-stone-200">
-          <div className="max-w-[1400px] mx-auto px-5 h-14 flex items-center">
-            <span className="text-stone-900 font-extrabold text-lg tracking-tight">{ALERT_TABS.find(t=>t.id===alertTab)?.l || "안전 알림 관리"}</span>
-            <span className="text-stone-400 text-xs ml-2">· 이상치 탐지 기반 선제 알림</span>
-          </div>
-        </div>
-
-        <div className="max-w-[1400px] mx-auto px-3 sm:px-4 py-3 sm:py-5">
-          <TabErrorBoundary key={alertTab}>
-            {alertTab === "alert_monitor"  && <AlertMonitoring initialDate={lastSentDate} onSendRequest={(storeCode) => { if (storeCode) setPreFillStore(storeCode); setAlertTab("alert_send"); }} />}
-            {alertTab === "alert_send"     && <AlertSend onSent={(sentDate) => { setLastSentDate(sentDate); setAlertTab("alert_monitor"); }} preFillStore={preFillStore} onPreFillConsumed={() => setPreFillStore(null)} />}
-            {alertTab === "alert_review"   && <AlertReview onSendRequest={(storeCode) => { if (storeCode) setPreFillStore(storeCode); setAlertTab("alert_send"); }} />}
-          </TabErrorBoundary>
-        </div>
-        <div className="max-w-[1400px] mx-auto px-4 py-4 text-xs text-stone-400 border-t border-stone-100 mt-6">
-          <div>© ㈜아성다이소 안전보건팀 · {new Date().getFullYear()}.{String(new Date().getMonth()+1).padStart(2,"0")}</div>
-        </div>
-      </div>
-    </div>
-  );
 
   if (dashMode === "customer") return (
     <CustomerDashboard
