@@ -144,7 +144,12 @@ const STATIC_KEEP = new Set([
   'worker_ir_summary', 'worker_kpis', 'team_ir', 'dept_ir',
   'form_stats', 'size_stats', 'age_stats', 'sido_stats', 'sigungu_top',
   'guibun', 'warehouse',
+  // 인적속성·심각도(성별/근속/상병) — 라이브 시트에 필드가 없어 0/미상으로 채워지는데,
+  // 정적 May 스냅샷엔 실측 rich값이 있으므로 정적 유지(비자동 탭). 안 하면 성별 0건·중상 0건으로 표시됨.
+  'severity', 'genderType', 'tenure', 'tenure_s', 'tenure_j',
 ]);
+// kpis 내 인적속성 계열 — 라이브가 0으로 채워도 정적 May 값 유지(성별 편중 카드 등)
+const KPI_STATIC_KEEP = new Set(['female', 'male', 'gender_unknown']);
 
 function mergeLiveOntoStatic(live, base) {
   if (!live) return base;
@@ -158,6 +163,7 @@ function mergeLiveOntoStatic(live, base) {
       // 라이브가 null)는 base 유지
       const mk = { ...base.kpis };
       for (const kk of Object.keys(lv)) {
+        if (KPI_STATIC_KEEP.has(kk)) continue; // 성별 등 인적속성 kpi → 정적 유지(라이브 0 무시)
         const v = lv[kk];
         if (v != null && !(typeof v === 'number' && Number.isNaN(v))) mk[kk] = v;
       }
