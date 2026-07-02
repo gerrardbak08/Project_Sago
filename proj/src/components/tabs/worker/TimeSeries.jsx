@@ -167,10 +167,10 @@ function TimeSeries({ D, yearFilter }) {
           <Card title="요일별 사고 패턴" titleIcon={Calendar} sub={isYearFilter ? `${yearFilter}년 요일 분포` : "재해일자 기반 요일 분포 — 인력 배치·TBM 운영 참고"} right={<ExportBtn rows={weekdayFiltered} filename={isYearFilter ? `요일별_${yearFilter}.csv` : "요일별_사고패턴.csv"} />}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <ResponsiveContainer width="100%" height={200} debounce={50}>
-                <BarChart data={weekdayFiltered} barCategoryGap={30}>
+                <BarChart data={weekdayFiltered} barCategoryGap={30} margin={{ top: 24, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" vertical={false} />
                   <XAxis dataKey="wd" tick={{ fontSize: 10, fill: "#44403C", fontWeight: 600 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} domain={[0, dm => Math.max(1, Math.ceil(dm * 1.18))]} />
                   <Tooltip content={<TT />} />
                   <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" />
                   {/* 수도권 animationBegin 100, 지방 250 */}
@@ -305,10 +305,10 @@ function TimeSeries({ D, yearFilter }) {
           ) : (
             <Card title="분기별 사고 추이" titleIcon={Calendar} sub="분기별 수도권·지방 사고 분포 패턴" right={<ExportBtn rows={quarterly} filename="분기별_사고추이.csv" />}>
               <ResponsiveContainer width="100%" height={240} debounce={50}>
-                <ComposedChart data={quarterly.map(q=>({...q, e: q.t-q.s-q.j}))}>
+                <ComposedChart data={quarterly.map(q=>({...q, e: q.t-q.s-q.j}))} margin={{ top: 24, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" vertical={false} />
                   <XAxis dataKey="yq" tick={{ fontSize: 10, fill: "#44403C", fontWeight: 600 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} domain={[0, dm => Math.max(1, Math.ceil(dm * 1.18))]} />
                   <Tooltip content={<TT />} />
                   <Legend wrapperStyle={{ fontSize: 12 }} iconType="circle" />
                   <Bar dataKey="s" stackId="a" fill={BL} name="수도권" animationBegin={100} animationDuration={600} />
@@ -348,10 +348,10 @@ function TimeSeries({ D, yearFilter }) {
           ) : (
             <Card title="반기별 비교" titleIcon={BarChart3} sub="상·하반기 사고 분포 추이">
               <ResponsiveContainer width="100%" height={260} debounce={50}>
-                <BarChart data={halfly.map(h=>({...h, e: h.t-h.s-h.j}))}>
+                <BarChart data={halfly.map(h=>({...h, e: h.t-h.s-h.j}))} margin={{ top: 24, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" vertical={false} />
                   <XAxis dataKey="yh" tick={{ fontSize: 10, fill: "#44403C" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} domain={[0, dm => Math.max(1, Math.ceil(dm * 1.18))]} />
                   <Tooltip content={<TT />} />
                   <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" />
                   <Bar dataKey="s" stackId="a" fill={BL} name="수도권" animationBegin={100} animationDuration={600} />

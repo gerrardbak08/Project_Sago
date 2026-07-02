@@ -69,10 +69,10 @@ function HumanFactors({ D, yearFilter }) {
           ) : (
             <div ref={ageChartRef} className="grid grid-cols-1 gap-4">
               <ResponsiveContainer width="100%" height={260} debounce={50}>
-                <BarChart key={ageChartInView ? 1 : 0} data={ageData}>
+                <BarChart key={ageChartInView ? 1 : 0} data={ageData} margin={{ top: 24, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" vertical={false} />
                   <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#44403C" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} domain={[0, dm => Math.max(1, Math.ceil(dm * 1.18))]} />
                   <Tooltip content={<TT />} />
                   <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" />
                   <Bar dataKey="수도권" stackId="a" fill={BL}
@@ -95,7 +95,7 @@ function HumanFactors({ D, yearFilter }) {
           ) : (
             <div ref={tenChartRef} className="grid grid-cols-1 gap-4">
               <ResponsiveContainer width="100%" height={280} debounce={50}>
-                <BarChart key={tenChartInView ? 1 : 0} data={tenData}>
+                <BarChart key={tenChartInView ? 1 : 0} data={tenData} margin={{ top: 24, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" vertical={false} />
                   <XAxis
                     dataKey="name"
@@ -105,7 +105,7 @@ function HumanFactors({ D, yearFilter }) {
                     interval={0}
                     height={52}
                   />
-                  <YAxis tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} domain={[0, dm => Math.max(1, Math.ceil(dm * 1.18))]} />
                   <Tooltip content={<TT />} />
                   <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" />
                   <Bar dataKey="수도권" stackId="a" fill={BL}

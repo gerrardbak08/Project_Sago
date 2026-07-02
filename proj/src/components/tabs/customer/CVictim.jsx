@@ -46,10 +46,10 @@ function CVictim({ D }) {
         right={<ExportBtn rows={visibleAges.map(a=>({연령대:a.age,건수:a._show,보상:a._comp}))} filename={`고객사고_연령_${yrLabel}.csv`}/>}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <ResponsiveContainer width="100%" height={220} debounce={50}>
-            <BarChart data={visibleAges}>
+            <BarChart data={visibleAges} margin={{ top: 24, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" vertical={false}/>
               <XAxis dataKey="age" tick={{fontSize:11,fill:"#78716C"}} axisLine={false} tickLine={false}/>
-              <YAxis tick={{fontSize:11,fill:"#78716C"}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fontSize:11,fill:"#78716C"}} axisLine={false} tickLine={false} domain={[0, dm => Math.max(1, Math.ceil(dm * 1.18))]}/>
               <Tooltip content={<TT/>}/>
               <Bar dataKey="_show" fill={CUST_BLUE} radius={[4,4,0,0]} name="건수">
                 {gradientCells(visibleAges, CUST_BLUE)}

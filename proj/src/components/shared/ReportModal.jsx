@@ -190,9 +190,9 @@ function ReportModal({ D, onClose }) {
           <div className="grid grid-cols-[1.55fr_1fr] gap-4 mb-4">
             <Panel title={`${year} 월별 재해 발생 추이`}>
               <ResponsiveContainer width="100%" height={188}>
-                <ComposedChart data={R.trend} margin={{ top: 16, right: 6, left: -18, bottom: 0 }}>
+                <ComposedChart data={R.trend} margin={{ top: 24, right: 6, left: -18, bottom: 0 }}>
                   <XAxis dataKey="m" tick={{ fontSize: 10, fill: '#6B7794' }} axisLine={false} tickLine={false} interval={0} />
-                  <YAxis tick={{ fontSize: 10, fill: '#9AA3B5' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#9AA3B5' }} axisLine={false} tickLine={false} domain={[0, dm => Math.max(1, Math.ceil(dm * 1.18))]} />
                   <Bar dataKey="과거" fill={GRAY} radius={[3, 3, 0, 0]} maxBarSize={26} isAnimationActive={false}>
                     <LabelList dataKey="과거" position="top" style={{ fontSize: 9, fill: '#A6AEBD', fontWeight: 600 }} />
                   </Bar>

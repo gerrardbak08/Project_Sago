@@ -104,9 +104,10 @@ function RepeatWorkers({ D, yearFilter }) {
       <Card title="재발 횟수 분포" titleIcon={BarChart3} sub={yr ? "전체 기간 기준" : undefined}>
         <div ref={chartRef}>
           <ResponsiveContainer width="100%" height={200} debounce={50}>
-            <BarChart key={String(chartInView)} data={distArr || []} margin={{ top: 16, right: 8, left: 0, bottom: 0 }}>
+            <BarChart key={String(chartInView)} data={distArr || []} margin={{ top: 24, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" vertical={false} />
               <XAxis dataKey="count" tick={{ fontSize: 10, fill: "#44403C" }} axisLine={false} tickLine={false} />
+              <YAxis hide domain={[0, dm => Math.max(1, Math.ceil(dm * 1.18))]} />
               <Tooltip content={<TT />} />
               <Bar
                 dataKey="workers"
