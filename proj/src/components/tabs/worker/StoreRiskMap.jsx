@@ -81,6 +81,20 @@ function resolveStoreCoord(store, callback) {
   } catch { callback(fallback); }
 }
 
+// 로드뷰 파노라마를 반경을 넓혀가며 탐색 — 50m 고정은 도로에서 살짝 떨어진 매장(상가 안쪽·지오코딩 오차)에서 자주 실패.
+// 실측: 50m 90% → 100m 100%. 50→100→200→350m 순차 탐색으로 커버리지 극대화.
+function getNearestPanoProgressive(client, pos, cb, radii = [50, 100, 200, 350]) {
+  let i = 0;
+  const tryNext = () => {
+    if (i >= radii.length) { cb(null); return; }
+    client.getNearestPanoId(pos, radii[i++], (panoId) => {
+      if (panoId) cb(panoId);
+      else tryNext();
+    });
+  };
+  tryNext();
+}
+
 function StoreRiskMap({ D = {}, yearFilter = "all", setYearFilter = () => {}, syncStoreToUrl, initStore, onPreFillConsumed }) {
   const [bumFilter, setBumFilter] = useState("전체");
   const [deptFilter, setDeptFilter] = useState("전체");
@@ -444,7 +458,7 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
       const { kakao } = window;
       resolveStoreCoord(selectedStore, (pos) => {
         const client = new kakao.maps.RoadviewClient();
-        client.getNearestPanoId(pos, 50, (panoId) => {
+        getNearestPanoProgressive(client, pos, (panoId) => {
           if (!panoId) { setDrawerRvStatus("error"); return; }
           if (!drawerRvRef.current) return;
           drawerRvInstanceRef.current = new kakao.maps.Roadview(drawerRvRef.current);
@@ -516,7 +530,7 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
       const { kakao } = window;
       resolveStoreCoord(store, (pos) => {
         const client = new kakao.maps.RoadviewClient();
-        client.getNearestPanoId(pos, 50, (panoId) => {
+        getNearestPanoProgressive(client, pos, (panoId) => {
           if (!panoId) { setRvStatus("error"); return; }
           if (!rvInstanceRef.current) {
             rvInstanceRef.current = new kakao.maps.Roadview(rvRef.current);
@@ -1183,7 +1197,7 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                   <div className="text-center">
                     <div className="text-2xl mb-2">🔍</div>
                     <div className="text-sm text-stone-600 font-medium">로드뷰를 불러오는 중입니다</div>
-                    <div className="text-xs text-stone-400 mt-1">주변 50m 파노라마 탐색 중...</div>
+                    <div className="text-xs text-stone-400 mt-1">주변 파노라마 탐색 중...</div>
                   </div>
                 </div>
               )}
@@ -1193,7 +1207,7 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                   <div className="text-center px-6">
                     <div className="text-3xl mb-2 text-stone-400">📷</div>
                     <div className="text-sm text-stone-500 font-medium">이 매장의 로드뷰를 표시할 수 없습니다</div>
-                    <div className="text-xs text-stone-400 mt-1">해당 위치 50m 내 로드뷰 데이터가 없습니다</div>
+                    <div className="text-xs text-stone-400 mt-1">해당 위치 350m 내 로드뷰 데이터가 없습니다</div>
                   </div>
                 </div>
               )}
@@ -1535,7 +1549,7 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                           <div className="text-center px-6">
                             <div className="text-3xl mb-2 text-stone-400">📷</div>
                             <div className="text-sm text-stone-600 font-medium">이 매장의 로드뷰를 표시할 수 없습니다</div>
-                            <div className="text-xs text-stone-400 mt-1">해당 위치 50m 내 데이터가 없습니다</div>
+                            <div className="text-xs text-stone-400 mt-1">해당 위치 350m 내 데이터가 없습니다</div>
                           </div>
                         </div>
                       )}
