@@ -100,6 +100,18 @@ function CostRisk({ D, allYearly, yearFilter, basis }) {
         )}
       </div>
 
+      {/* 사고경위서 기준 안내 — 손실이 실측 근로손실일수 기반이라 연도에 따라 산재승인과 같아질 수 있음 */}
+      {basis !== 'approval' && (
+        <div className="rounded-lg bg-blue-50/60 border border-blue-100 px-3.5 py-2.5 flex items-start gap-2 text-xs text-stone-600 leading-relaxed break-keep">
+          <Info size={13} className="text-[#1D4ED8] flex-shrink-0" style={{ marginTop: 2 }} />
+          <span>
+            <b className="text-[#002B6D]">추정 재무손실은 실측 근로손실일수(산재 처리 시 확정)</b> 기반입니다. 근로손실일수는 산재 처리된 건에만 기록되므로,
+            <b> 특정 연도(예: 2026년)에는 사고경위·산재승인 손실이 동일하게</b> 나올 수 있습니다.
+            <span className="text-stone-500"> 전체기간·2024·2025 등 다른 기간은 기준 전환에 따라 다르게 반영됩니다. (사고건수는 기준별로 항상 다르게 집계됩니다.)</span>
+          </span>
+        </div>
+      )}
+
       {/* KPI 4-카드 — inView stagger + hover lift */}
       <div ref={kpiRef} className="grid grid-cols-2 lg:grid-cols-4 gap-3">
 
