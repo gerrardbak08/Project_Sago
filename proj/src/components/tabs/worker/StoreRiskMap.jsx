@@ -1062,9 +1062,9 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
         )}
 
         {/* 지도 + 로드뷰 분할 */}
-        <div className="flex-1 min-w-0 flex flex-col gap-2">
-          {/* 지도 */}
-          <div className="relative rounded-xl border border-stone-200" style={{height: rvOpen ? 260 : 480, overflow:"hidden"}}>
+        <div className="flex-1 min-w-0 flex flex-col gap-2 min-h-[380px] lg:min-h-0">
+          {/* 지도 — 모바일에서 min-h-[360px]로 Kakao Maps 컨테이너 높이 보장 */}
+          <div className="relative rounded-xl border border-stone-200 min-h-[360px] lg:min-h-0" style={{height: rvOpen ? 260 : 480, overflow:"hidden"}}>
             {mapStatus === "loading" && (
               <div className="absolute inset-0 flex items-center justify-center bg-stone-50 z-10">
                 <div className="text-center">

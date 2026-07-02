@@ -21,7 +21,7 @@ export function SegmentedToggle({ options, value, onChange, accent = '#1D4ED8', 
     if (active) setPill({ left: active.offsetLeft, width: active.offsetWidth, ready: true });
   }, [value, options]);
 
-  const pad = size === 'sm' ? 'px-3 py-1.5 text-[11px]' : 'px-3.5 py-2 text-xs';
+  const pad = size === 'xs' ? 'px-2 py-0.5 text-[10px]' : size === 'sm' ? 'px-3 py-1.5 text-[11px]' : 'px-3.5 py-2 text-xs';
   return (
     <div ref={wrapRef} role="tablist" className={`relative inline-flex items-center gap-1 rounded-full bg-stone-100 p-1 ${className}`}>
       <span

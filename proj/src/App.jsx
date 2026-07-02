@@ -524,7 +524,7 @@ function App() {
 
         {/* ── 2행: 기간 필터 + 건수 + 역할 ── */}
         <div className="bg-white border-b border-stone-100">
-          <div className="max-w-[1400px] mx-auto px-3 sm:px-5 h-12 sm:h-10 flex items-center gap-2.5 sm:gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+          <div className="max-w-[1400px] mx-auto px-3 sm:px-5 h-10 flex items-center gap-1 sm:gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
             {!inAlert && (
               <>
                 {isDefault && (
@@ -534,11 +534,11 @@ function App() {
                       value={basis}
                       onChange={setBasis}
                       accent="#071E4A"
-                      size="sm"
+                      size={isMobile ? "xs" : "sm"}
                       className="flex-shrink-0"
                       options={[{ value: 'incident', label: '사고경위' }, { value: 'approval', label: '산재승인' }]}
                     />
-                    <div className="h-4 w-px bg-stone-200 mx-1 flex-shrink-0" />
+                    <div className="h-4 w-px bg-stone-200 mx-0.5 sm:mx-1 flex-shrink-0" />
                   </>
                 )}
                 <span className="text-xs text-stone-400 font-medium hidden sm:inline flex-shrink-0">기간:</span>
@@ -546,7 +546,7 @@ function App() {
                   value={yearFilter}
                   onChange={setYearFilter}
                   accent="#071E4A"
-                  size="sm"
+                  size={isMobile ? "xs" : "sm"}
                   className="flex-shrink-0"
                   options={[{ value: 'all', label: '전체' }, { value: '2024', label: '2024' }, { value: '2025', label: '2025' }, { value: '2026', label: '2026' }]}
                 />
@@ -589,7 +589,7 @@ function App() {
                 setCurrentRole(r);
                 if (r && ROLE_LANDING[r]) setTab(ROLE_LANDING[r]);
                 else if (!r) setTab("overview");
-              }} className="h-9 sm:h-7 px-2 rounded-md border border-stone-200 text-xs font-medium text-stone-700 bg-white cursor-pointer" style={{ fontFamily: "inherit" }}>
+              }} className="h-7 px-1.5 sm:px-2 rounded-md border border-stone-200 text-[10px] sm:text-xs font-medium text-stone-700 bg-white cursor-pointer" style={{ fontFamily: "inherit" }}>
                 <option value="">역할 선택</option>
                 <option value="ceo">경영진</option>
                 <option value="manager">영업부문장</option>
@@ -599,8 +599,8 @@ function App() {
               </select>
             )}
             {dashMode === "worker" && !inAlert && <XlsxBtn D={dataFiltered} filename={`사고현황_${basis === 'approval' ? '산재승인' : '사고경위'}_요약.xlsx`} />}
-            {dashMode === "worker" && !inAlert && <button onClick={() => setShowSearch(true)} className="h-9 sm:h-7 px-2.5 rounded-md border border-stone-300 text-xs font-medium text-stone-700 bg-white hover:bg-stone-50 cursor-pointer flex items-center gap-1 transition active:opacity-75"><Search size={12} strokeWidth={2} /> 조회</button>}
-            {dashMode === "worker" && !inAlert && <button onClick={() => setShowReport(true)} className="h-9 sm:h-7 px-2.5 rounded-md text-white text-xs font-semibold cursor-pointer flex items-center gap-1 transition active:opacity-75" style={{background:"#002B6D"}}><FileText size={12} strokeWidth={2} /> 보고서</button>}
+            {dashMode === "worker" && !inAlert && <button onClick={() => setShowSearch(true)} className="h-7 px-1.5 sm:px-2.5 rounded-md border border-stone-300 text-[10px] sm:text-xs font-medium text-stone-700 bg-white hover:bg-stone-50 cursor-pointer flex items-center gap-1 transition active:opacity-75"><Search size={12} strokeWidth={2} /> 조회</button>}
+            {dashMode === "worker" && !inAlert && <button onClick={() => setShowReport(true)} className="h-7 px-1.5 sm:px-2.5 rounded-md text-white text-[10px] sm:text-xs font-semibold cursor-pointer flex items-center gap-1 transition active:opacity-75" style={{background:"#002B6D"}}><FileText size={12} strokeWidth={2} /> 보고서</button>}
           </div>
         </div>
 

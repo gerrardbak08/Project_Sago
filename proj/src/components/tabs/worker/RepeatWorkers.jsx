@@ -20,7 +20,7 @@ function RepeatWorkers({ D, yearFilter }) {
   const kpiInView = useInView(kpiRef);
   const chartRef = useRef(null);
   const chartInView = useInView(chartRef);
-  const cRepeatCount = useCountUp((rw0.list || []).length, 900, kpiInView);
+  const cRepeatCount = useCountUp(rw0.repeat_count || 0, 900, kpiInView);
   const cRepeatIncidents = useCountUp(rw0.repeat_incidents || 0, 900, kpiInView);
   const rawRepeatRate = rw0.total_workers > 0 ? (rw0.repeat_count / rw0.total_workers) * 100 : 0;
   const cRepeatRate10 = useCountUp(rawRepeatRate * 10, 900, kpiInView);
@@ -125,7 +125,11 @@ function RepeatWorkers({ D, yearFilter }) {
       </Card>
 
       {/* 워치리스트 테이블 */}
-      <Card title="재발 재해자 워치리스트" titleIcon={Target} sub={yr ? "사고 2회 이상 발생자 — 개별 맞춤 관리 대상 · 전체 기간 기준" : "사고 2회 이상 발생자 — 개별 맞춤 관리 대상"} right={<ExportBtn rows={rw.list} filename="재발재해자_워치리스트.csv" />}>
+      <Card title="재발 재해자 워치리스트" titleIcon={Target} sub={[
+          "사고 2회 이상 발생자 — 개별 맞춤 관리 대상",
+          yr && "전체 기간 기준",
+          rw.repeat_count > 25 && `전체 ${rw.repeat_count}명 중 상위 25명 표시`,
+        ].filter(Boolean).join(" · ")} right={<ExportBtn rows={rw.list} filename="재발재해자_워치리스트.csv" />}>
         <div className="overflow-x-auto max-w-full -mx-5 px-5 pb-1">
           <table className="w-full min-w-[480px] text-xs">
             <thead>

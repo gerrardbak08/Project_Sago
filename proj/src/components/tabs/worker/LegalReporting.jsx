@@ -54,7 +54,7 @@ function LegalReporting({ D, yearFilter, allYearly, basis, rawKind }) {
   }, []);
 
   const countTotal    = useCountUp(k.total,                  900, kpiInView);
-  const countDeath    = useCountUp(D.kind["사망"] || 0,       900, kpiInView);
+  const countDeath    = useCountUp(rawKind?.["사망"] || 0,    900, kpiInView);
   const countCommute  = useCountUp(D.kind["출퇴근"] || 0,     900, kpiInView);
 
   // 막대 위 라벨 — 건수(굵게) + 전년대비 증감율(색상). 라인과 겹쳐도 보이도록 흰 테두리(halo).
@@ -102,7 +102,7 @@ function LegalReporting({ D, yearFilter, allYearly, basis, rawKind }) {
         <div className="rounded-[20px] p-4 sm:p-5 bg-white border border-red-200 dash-fade-in transition-shadow hover:shadow-md" style={{ animationDelay: '80ms' }}>
           <div className="text-[11px] font-semibold uppercase tracking-widest text-stone-400">사고사망 (T10)</div>
           <div className="text-3xl font-extrabold tabular-nums mt-2" style={{ color: '#D70011' }}>{countDeath.toLocaleString()}<span className="text-sm text-stone-500 font-normal ml-1">건</span></div>
-          <div className="text-xs text-stone-500 mt-1">중대재해 처벌법 대상</div>
+          <div className="text-xs text-stone-500 mt-1">중대재해 처벌법 대상 · 전체 기간 기준</div>
         </div>
         <div className="rounded-[20px] p-4 sm:p-5 bg-white border border-stone-200 dash-fade-in transition-shadow hover:shadow-md" style={{ animationDelay: '160ms' }}>
           <div className="text-[11px] font-semibold uppercase tracking-widest text-stone-400">출퇴근 재해</div>

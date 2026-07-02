@@ -148,8 +148,9 @@ export default function RawDbViewer({ rows = [], approvalRows = [], sheetUrl }) 
           개인정보 보호를 위해 성명은 <b className="text-stone-600">홍**</b>, 사번은 <b className="text-stone-600">AD-***</b> 로 마스킹 표시됩니다.
         </div>
 
-        {/* 표 — 고정높이 내부 스크롤(Card 레이어 비대화 방지), 컴팩트 행, 헤더 sticky */}
-        <div className="overflow-auto max-h-[560px] -mx-5 px-5 pb-1 rounded-b-sm">
+        {/* 표 — 고정높이 내부 스크롤(Card 레이어 비대화 방지), 컴팩트 행, 헤더 sticky
+            overscroll-contain: 모바일 중첩 스크롤 오버스크롤 바운스(상하 흔들림) 차단 */}
+        <div className="overflow-auto overscroll-contain max-h-[560px] -mx-5 px-5 pb-1 rounded-b-sm" style={{ WebkitOverflowScrolling: 'touch' }}>
           {displayed.length === 0 ? (
             <div className="py-12 text-center text-stone-400 text-sm">조회된 데이터가 없습니다.</div>
           ) : (
