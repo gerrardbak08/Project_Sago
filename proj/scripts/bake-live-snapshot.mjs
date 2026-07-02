@@ -103,6 +103,20 @@ async function fetchWithRetry() {
   const maskedRows         = rows.map(maskRow);
   const maskedApprovalRows = approvalRows.map(maskRow);
 
+  // 플레이스홀더 사번 방어 — 원본에 여러 사람이 공유하는 기본/플레이스홀더 사번이 있으면
+  // 해시 후 하나의 employeeNo로 뭉쳐, 재발자 매칭이 서로 다른 사람을 한 명으로 병합(가짜 재발자).
+  // 동일 employeeNo가 2개 이상의 서로 다른 이름에 붙으면 레코드별 고유값으로 분리한다.
+  function deCollideEmp(list) {
+    const byEmp = new Map();
+    for (const r of list) { if (!r.employeeNo) continue; if (!byEmp.has(r.employeeNo)) byEmp.set(r.employeeNo, new Set()); byEmp.get(r.employeeNo).add(r.victimName); }
+    const shared = new Set([...byEmp.entries()].filter(([, names]) => names.size > 1).map(([e]) => e));
+    let n = 0;
+    for (const r of list) { if (r.employeeNo && shared.has(r.employeeNo)) { r.employeeNo = 'AD-U' + String(r.recordId).slice(0, 6).toUpperCase(); n++; } }
+    return n;
+  }
+  const deColl = deCollideEmp(maskedRows) + deCollideEmp(maskedApprovalRows);
+  console.log(`[bake] 플레이스홀더 사번 분리(고유화): ${deColl}건`);
+
   // 직렬화 (한글 유니코드 이스케이프 금지 — JSON.stringify 기본은 이스케이프 안 함)
   const payload = {
     bakedAt:      new Date().toISOString(),
