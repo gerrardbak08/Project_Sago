@@ -59,13 +59,40 @@ function DeptTeamStore({ D, yearFilter }) {
   const depts = [...activeDepts].sort((a, b) => b.total - a.total);
   const teams = activeTeams.filter(t => !selDept || t.dept === selDept).sort((a, b) => b.total - a.total);
 
-  // 매장별 사고는 연도 breakdown 없음 → 비례 추정 (0건 매장은 제외)
-  const storeRatio = isYearFilter ? (D.kpis[`y${yearFilter}`] || 0) / (D.kpis.total || 1) : 1;
-  const stores = D.stores
-    .map(s => isYearFilter ? { ...s, total: Math.round((s.total || 0) * storeRatio) } : s)
-    .filter(s => isYearFilter ? s.total > 0 : s.total >= 3)
-    .filter(s => !storeSearch || s.store.includes(storeSearch) || s.dept.includes(storeSearch) || s.team.includes(storeSearch))
-    .slice(0, 25);
+  // 매장별 워스트 — 실제 사고 데이터(D.accidents)로 연도·부문·기준(사고경위/산재승인) 반영
+  // (연도별 매장 breakdown이 없으면 전체기간 total 비례추정으로 폴백)
+  const matchSearch = (s) => !storeSearch || (s.store || "").includes(storeSearch) || (s.dept || "").includes(storeSearch) || (s.team || "").includes(storeSearch);
+  const stores = (() => {
+    const acc = D.accidents;
+    if (Array.isArray(acc) && acc.length) {
+      const rows = acc.filter(a =>
+        a.store && a.store !== "정보 없음" &&
+        (!isYearFilter || String(a.year) === yearFilter) &&
+        (bum === "전체" || a.bum === bum)
+      );
+      const m = new Map();
+      for (const a of rows) {
+        let e = m.get(a.store);
+        if (!e) { e = { store: a.store, dept: a.dept, team: a.team, bum: a.bum, total: 0, _types: {} }; m.set(a.store, e); }
+        e.total++;
+        if (a.type) e._types[a.type] = (e._types[a.type] || 0) + 1;
+      }
+      const minCnt = isYearFilter ? 1 : 3;   // 전체기간=집중관리(3건+), 연도별=발생매장 전체
+      return [...m.values()]
+        .filter(s => s.total >= minCnt && matchSearch(s))
+        .map(s => ({ store: s.store, dept: s.dept, team: s.team, bum: s.bum, total: s.total, top_type: Object.entries(s._types).sort((a, b) => b[1] - a[1])[0]?.[0] || "-" }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 25);
+    }
+    // 폴백: 연도별 매장 breakdown이 없을 때 전체기간 total 비례추정
+    const storeRatio = isYearFilter ? (D.kpis[`y${yearFilter}`] || 0) / (D.kpis.total || 1) : 1;
+    return D.stores
+      .map(s => isYearFilter ? { ...s, total: Math.round((s.total || 0) * storeRatio) } : s)
+      .filter(s => bum === "전체" || s.bum === bum)
+      .filter(s => isYearFilter ? s.total > 0 : s.total >= 3)
+      .filter(matchSearch)
+      .slice(0, 25);
+  })();
 
   // 매장 워스트 테이블 — mini bar 기준값
   const maxStore = stores.length > 0 ? Math.max(...stores.map(s => s.total || 0), 1) : 1;
@@ -151,7 +178,6 @@ function DeptTeamStore({ D, yearFilter }) {
           { label: "수도권", labelColor: "#1D4ED8", ir: sudoIr, incidents: sudoIncidents, workers: sudoWorkers, stores: sudoStores, valueColor: "#1D4ED8", spkData: D.yearly?.map(y => y.s||0) ?? [] },
           { label: "지방", labelColor: "#C2410C", ir: jibangIr, incidents: jibangIncidents, workers: jibangWorkers, stores: jibangStores, valueColor: "#C2410C", spkData: D.yearly?.map(y => y.j||0) ?? [] },
         ];
-        const GRAD_STOPS = ["#FEFCF7", "#F7EFDA", "#EFE1C2", "#E6D0A0"];
         return (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
@@ -159,8 +185,9 @@ function DeptTeamStore({ D, yearFilter }) {
                 <div key={c.label}
                      className="rounded-lg p-3 sm:p-4 dash-slide-up"
                      style={{
-                       background: `linear-gradient(to right, ${GRAD_STOPS[i]} 0%, ${GRAD_STOPS[i + 1]} 100%)`,
-                       border: "1px solid #E8D3A8",
+                       background: "#FFFFFF",
+                       border: "1px solid #EAE7E1",
+                       boxShadow: "0 1px 2px rgba(28,25,23,0.04)",
                        animationDelay: `${i * 80}ms`,
                      }}>
                   <div className="flex items-center gap-2 mb-1">
@@ -425,7 +452,7 @@ function DeptTeamStore({ D, yearFilter }) {
       </Card>
 
       {/* 매장 드릴다운 */}
-      <Card title="매장별 워스트 Top 25" titleIcon={Store} delay={420} sub={isYearFilter ? `${yearFilter}년 사고 발생 매장 (비례 추정)` : "사고 3건 이상 발생 매장 — 집중관리 대상"} right={
+      <Card title="매장별 워스트 Top 25" titleIcon={Store} delay={420} sub={isYearFilter ? `${yearFilter}년 사고 발생 매장${bum !== "전체" ? ` · ${bum}` : ""}` : `사고 3건 이상 발생 매장 — 집중관리 대상${bum !== "전체" ? ` · ${bum}` : ""}`} right={
         <div className="flex gap-2 items-center">
           <input type="text" value={storeSearch} onChange={e => setStoreSearch(e.target.value)} placeholder="검색..." className="text-xs px-2.5 py-1 rounded-lg border border-stone-200 w-28 sm:w-36 outline-none focus:ring-2 focus:ring-[#1D4ED8]/40 focus:border-[#1D4ED8] transition-colors" />
           <ExportBtn rows={stores} filename="매장별_사고랭킹.csv" />

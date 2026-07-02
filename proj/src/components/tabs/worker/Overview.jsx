@@ -5,7 +5,7 @@ import { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, BL, OR, NV,
 import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN } from '../../../constants/metrics.js';
 import { pct, fmt, fmtKrw, TT, EmptyState } from '../../../utils/uiHelpers.jsx';
 import { useCountUp, useInView } from '../../../utils/motion.js';
-import { Sparkline } from '../../../components/shared/MotionBits.jsx';
+import { Sparkline, Odometer } from '../../../components/shared/MotionBits.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card, EstimateBadge } from '../../../components/shared/Card.jsx';
 import { CalcTip, HeatmapGrid, BarRank, Matrix, gradientCells } from '../../../components/shared/ChartHelpers.jsx';
@@ -207,9 +207,9 @@ function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
       {/* === 4-KPI 메인 스트립 (실적) === */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" ref={kpiGridRef}>
         {[
-          { l: "총 사고건수", v: fmt(yearFilter === "all" ? countKTotal : cPeriodCount), s: yearFilter === "all" ? `'24년 ${countTotal2024}건 · '25년 ${countTotal2025}건 · '26년 ${countTotal2026}건` : `${yearFilter}년 단독`, Icon: AlertTriangle, delta: yearFilter === "all" ? yoyPct : null, deltaLabel: "'24→'25 전년대비:", yearBars: yearFilter === "all" ? [{ yr:"2024", v:countTotal2024, color:"#A8A29E" }, { yr:"2025", v:countTotal2025, color:DAISO_RED }, { yr:"2026(현)", v:countTotal2026, color:"#78716C" }] : null, sparklineData: [k.y2024, k.y2025, k.y2026].filter(n => n != null) },
-          { l: "수도권", v: fmt(yearFilter === "all" ? countKSudo : cPeriodSudo), s: `전체 ${pct(periodSudo, periodCount)}%`, Icon: Building2 },
-          { l: "지방", v: fmt(yearFilter === "all" ? countKJibang : cPeriodJibang), s: `전체 ${pct(periodJibang, periodCount)}%`, Icon: MapIcon },
+          { l: "총 사고건수", raw: yearFilter === "all" ? countKTotal : cPeriodCount, v: fmt(yearFilter === "all" ? countKTotal : cPeriodCount), s: yearFilter === "all" ? `'24년 ${countTotal2024}건 · '25년 ${countTotal2025}건 · '26년 ${countTotal2026}건` : `${yearFilter}년 단독`, Icon: AlertTriangle, delta: yearFilter === "all" ? yoyPct : null, deltaLabel: "'24→'25 전년대비:", yearBars: yearFilter === "all" ? [{ yr:"2024", v:countTotal2024, color:"#A8A29E" }, { yr:"2025", v:countTotal2025, color:DAISO_RED }, { yr:"2026(현)", v:countTotal2026, color:"#78716C" }] : null, sparklineData: [k.y2024, k.y2025, k.y2026].filter(n => n != null) },
+          { l: "수도권", raw: yearFilter === "all" ? countKSudo : cPeriodSudo, v: fmt(yearFilter === "all" ? countKSudo : cPeriodSudo), s: `전체 ${pct(periodSudo, periodCount)}%`, Icon: Building2 },
+          { l: "지방", raw: yearFilter === "all" ? countKJibang : cPeriodJibang, v: fmt(yearFilter === "all" ? countKJibang : cPeriodJibang), s: `전체 ${pct(periodJibang, periodCount)}%`, Icon: MapIcon },
           { l: "2026 연 예측", v: `${proj.low ?? "—"}~${proj.high ?? "—"}`, s: `중간값 ${proj.center ?? "—"}건 · 95% CI`, Icon: TrendingUp },
         ].map((c, i) => (
           <div key={i}
@@ -226,7 +226,9 @@ function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
                 {/* ── 숫자 + 연도별 건수 나란히 ── */}
                 <div className="flex items-start justify-between gap-2 flex-1 min-w-0 flex-wrap">
                   <div className="flex items-baseline gap-1 min-w-0">
-                    <span className="text-2xl sm:text-4xl font-bold text-stone-900 tracking-tight tabular-nums">{c.v}</span>
+                    {typeof c.raw === "number"
+                      ? <Odometer value={c.raw} duration={900} className="text-2xl sm:text-4xl font-bold text-stone-900 tracking-tight" />
+                      : <span className="text-2xl sm:text-4xl font-bold text-stone-900 tracking-tight tabular-nums">{c.v}</span>}
                     <span className="text-base font-medium text-stone-400">건</span>
                   </div>
                   <div className="flex flex-col items-end gap-0.5 pt-0.5 shrink-0">
@@ -260,7 +262,9 @@ function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
             ) : (
               <>
                 <div className="flex items-baseline gap-1.5 flex-1">
-                  <span className="text-2xl sm:text-4xl font-bold text-stone-900 tracking-tight tabular-nums">{c.v}</span>
+                  {typeof c.raw === "number"
+                    ? <Odometer value={c.raw} duration={900} className="text-2xl sm:text-4xl font-bold text-stone-900 tracking-tight" />
+                    : <span className="text-2xl sm:text-4xl font-bold text-stone-900 tracking-tight tabular-nums">{c.v}</span>}
                   <span className="text-base font-medium text-stone-400">건</span>
                 </div>
                 <div className="text-xs text-stone-500 mt-2 truncate flex items-center gap-2">
