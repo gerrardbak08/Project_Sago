@@ -199,6 +199,8 @@ function App() {
     } catch {}
   };
   const switchMode = (mode) => {
+    if (mode === "alert") { setDashMode("worker"); setTab("alert_monitor"); track(TAB_VIEWED, { tab_id: 'mode_alert', dashboard_mode: 'alert', role_filter: currentRole ?? null, year_filter: yearFilter ?? 'all' }); return; }
+    if (tab === "alert_monitor" || tab === "alert_send" || tab === "alert_review") setTab("overview");
     setDashMode(mode);
     track(TAB_VIEWED, { tab_id: 'mode_' + mode, dashboard_mode: mode, role_filter: currentRole ?? null, year_filter: yearFilter ?? 'all' });
   };
@@ -424,7 +426,7 @@ function App() {
     <div className="min-h-screen pb-14 lg:pb-0 lg:flex" style={{background:"#FFFFFF"}}>
 
       {/* ═══ 좌측 사이드바 (데스크톱) — 모드 공용 ═══ */}
-      <ModeSidebar dashMode={dashMode} onSwitchMode={switchMode} title="안전사고 현황" subtitle="㈜아성다이소 · 안전보건팀">
+      <ModeSidebar dashMode={inAlert ? "alert" : dashMode} onSwitchMode={switchMode} title="안전사고 현황" subtitle="㈜아성다이소 · 안전보건팀">
           {visibleGroups.map(g=>{
             const isActive=g===activeGroup;
             const hasNonAuto=g.items.some(t=>NONAUTO_TABS.has(t.id));
@@ -500,59 +502,63 @@ function App() {
         {/* ── 2행: 기간 필터 + 건수 + 역할 ── */}
         <div className="bg-white border-b border-stone-100">
           <div className="max-w-[1400px] mx-auto px-3 sm:px-5 h-12 sm:h-10 flex items-center gap-2.5 sm:gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-            {isDefault && (
+            {!inAlert && (
               <>
-                <span className="text-xs text-stone-400 font-medium hidden sm:inline flex-shrink-0">기준:</span>
+                {isDefault && (
+                  <>
+                    <span className="text-xs text-stone-400 font-medium hidden sm:inline flex-shrink-0">기준:</span>
+                    <SegmentedToggle
+                      value={basis}
+                      onChange={setBasis}
+                      accent="#071E4A"
+                      size="sm"
+                      className="flex-shrink-0"
+                      options={[{ value: 'incident', label: '사고경위' }, { value: 'approval', label: '산재승인' }]}
+                    />
+                    <div className="h-4 w-px bg-stone-200 mx-1 flex-shrink-0" />
+                  </>
+                )}
+                <span className="text-xs text-stone-400 font-medium hidden sm:inline flex-shrink-0">기간:</span>
                 <SegmentedToggle
-                  value={basis}
-                  onChange={setBasis}
+                  value={yearFilter}
+                  onChange={setYearFilter}
                   accent="#071E4A"
                   size="sm"
                   className="flex-shrink-0"
-                  options={[{ value: 'incident', label: '사고경위' }, { value: 'approval', label: '산재승인' }]}
+                  options={[{ value: 'all', label: '전체' }, { value: '2024', label: '2024' }, { value: '2025', label: '2025' }, { value: '2026', label: '2026' }]}
                 />
                 <div className="h-4 w-px bg-stone-200 mx-1 flex-shrink-0" />
+                <span className="text-xs text-stone-500 flex-shrink-0">
+                  {yearFilter === "all" ? "전체" : `${yearFilter}년`}&nbsp;
+                  <b className="text-stone-900 tabular-nums">{fmt(yearFilter === "all" ? data.kpis.total : yearFilter === "2024" ? data.kpis.y2024 : yearFilter === "2025" ? data.kpis.y2025 : yearFilter === "2026" ? data.kpis.y2026 : data.kpis.total)}건</b>
+                </span>
+                {data.store_kpi && (() => {
+                  // yearFilter에 따라 해당 연도 5월 스냅샷의 매장수 표시 (없으면 현재 store_kpi.total fallback)
+                  let storeCount = data.store_kpi.total;
+                  let label = "영업매장";
+                  if (yearFilter !== "all") {
+                    const snap = STORE_SNAPSHOTS.find(s => s.ym === `${yearFilter}-05`);
+                    if (snap) { storeCount = snap.count; label = `${yearFilter}-05 영업매장`; }
+                  }
+                  return (
+                    <span className="text-xs text-stone-500 hidden sm:inline flex-shrink-0">
+                      · {label} <b className="text-stone-900 tabular-nums">{fmt(storeCount)}개</b>
+                    </span>
+                  );
+                })()}
+                {isDefault && (() => {
+                  const live = dataSource === 'live';
+                  const bd = LIVE_SNAPSHOT?.bakedAt ? LIVE_SNAPSHOT.bakedAt.slice(5, 10).replace('-', '/').replace(/^0/, '') : '';
+                  return (
+                    <span className={`hidden sm:inline-flex items-center gap-1 flex-shrink-0 ml-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${live ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-500'}`}
+                      title={live ? '라이브 실시간 연동됨' : `데이터 스냅샷 (${LIVE_SNAPSHOT?.bakedAt?.slice(0, 10) || ''} 기준)`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${live ? 'bg-emerald-500' : 'bg-stone-400'}`} />
+                      {live ? '실시간' : `스냅샷 ${bd}`}
+                    </span>
+                  );
+                })()}
               </>
             )}
-            <span className="text-xs text-stone-400 font-medium hidden sm:inline flex-shrink-0">기간:</span>
-            <SegmentedToggle
-              value={yearFilter}
-              onChange={setYearFilter}
-              accent="#071E4A"
-              size="sm"
-              className="flex-shrink-0"
-              options={[{ value: 'all', label: '전체' }, { value: '2024', label: '2024' }, { value: '2025', label: '2025' }, { value: '2026', label: '2026' }]}
-            />
-            <div className="h-4 w-px bg-stone-200 mx-1 flex-shrink-0" />
-            <span className="text-xs text-stone-500 flex-shrink-0">
-              {yearFilter === "all" ? "전체" : `${yearFilter}년`}&nbsp;
-              <b className="text-stone-900 tabular-nums">{fmt(yearFilter === "all" ? data.kpis.total : yearFilter === "2024" ? data.kpis.y2024 : yearFilter === "2025" ? data.kpis.y2025 : yearFilter === "2026" ? data.kpis.y2026 : data.kpis.total)}건</b>
-            </span>
-            {data.store_kpi && (() => {
-              // yearFilter에 따라 해당 연도 5월 스냅샷의 매장수 표시 (없으면 현재 store_kpi.total fallback)
-              let storeCount = data.store_kpi.total;
-              let label = "영업매장";
-              if (yearFilter !== "all") {
-                const snap = STORE_SNAPSHOTS.find(s => s.ym === `${yearFilter}-05`);
-                if (snap) { storeCount = snap.count; label = `${yearFilter}-05 영업매장`; }
-              }
-              return (
-                <span className="text-xs text-stone-500 hidden sm:inline flex-shrink-0">
-                  · {label} <b className="text-stone-900 tabular-nums">{fmt(storeCount)}개</b>
-                </span>
-              );
-            })()}
-            {isDefault && (() => {
-              const live = dataSource === 'live';
-              const bd = LIVE_SNAPSHOT?.bakedAt ? LIVE_SNAPSHOT.bakedAt.slice(5, 10).replace('-', '/').replace(/^0/, '') : '';
-              return (
-                <span className={`hidden sm:inline-flex items-center gap-1 flex-shrink-0 ml-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${live ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-500'}`}
-                  title={live ? '라이브 실시간 연동됨' : `데이터 스냅샷 (${LIVE_SNAPSHOT?.bakedAt?.slice(0, 10) || ''} 기준)`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${live ? 'bg-emerald-500' : 'bg-stone-400'}`} />
-                  {live ? '실시간' : `스냅샷 ${bd}`}
-                </span>
-              );
-            })()}
             <div className="flex-1" />
             <select value={currentRole || ""} onChange={(e) => {
               const r = e.target.value || null;
@@ -567,9 +573,9 @@ function App() {
               <option value="part">파트장</option>
               <option value="safety">안전보건팀</option>
             </select>
-            {dashMode === "worker" && <XlsxBtn D={dataFiltered} filename={`사고현황_${basis === 'approval' ? '산재승인' : '사고경위'}_요약.xlsx`} />}
-            {dashMode === "worker" && <button onClick={() => setShowSearch(true)} className="h-9 sm:h-7 px-2.5 rounded-md border border-stone-300 text-xs font-medium text-stone-700 bg-white hover:bg-stone-50 cursor-pointer flex items-center gap-1 transition active:opacity-75"><Search size={12} strokeWidth={2} /> 조회</button>}
-            {dashMode === "worker" && <button onClick={() => setShowReport(true)} className="h-9 sm:h-7 px-2.5 rounded-md text-white text-xs font-semibold cursor-pointer flex items-center gap-1 transition active:opacity-75" style={{background:"#002B6D"}}><FileText size={12} strokeWidth={2} /> 보고서</button>}
+            {dashMode === "worker" && !inAlert && <XlsxBtn D={dataFiltered} filename={`사고현황_${basis === 'approval' ? '산재승인' : '사고경위'}_요약.xlsx`} />}
+            {dashMode === "worker" && !inAlert && <button onClick={() => setShowSearch(true)} className="h-9 sm:h-7 px-2.5 rounded-md border border-stone-300 text-xs font-medium text-stone-700 bg-white hover:bg-stone-50 cursor-pointer flex items-center gap-1 transition active:opacity-75"><Search size={12} strokeWidth={2} /> 조회</button>}
+            {dashMode === "worker" && !inAlert && <button onClick={() => setShowReport(true)} className="h-9 sm:h-7 px-2.5 rounded-md text-white text-xs font-semibold cursor-pointer flex items-center gap-1 transition active:opacity-75" style={{background:"#002B6D"}}><FileText size={12} strokeWidth={2} /> 보고서</button>}
           </div>
         </div>
 
