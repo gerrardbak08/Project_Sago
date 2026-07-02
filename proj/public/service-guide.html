@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>SAGO AI — 매장 안전사고 예방 알림 서비스가 작동하는 방식</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Sans+KR:wght@350;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:255 255 255; --fg:29 29 31; --muted:122 122 122; --subtle:245 245 247;
+  --line:224 224 224; --accent:0 102 204; --accent-soft:230 240 252;
+  --warn:198 64 38; --ok:21 128 61; --gate:142 68 173;
+}
+.dark{
+  --bg:0 0 0; --fg:245 245 247; --muted:134 134 139; --subtle:28 28 30;
+  --line:52 52 54; --accent:41 151 255; --accent-soft:18 32 56;
+  --warn:255 120 96; --ok:74 200 130; --gate:190 130 235;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:rgb(var(--bg)); color:rgb(var(--fg));
+  font-family:"Noto Sans KR","SF Pro Text",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  font-weight:400; line-height:1.7; -webkit-font-smoothing:antialiased;
+  font-feature-settings:"ss01","cv11"; transition:background .35s,color .35s;
+}
+h1,h2,h3,h4{font-family:"Fraunces","Nanum Myeongjo",Georgia,serif;letter-spacing:-.02em;font-weight:600}
+a{color:inherit;text-decoration:none}
+::selection{background:rgb(var(--accent) / .25)}
+.serif{font-family:"Fraunces","Nanum Myeongjo",Georgia,serif}
+
+.container-essay{margin:0 auto;width:100%;max-width:42rem}
+.small-caps{font-size:.72rem;text-transform:uppercase;letter-spacing:.18em;color:rgb(var(--muted));font-weight:500}
+.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace}
+.accent-underline{background-image:linear-gradient(transparent 62%,rgb(var(--accent) / .35) 62%);background-repeat:no-repeat}
+.surface{border-radius:1rem;border:1px solid rgb(var(--line));background:rgb(var(--subtle))}
+
+.toggle{position:fixed;top:16px;right:16px;z-index:60;height:38px;width:38px;border-radius:999px;
+  border:1px solid rgb(var(--line));background:rgb(var(--bg) / .8);backdrop-filter:blur(8px);
+  color:rgb(var(--muted));cursor:pointer;font-size:15px;transition:.2s}
+.toggle:hover{color:rgb(var(--fg));border-color:rgb(var(--fg) / .3)}
+
+header.hero{padding:84px 24px 56px}
+header.hero .inner{max-width:42rem;margin:0 auto}
+.eyebrow{font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:rgb(var(--accent));font-weight:600;margin-bottom:26px}
+h1.title{font-size:clamp(34px,6.8vw,64px);line-height:.98;letter-spacing:-.03em;margin:0;font-weight:600}
+.lede{margin:30px 0 0;font-size:19px;color:rgb(var(--fg) / .75);line-height:1.65;max-width:36rem}
+.lede b{color:rgb(var(--fg));font-weight:600}
+
+main{margin-top:24px}
+.layout{max-width:44rem;margin:0 auto;padding:0 24px}
+.essay{min-width:0}
+
+/* 보고서 목차 (상단, 흐름 내) */
+.report-toc{max-width:42rem;margin:8px auto 40px;padding:26px 30px}
+.report-toc .small-caps{margin:0 0 16px}
+.report-toc ol{list-style:none;margin:0;padding:0}
+.report-toc li{border-bottom:1px solid rgb(var(--line))}
+.report-toc li:last-child{border-bottom:none}
+.report-toc a{display:flex;align-items:baseline;gap:16px;padding:11px 2px;font-size:15.5px;color:rgb(var(--fg) / .82);transition:color .18s}
+.report-toc a .n{font-family:ui-monospace,monospace;font-size:12px;color:rgb(var(--accent));font-weight:600;min-width:20px}
+.report-toc a .t{flex:1}
+.report-toc a:hover{color:rgb(var(--accent))}
+
+section{scroll-margin-top:32px;padding:60px 0}
+.sec-head{margin-bottom:28px}
+.sec-head .meta{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.sec-head .num{font-family:ui-monospace,monospace;font-size:12px;color:rgb(var(--accent))}
+h2{font-size:clamp(27px,4.2vw,36px);line-height:1.1;margin:0}
+.prose{font-size:17px;line-height:1.72;color:rgb(var(--fg) / .86)}
+.prose p{margin:0 0 18px}
+.prose h3{font-size:18px;font-weight:700;font-family:inherit;letter-spacing:-.01em;margin:34px 0 12px;color:rgb(var(--fg))}
+.prose strong{font-weight:700;color:rgb(var(--fg))}
+.prose em{font-style:normal;border-bottom:1px dotted rgb(var(--fg) / .4)}
+.prose ul{margin:0 0 18px;padding-left:20px}
+.prose ul li{margin-bottom:8px}
+code{font-family:ui-monospace,SFMono-Regular,monospace;font-size:.85em;background:rgb(var(--subtle));
+  border:1px solid rgb(var(--line));border-radius:5px;padding:.08em .4em}
+
+.quote{padding:50px 24px}
+.quote blockquote{max-width:34rem;margin:0 auto;text-align:center;font-family:"Fraunces","Nanum Myeongjo",Georgia,serif;
+  font-size:clamp(22px,3.4vw,30px);line-height:1.35;color:rgb(var(--fg) / .9);font-weight:500}
+
+.demo{margin:26px 0;padding:22px;border-radius:16px;border:1px solid rgb(var(--line));background:rgb(var(--subtle))}
+.demo .dh{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.demo .dh .dot{width:7px;height:7px;border-radius:999px;background:rgb(var(--accent))}
+.demo .dsub{font-size:13px;color:rgb(var(--muted));margin:0 0 16px}
+
+.ctrl{display:grid;grid-template-columns:1fr 1fr;gap:14px 22px;margin-bottom:18px}
+.ctrl .f{font-size:13px}
+.ctrl .f label{display:flex;justify-content:space-between;color:rgb(var(--muted));margin-bottom:5px}
+.ctrl .f label b{color:rgb(var(--fg));font-family:ui-monospace,monospace;font-weight:600}
+input[type=range]{width:100%;accent-color:rgb(var(--accent));height:4px}
+.seg{display:inline-flex;border:1px solid rgb(var(--line));border-radius:8px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:rgb(var(--bg));color:rgb(var(--muted));padding:5px 12px;font-size:12.5px;cursor:pointer;font-family:inherit}
+.seg button.on{background:rgb(var(--accent));color:#fff}
+.btn{border:1px solid rgb(var(--line));background:rgb(var(--bg));color:rgb(var(--fg));border-radius:8px;
+  padding:7px 14px;font-size:13px;cursor:pointer;font-family:inherit;transition:.15s}
+.btn:hover{border-color:rgb(var(--accent) / .5)}
+.btn.primary{background:rgb(var(--accent));color:#fff;border-color:transparent}
+
+.scn{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;background:rgb(var(--bg));
+  border:1px solid rgb(var(--line));margin-bottom:7px;font-size:13px;transition:.18s}
+.scn.sel{border-color:rgb(var(--accent));box-shadow:0 0 0 2px rgb(var(--accent) / .15)}
+.scn.ex{opacity:.45}
+.scn .nm{flex:1;min-width:0;font-weight:500}
+.scn .nm small{display:block;color:rgb(var(--muted));font-weight:400;font-size:11px;font-family:ui-monospace,monospace}
+.scn .bar{width:90px;height:6px;border-radius:999px;background:rgb(var(--line));overflow:hidden}
+.scn .bar i{display:block;height:100%;background:rgb(var(--accent));border-radius:999px}
+.scn .sc{font-family:ui-monospace,monospace;font-size:11px;color:rgb(var(--muted));width:50px;text-align:right}
+.tag{font-size:10px;font-weight:700;letter-spacing:.04em;border-radius:5px;padding:2px 6px;white-space:nowrap}
+.t-gate{background:rgb(var(--gate) / .15);color:rgb(var(--gate))}
+.t-mul{background:rgb(var(--accent) / .14);color:rgb(var(--accent))}
+.t-w{background:rgb(var(--warn) / .14);color:rgb(var(--warn))}
+.t-sel{background:rgb(var(--ok) / .16);color:rgb(var(--ok))}
+.cat{font-size:10px;color:rgb(var(--muted));border:1px solid rgb(var(--line));border-radius:5px;padding:1px 5px}
+
+.today{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.today .c{border:1px solid rgb(var(--accent) / .4);background:rgb(var(--accent-soft));border-radius:12px;padding:13px;min-height:78px}
+.today .c .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgb(var(--accent));font-weight:700;margin-bottom:6px}
+.today .c .v{font-size:13.5px;font-weight:600;line-height:1.3}
+.today .c .m{font-size:11px;color:rgb(var(--muted));font-family:ui-monospace,monospace;margin-top:5px}
+.today .c.wx{border-color:rgb(var(--warn) / .45);background:rgb(var(--warn) / .08)}
+.today .c.wx .k{color:rgb(var(--warn))}
+
+.arr{display:flex;flex-wrap:wrap;gap:4px;margin:14px 0}
+.arr .cell{min-width:34px;height:30px;padding:0 7px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;background:rgb(var(--bg));
+  border:1px solid rgb(var(--line));color:rgb(var(--fg));transition:.15s}
+.arr .cell.pick{outline:2px solid rgb(var(--accent));outline-offset:1px;transform:translateY(-2px)}
+.cov{height:8px;border-radius:999px;background:rgb(var(--line));overflow:hidden;margin:10px 0 6px}
+.cov i{display:block;height:100%;background:rgb(var(--ok));border-radius:999px;transition:width .3s}
+
+.inc{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.chip{border:1px solid rgb(var(--line));background:rgb(var(--bg));border-radius:999px;padding:6px 13px;font-size:12.5px;cursor:pointer;transition:.18s}
+.chip:hover{border-color:rgb(var(--accent) / .5)}
+.chip.on{background:rgb(var(--accent));color:#fff;border-color:transparent}
+.grpbox{border:1px dashed rgb(var(--line));border-radius:12px;padding:14px;margin-top:12px;font-size:13px;min-height:60px}
+.grpbox .rule{font-weight:700;color:rgb(var(--accent));margin-bottom:6px;font-size:12.5px}
+
+/* causal chain */
+.chain{margin:6px 0}
+.cnode{border:1px solid rgb(var(--line));border-radius:11px;padding:12px 14px;background:rgb(var(--bg));margin-bottom:8px;
+  opacity:0;transform:translateY(6px);transition:.4s;font-size:13.5px}
+.cnode.show{opacity:1;transform:none}
+.cnode .lab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgb(var(--muted));font-weight:700;margin-bottom:4px}
+.cnode.res{border-color:rgb(var(--accent) / .35);background:rgb(var(--accent-soft))}
+.cnode .kb{font-size:10px;font-weight:700;border-radius:5px;padding:2px 7px;margin-right:6px}
+.k-a{background:rgb(var(--accent) / .14);color:rgb(var(--accent))}
+.k-b{background:rgb(var(--warn) / .14);color:rgb(var(--warn))}
+.k-c{background:rgb(var(--muted) / .18);color:rgb(var(--muted))}
+.grade{font-size:11px;color:rgb(var(--muted));font-family:ui-monospace,monospace}
+.cwhen{font-family:ui-monospace,monospace;font-size:12px;color:rgb(var(--fg));margin-top:5px;background:rgb(var(--subtle));border-radius:6px;padding:4px 8px;display:inline-block}
+.connector{text-align:center;color:rgb(var(--muted));font-size:14px;line-height:1;margin:-2px 0 6px}
+
+/* verdict */
+.verdict{border-radius:12px;padding:16px;text-align:center;font-size:15px;font-weight:700;margin-top:14px;border:1px solid rgb(var(--line))}
+.verdict.v-verified{background:rgb(var(--ok) / .12);color:rgb(var(--ok));border-color:rgb(var(--ok) / .3)}
+.verdict.v-observe{background:rgb(var(--accent-soft));color:rgb(var(--accent));border-color:rgb(var(--accent) / .3)}
+.verdict.v-none{background:rgb(var(--warn) / .08);color:rgb(var(--warn));border-color:rgb(var(--warn) / .3)}
+.verdict small{display:block;font-weight:400;font-size:12px;color:rgb(var(--muted));margin-top:5px}
+
+.note{margin:24px 0;padding:16px 18px;border-radius:12px;background:rgb(var(--accent-soft));border:1px solid rgb(var(--accent) / .25);font-size:14.5px;line-height:1.6}
+.note.warn{background:rgb(var(--warn) / .08);border-color:rgb(var(--warn) / .3)}
+.note .tag2{display:block;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgb(var(--accent));margin-bottom:6px}
+.note.warn .tag2{color:rgb(var(--warn))}
+
+.tbl{width:100%;border-collapse:collapse;margin:22px 0;font-size:13.5px}
+.tbl th,.tbl td{text-align:left;padding:9px 12px;border-bottom:1px solid rgb(var(--line));vertical-align:top}
+.tbl th{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:rgb(var(--muted));font-weight:600}
+.tbl tr:last-child td{border-bottom:none}
+.tbl td code{font-size:.82em}
+
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0}
+.kpi .k{border:1px solid rgb(var(--line));border-radius:12px;padding:16px;background:rgb(var(--bg));text-align:center}
+.kpi .k .v{font-family:"Fraunces",serif;font-size:26px;font-weight:600;color:rgb(var(--accent))}
+.kpi .k .l{font-size:11.5px;color:rgb(var(--muted));margin-top:3px}
+
+.steps{display:flex;flex-direction:column;gap:0;margin:18px 0}
+.step{display:flex;gap:14px;align-items:flex-start;padding:12px 0}
+.step .ix{flex:none;width:26px;height:26px;border-radius:999px;border:1px solid rgb(var(--accent) / .4);color:rgb(var(--accent));
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-family:ui-monospace,monospace;font-weight:700;background:rgb(var(--accent-soft))}
+.step .tx{font-size:14px}
+.step .tx b{display:block;margin-bottom:2px}
+.step .tx span{color:rgb(var(--muted));font-size:13px}
+.step:not(:last-child) .ix{position:relative}
+.step:not(:last-child) .ix::after{content:"";position:absolute;top:27px;left:50%;width:1px;height:24px;background:rgb(var(--line))}
+
+.phone{max-width:280px;margin:8px auto 0;border:1px solid rgb(var(--line));border-radius:24px;padding:12px;background:rgb(var(--bg))}
+.kk{background:rgb(var(--subtle));border-radius:14px;padding:13px;font-size:12.5px}
+.kk .cover{height:84px;border-radius:8px;background:linear-gradient(120deg,rgb(var(--accent)),rgb(var(--gate)));
+  display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-weight:700;margin-bottom:10px;gap:3px}
+.kk .cover small{font-weight:400;opacity:.85;font-size:10px}
+.kk .btn2{margin-top:10px;text-align:center;background:rgb(var(--accent));color:#fff;border-radius:8px;padding:8px;font-weight:600}
+
+footer{border-top:1px solid rgb(var(--line));padding:40px 24px 80px;text-align:center;color:rgb(var(--muted));font-size:13px}
+
+/* 08 설계 근거 · 참고자료 */
+.refintro{margin:6px 0 26px}
+.reflead{font-size:15px;line-height:1.62;color:rgb(var(--fg) / .82);margin:0 0 6px}
+.reflead b{color:rgb(var(--fg));font-weight:600}
+.reflist{list-style:none;margin:12px 0 34px;padding:0}
+.reflist li{display:flex;gap:14px;padding:14px 2px;border-bottom:1px solid rgb(var(--line))}
+.reflist li:last-child{border-bottom:none}
+.reflist .rn{flex:none;font-family:ui-monospace,monospace;font-size:11px;color:rgb(var(--accent));font-weight:600;width:24px;padding-top:3px}
+.reflist .rc{flex:1;min-width:0}
+.reflist .rt{font-size:14.5px;line-height:1.45;color:rgb(var(--fg));font-weight:600}
+.reflist .rv{font-size:12.5px;color:rgb(var(--muted));margin-top:3px}
+.reflist .rk{font-size:13px;line-height:1.55;color:rgb(var(--fg) / .74);margin-top:6px}
+.reflist .rk b{color:rgb(var(--accent));font-weight:600}
+.reflist a.rl{display:inline-block;margin-top:6px;color:rgb(var(--accent));font-family:ui-monospace,monospace;font-size:11px;word-break:break-all;
+  background-image:linear-gradient(transparent 86%,rgb(var(--accent) / .28) 86%)}
+.reflist a.rl:hover{background-image:linear-gradient(transparent 0,rgb(var(--accent) / .14) 0)}
+
+@media(max-width:900px){
+  #e2eGrid{grid-template-columns:1fr !important}
+}
+@media(max-width:560px){
+  .ctrl,.today,.kpi{grid-template-columns:1fr 1fr}
+}
+
+/* 인쇄 · PDF */
+@media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{background:#fff;color:#1d1d1f}
+  .toggle{display:none!important}
+  /* 비대화형 컨트롤은 인쇄본에서 숨김 (기능이 없으므로) */
+  .seg,.btn,input[type=range]{display:none!important}
+  header.hero{padding:32px 24px 20px}
+  h1.title{font-size:40px}
+  section{padding:22px 0}
+  .quote{padding:28px 24px}
+  .report-toc{break-after:page}
+  .demo,.note,.tbl,.kpi,.steps,.today,blockquote,.verdict,.step{break-inside:avoid}
+  h2,h3,h4{break-after:avoid}
+  a{color:inherit}
+}
+</style>
+</head>
+<body>
+<button class="toggle" id="themeBtn" aria-label="테마 전환">◐</button>
+
+<header class="hero">
+  <div class="inner">
+    <div class="eyebrow">SAGO AI · 서비스 로직 설명서</div>
+    <h1 class="title serif">매장 안전사고 예방 알림<br>서비스 작동 방식</h1>
+    <p class="lede">과거 4년간의 사고를 <b>시나리오</b>로 묶고, “언제 위험한지”를 <b>조건식</b>으로 정의해 둔다. 이를 바탕으로 매일 아침, 그날의 날씨·매장·날짜에 맞는 <b>안전 카드 3장</b>이 직원의 카카오톡으로 전달된다. 본 보고서는 그 시나리오와 조건식을 <b>어떻게 설계했는지</b>를, 단계별 예시와 함께 설명한다.</p>
+  </div>
+</header>
+
+<main>
+<div class="layout">
+  <div class="essay">
+
+  <nav class="report-toc surface" aria-label="목차">
+    <p class="small-caps">목차</p>
+    <ol>
+      <li><a href="#s1"><span class="n">01</span><span class="t">서비스 개요</span></a></li>
+      <li><a href="#s2"><span class="n">02</span><span class="t">입력 데이터</span></a></li>
+      <li><a href="#s3"><span class="n">03</span><span class="t">사고의 시나리오 분류</span></a></li>
+      <li><a href="#s4"><span class="n">04</span><span class="t">시나리오별 조건식 정의</span></a></li>
+      <li><a href="#s5"><span class="n">05</span><span class="t">안전 카드 이미지 생성</span></a></li>
+      <li><a href="#s6"><span class="n">06</span><span class="t">A · B · C 풀 라우팅</span></a></li>
+      <li><a href="#s7"><span class="n">07</span><span class="t">일일 3장 선정</span></a></li>
+      <li><a href="#s8"><span class="n">08</span><span class="t">설계 근거 · 참고자료</span></a></li>
+    </ol>
+  </nav>
+
+  <!-- 01 -->
+  <section id="s1">
+    <div class="container-essay">
+      <div class="sec-head">
+        <div class="meta"><span class="num">01</span><span class="small-caps">개요</span></div>
+        <h2>서비스 개요</h2>
+      </div>
+      <div class="prose">
+        <p>SAGO AI는 다이소형 소매 매장의 <strong>직원 안전사고 예방 알림 서비스</strong>다. 목적은 과거의 <strong>행정 중심 안전관리</strong>에서 <strong>현장 중심 예방</strong>으로 전환해, 직원의 <em>안전불감증</em>을 줄이고 자발적인 수칙 준수를 유도하는 데 있다. 사업 관점에서는 전년도 발생한 <strong>112건의 산업재해를 10% 이상 절감</strong>하고 <strong>중대재해 0건</strong>을 목표로 하며, 사고로 인한 매장 생산성 손실을 예방하는 효과를 기대한다.</p>
+
+        <p>본 서비스의 핵심은 목적의 성격에 있다. “오늘 누가 다칠지”를 <strong>예측·적중</strong>하려는 것이 아니라, 적절하고 다양한 안전 카드로 직원의 주의를 <strong>환기(priming)</strong>하는 데 목적이 있다. 직원은 카드를 열람하는 것만으로 효과가 발생하며, 그 효과는 <strong>반복 노출</strong>(습관화 방지)과 <strong>그날의 위험 환기</strong> 두 축에서 나타난다.</p>
+
+        <div class="note">
+          <span class="tag2">발송 단위 = 시나리오</span>
+          알림은 사고를 한 건씩 발송하지 않는다. 과거 사고를 묶은 <strong>시나리오</strong>가 발송 단위이며, 시나리오마다 <strong>생성 이미지 + 사고원인 + 예방수칙</strong>으로 구성된 카드뉴스가 사전에 연결되어 있다. <span style="color:rgb(var(--muted))">(이미지 생성 파이프라인은 05에서 다룬다.)</span>
+        </div>
+
+        <div class="demo">
+          <div class="dh"><span class="dot"></span><span class="small-caps">매일 아침의 처리 흐름</span></div>
+          <p class="dsub">한 매장에서 매일 아침 진행되는 처리 단계.</p>
+          <div id="cycleStage" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"></div>
+        </div>
+
+        <p>본 서비스는 두 부분으로 구성된다. <strong>오프라인에서 한 차례</strong> 사고를 시나리오·조건식으로 구축하며(본 보고서 03~04가 그 구축 방법이다), <strong>온라인에서 매일</strong> 그 조건식을 당일 입력으로 평가해 3장을 선정한다(06~07). 이어서 입력 데이터부터 살펴본다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section id="s2">
+    <div class="container-essay">
+      <div class="sec-head">
+        <div class="meta"><span class="num">02</span><span class="small-caps">오프라인 · 데이터</span></div>
+        <h2>입력 데이터</h2>
+      </div>
+      <div class="prose">
+        <p>오프라인 구축은 실제 사고 데이터를 기반으로 한다. 전체 469행 중 <strong><code>재해 종류 == '사고'</code>에 해당하는 429건</strong>만 사용하며(질병·불인정·기타·사망은 제외), 고유 매장 312곳, 기간은 2024-01 ~ 2026-03이다.</p>
+
+        <table class="tbl">
+          <thead><tr><th>묶음</th><th>핵심 컬럼</th><th>쓰임</th></tr></thead>
+          <tbody>
+            <tr><td>사고 정보</td><td><code>사고 내용</code> · <code>재해 유형</code> · <code>기인물</code> · <code>상병명</code> · <code>발생일시</code></td><td>시나리오 분할·인과 분석의 핵심 입력</td></tr>
+            <tr><td>매장 환경<br>(고정값)</td><td>평수 · 창고 · 계약면적 · <code>has_stairs</code>(결측 0) · 일배송박스수 · 근로자수 · 형태</td><td>매장/날짜 조건식의 참조 피처</td></tr>
+            <tr><td>기상</td><td><strong>오프라인 구축에서 사용 되지 않음</strong></td><td>온라인 API로만 수집</td></tr>
+          </tbody>
+        </table>
+
+        <p>재해 유형 분포는 넘어짐 158 · 무리한 동작 93 · 물체에 맞음 50 · 베임 41 · 떨어짐 30 · 부딪힘 28 등으로 구성된다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section id="s3">
+    <div class="container-essay">
+      <div class="sec-head">
+        <div class="meta"><span class="num">03</span><span class="small-caps">오프라인 · 시나리오</span></div>
+        <h2>사고의 시나리오 분류</h2>
+      </div>
+      <div class="prose">
+        <p>오프라인 구축은 두 단계로 이루어진다. 먼저 <strong>사고를 시나리오로 묶고</strong>(본 섹션), 이어서 <strong>각 시나리오마다 조건식을 생성한다</strong>(04). 조건식은 해당 시나리오의 실제 사고 사례를 근거로 <strong>통계분석과 인과분석</strong>을 거쳐 도출된다. 본 섹션에서는 묶기 과정을 먼저 설명한다.</p>
+
+        <div class="steps">
+          <div class="step"><div class="ix">1</div><div class="tx"><b>사후 피처 추출</b><span><code>사고 내용</code> 텍스트에서 작업 맥락(입고·진열·청소·이동), 동작 국면(상승/하강/운반), 운반물 유무, 장소(내부/외부), 시야 가림을 식별한다.</span></div></div>
+          <div class="step"><div class="ix">2</div><div class="tx"><b>대분류 → 세부 분할</b><span><code>기인물</code>·<code>재해 유형</code>으로 큰 묶음을 구성한 뒤, 사후 피처를 기준으로 세부 시나리오로 분할한다.</span></div></div>
+          <div class="step"><div class="ix">3</div><div class="tx"><b>분할 멈춤 기준</b><span>예방수칙이 같아지면 분할을 멈춘다 · 표본이 3건 미만이면 상위로 흡수한다("기타 OO") · 단, 발화 조건이 명백히 다른 경우(외부 기상 노출 등)에는 표본이 작아도 분리한다.</span></div></div>
+        </div>
+
+        <p>분할의 기준은 <strong>예방수칙</strong> 하나다. 사고 원인이 비슷하더라도 <em>예방법이 다르면 별개의 시나리오</em>로 본다. 아래 예시는 “계단”에서 발생한 유사해 보이는 사고 6건이 <strong>사후 피처 추출 → 대분류 → 세부 분할 → 분할 멈춤</strong>의 네 단계를 거쳐 최종 시나리오로 묶이는 전 과정을 단계별로 보여준다.</p>
+
+        <div class="demo">
+          <div class="dh"><span class="dot"></span><span class="small-caps">사고 → 시나리오, 묶기 4단계</span></div>
+          <p class="dsub">“다음 단계 ▸”를 누르면 한 단계씩 진행됩니다.</p>
+          <div class="seg" id="groupStepSeg" style="margin-bottom:14px"></div>
+          <div id="groupStage"></div>
+          <div style="margin-top:14px;display:flex;gap:8px"><button class="btn primary" id="groupNext">다음 단계 ▸</button><button class="btn" id="groupReset">처음으로</button></div>
+        </div>
+
+        <p>이 과정을 거쳐 실제 사고가 <strong>71개 시나리오</strong>로 정리되었다(실제 사고 클러스터링 기반, <code>origin: incident</code>). 대분류는 넘어짐·무리한 동작·물체에맞음·부딪힘·베임·떨어짐·끼임/깔림으로 구성된다. 각 시나리오에는 정의·예방수칙·대표 예시가 연결되며, 누적 손상(반복작업·근골격계)은 <code>누적</code> 트랙으로 별도 표기한다. 단, 경위가 불명이거나 본인 신체 요인처럼 <strong>구체적 예방수칙으로 좁힐 수 없는 사고</strong>는 상기 카드로서 정보성이 없어 시나리오에서 제외했다.</p>
+
+        <div class="note">
+          <span class="tag2">+ 기상 시나리오 15개를 추론으로 보강</span>
+          사고 데이터에서 <strong>기상이 원인인 사건은 약 2%에 불과해</strong>(대부분 부주의), 비/눈/폭염/강풍/한파/고습 위험을 그날에 맞춰 안내하기에는 기상 시나리오가 부족했다. 이에 실사례와 물리 인과를 근거로 <strong>기상 시나리오 15개를 추가 설계</strong>하고(<code>origin: inferred</code>로 표기), 카탈로그는 최종 <strong>86개</strong>가 되었다. 동일한 날씨가 며칠간 이어져도 카드가 반복되지 않도록 유형당 2~3개로 세분화했다. 이 묶기의 산출물이 <code>scenario_catalog.json</code>이며, 다음 섹션에서 각 시나리오에 조건식을 연결한다.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section id="s4">
+    <div class="container-essay">
+      <div class="sec-head">
+        <div class="meta"><span class="num">04</span><span class="small-caps">오프라인 · 조건식</span></div>
+        <h2>시나리오별 조건식 정의</h2>
+      </div>
+      <div class="prose">
+        <p>시나리오 묶기가 끝나면, 시나리오마다 <strong>“어떤 매장·어떤 날씨일 때 이 사고가 더 위험한가”</strong>를 조건식으로 정의한다. 근거는 해당 시나리오로 묶인 <strong>실제 사고 사례</strong>다. 핵심은 근거의 성격에 따라 <strong>방법이 구분된다</strong>는 점이다 — 기상은 <strong>이미 확립된 기상학·상식 임계값</strong>이 있어 인과만 검토하면 되고(통계가 불필요), 매장 환경은 그러한 기준이 없어 <strong>데이터로 직접 검증</strong>한다. 두 경로 어느 쪽으로도 조건이 성립하지 않으면, 조건 없이 <strong>C풀(상시)</strong>로 분류한다.</p>
+
+        <div class="steps">
+          <div class="step"><div class="ix">1</div><div class="tx"><b>기상 조건 — 인과분석</b><span>사고 내용에 기상 메커니즘(빗물·빙판·강풍)이 확인되면, 물리 인과만 검토해 <strong>이미 확립된</strong> 기상학·상식 임계값(0℃ 빙점, 폭염 33℃)을 적용한다. 통계는 불필요 → A풀.</span></div></div>
+          <div class="step"><div class="ix">2</div><div class="tx"><b>매장 조건 — 통계분석</b><span>매장 피처에는 정해진 기준이 없으므로, 사고가 발생한 매장과 그렇지 않은 매장을 효과크기로 비교해 실제로 변별되는 피처만 임계 조건으로 등록한다 → B풀.</span></div></div>
+          <div class="step"><div class="ix">3</div><div class="tx"><b>둘 다 없으면 — 상시</b><span>매장·날씨와 무관한 부주의 사고는 조건 없이 전 매장에 상시 노출한다 → C풀.</span></div></div>
+        </div>
+        <p>이 세 갈래가 곧 발송 단계의 <strong>A·B·C 풀</strong>이 된다(06). 개념은 단순하지만, 실제로는 시나리오마다 <strong>두 축을 동시에 검토하고 인과 검문과 적대적 반증을 통과해야만</strong> 조건이 등록된다. 아래 예시는 성격이 다른 세 시나리오가 동일한 파이프라인을 어떻게 다르게 통과하는지를 단계별로 보여준다.</p>
+
+        <div class="demo">
+          <div class="dh"><span class="dot"></span><span class="small-caps">시나리오 → 조건식 부여 흐름</span></div>
+          <p class="dsub">시나리오를 선택하고 “다음 단계 ▸”를 누르면, 해당 시나리오가 조건식을 부여받는 5단계를 따라갑니다.</p>
+          <div class="seg" id="condScnSeg" style="margin-bottom:12px"></div>
+          <div class="seg" id="condStepSeg" style="margin-bottom:14px"></div>
+          <div id="condStage"></div>
+          <div style="margin-top:14px;display:flex;gap:8px"><button class="btn primary" id="condNext">다음 단계 ▸</button><button class="btn" id="condReset">처음으로</button></div>
+        </div>
+
+        <h2 style="font-size:21px;margin-top:40px">기상은 인과로, 매장은 통계로</h2>
+
+        <h3>기상 조건 — 인과 추론으로 정의한다 (A풀)</h3>
+        <p>기상 조건은 <strong>별도의 통계가 필요하지 않다</strong>. “물은 0℃에 언다”, “폭염주의보는 33℃”와 같이 <strong>기상학·상식적으로 이미 확립된 임계값</strong>이 존재하기 때문이다. 데이터로 다시 도출하는 대신, 사고 내용에 기상 메커니즘(빗물·빙판·강풍)이 확인되면 그 <strong>물리적 인과</strong>만 검토해 확립된 임계값을 적용한다. “해당 날씨가 없으면 사고 메커니즘 자체가 성립하지 않는” 조건만 등록하므로, 통계 없이도 타당성이 확보된다(사례가 적어도 인과가 명확). 이렇게 정의한 기상 시나리오가 <strong>20개(A풀)</strong>이다.</p>
+
+        <table class="tbl">
+          <thead><tr><th>메커니즘</th><th>when (명시적 부등식)</th><th>근거</th></tr></thead>
+          <tbody>
+            <tr><td>노면 결빙·빙판</td><td><code>weather.temp_min &lt;= 0 AND (rain&gt;0 OR snow&gt;0 OR humidity&gt;=85)</code></td><td>물의 빙점 + 물기</td></tr>
+            <tr><td>비로 바닥 젖음</td><td><code>weather.rain &gt;= 3</code></td><td>강수 3mm 이상</td></tr>
+            <tr><td>눈(미끄럼·제설)</td><td><code>weather.snow &gt; 0</code></td><td>적설 존재</td></tr>
+            <tr><td>강풍(문·적재물)</td><td><code>weather.wind_max &gt;= 30</code> <span style="color:rgb(var(--muted))">(km/h)</span></td><td>강풍 체감 임계</td></tr>
+            <tr><td>폭염(온열질환)</td><td><code>weather.temp_max &gt;= 33</code></td><td>폭염주의보 기준</td></tr>
+            <tr><td>고습(결로 미끄럼)</td><td><code>weather.humidity &gt;= 90</code></td><td>결로 형성 고습</td></tr>
+            <tr><td>한파(서두름·근육경직)</td><td><code>weather.temp_min &lt;= -5</code></td><td>체감 한파 기준</td></tr>
+          </tbody>
+        </table>
+
+        <h3>매장 조건 — 통계로 검증한다 (B풀)</h3>
+        <p>매장 환경은 사고 데이터에 피처가 포함되어 있으므로 <strong>통계로 검증</strong>한다. 각 시나리오마다 “사고가 발생한 매장”과 “그렇지 않은 매장”의 피처 분포를 <strong>효과크기(Cliff’s delta)</strong>로 비교해, 실제로 차이가 나타나는 피처만 조건으로 등록한다. 다만 이 과정에는 유의할 점이 있었다.</p>
+
+        <p>직영점 간 비교에서 baseline을 실질적으로 초과한 신호는 <strong>창고·일객수·입고도우미</strong>와 같은 “물량·혼잡” 피처였다 — “창고가 큰 매장 = 적재량 많음 = 낙하·들기 사고”처럼 인과가 해석되는 항목들이다. 임계값은 “사고가 발생한 매장의 65%가 통과”하도록 설정하되, 해당 임계에서 전체 직영점의 일부(20~45%)만 통과해 변별력이 확보되는 수준으로 정한다.</p>
+
+        <div class="demo">
+          <div class="dh"><span class="dot"></span><span class="small-caps">매장 조건 판정기</span></div>
+          <p class="dsub">효과크기와 표본을 변경하면, 해당 매장 피처가 B풀 조건으로 등록되는지 확인할 수 있습니다.</p>
+          <div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:6px">
+            <div><div style="font-size:12px;color:rgb(var(--muted));margin-bottom:6px">효과크기 (excess)</div>
+              <div class="seg" id="pSeg"><button data-v="sig" class="on">small+ (≥.15)</button><button data-v="ns">미미 (&lt;.15)</button></div></div>
+            <div><div style="font-size:12px;color:rgb(var(--muted));margin-bottom:6px">표본 (사고 매장수)</div>
+              <div class="seg" id="mSeg"><button data-v="strong" class="on">≥8 신뢰</button><button data-v="weak">5~7 약함</button><button data-v="none">&lt;5 부족</button></div></div>
+          </div>
+          <div class="verdict" id="verdictBox"></div>
+        </div>
+
+        <h4 style="font-size:15px;font-weight:700;margin:28px 0 10px">임계값 설정 기준 — “사고매장 65% 포함”</h4>
+        <p>위 판정으로 “해당 피처를 사용한다”가 결정되면, 다음 단계는 <strong>부등식의 임계값</strong>을 정하는 별도의 작업이다. 기준은 <strong>사고가 발생한 매장의 약 65%가 통과</strong>하도록, 즉 사고매장 분포의 하위 35% 지점을 임계값으로 설정한다.</p>
+        <p>예를 들어 ‘선반 위 박스 낙하’ 사고가 발생한 직영점 10곳의 창고 크기는 <code>10·20·23·26·32·45·50·51·69·74</code>이다(전체 직영점 중앙값은 20). 여기서 하위 35% 지점인 <strong>26</strong>을 임계값으로 설정하면 <code>store.warehouse &gt;= 26</code>이 되며, 사고매장의 70%가 포함된다.</p>
+        <div class="note">
+          <span class="tag2">100%가 아니라 65%로 설정한 이유</span>
+          이 임계값은 <strong>어느 매장이 노출 빈도 가중(×3/×2)을 받을지</strong>를 가르는 기준이다. 임계값을 낮춰 사고매장을 모두 포함하면(예: <code>&gt;= 10</code>) 전체 직영점의 80%가 통과해 <strong>변별력이 사라진다</strong>(거의 모든 매장이 가중을 받아 의미 없음). 반대로 지나치게 높이면 사고가 발생했던 매장을 놓친다. 사고매장 다수를 포함하면서 모집단은 20~45%만 통과하는 균형점이 <strong>65%</strong>다. 임계값에 미달한 매장도 해당 시나리오를 <strong>×1로 계속 노출</strong>받으므로, 65%로 설정하더라도 특정 매장이 가이드에서 누락되는 것은 아니다 — 가중을 받지 못할 뿐이다.
+        </div>
+
+        <table class="tbl">
+          <thead><tr><th>대표 시나리오</th><th>신호 피처</th><th>임계 조건식 (사고매장 ~65% 포함)</th></tr></thead>
+          <tbody>
+            <tr><td>선반 위 박스 낙하</td><td>창고</td><td><code>store.warehouse &gt;= 26</code></td></tr>
+            <tr><td>바닥 박스 들기</td><td>창고</td><td><code>store.warehouse &gt;= 28</code></td></tr>
+            <tr><td>바닥 박스 걸림</td><td>일배송박스수</td><td><code>store.box_count &gt;= 249</code></td></tr>
+            <tr><td>사다리 결함</td><td>일객수</td><td><code>store.customer_count &gt;= 1200</code></td></tr>
+            <tr><td>계단 사고 (필수조건)</td><td>계단 유무</td><td><code>store.has_stairs == 1</code></td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:13.5px;color:rgb(var(--muted))">매장 신호 16개 + 계단 필수조건(necessity) 5개 = <strong>B풀 21개</strong>다. 계단은 “없으면 사고가 발생할 수 없는” 필수조건이므로, 통계가 아니라 <code>has_stairs==1</code> 조건을 적용해 계단이 없는 매장에서는 해당 시나리오를 제외한다.</p>
+
+        <div class="note">
+          <span class="tag2">신호 강도 → 노출 배수 (강 ×3 / 약 ×2)</span>
+          16개 신호는 표본 <strong>신뢰(≥8, 강신호) 8개 + 약함(5~7, 약신호) 8개</strong>로 구성된다. 이 강/약 구분이 곧 <strong>노출 배수</strong>가 된다 — 조건을 충족한 매장에서 강신호 시나리오는 <strong>×3</strong>, 약신호는 <strong>×2</strong>로 더 자주 노출한다. 약함 등급도 전부 B풀에 포함하되(×2), 표본이 작아 <strong>잠정</strong>으로 보고 사고가 누적되면 재검증한다. 표본 <strong>5건 미만</strong>은 “노이즈 가능성”으로 보아 배수 가중 없이 ×1로만 다룬다.
+        </div>
+
+        <h3>나머지 — 조건 없이 C풀로</h3>
+        <p>기상 메커니즘도 없고 매장 통계 신호도 없는 시나리오(부주의성 사고가 대다수)는 조건 없이 <strong>C풀(상시)</strong>로 분류한다 — <strong>45개</strong>다. 이들은 어느 매장·어느 날에나 발생할 수 있으므로, 특정 매장을 대상으로 하기보다 전 매장에 <strong>복제 없이 순차</strong> 로테이션으로 꾸준히 환기하는 것이 적절하다.</p>
+
+        <h3>모든 조건은 명시적 부등식</h3>
+        <p>“상위/하위/결빙”과 같은 서술형 표현은 사용하지 않는다. 임계값을 명시한 부등식으로 정의한다. 목적은 이 JSON을 <strong>파서가 그대로 함수로 평가</strong>할 수 있도록 하는 것이다. 모든 조건에는 거버넌스 태그를 부여한다 — <code>threshold_kind</code>(physics / heuristic / statistical / structural) · <code>evidence</code> · <code>threshold_source</code> · <code>sample_n</code>. 시나리오 객체에는 <code>origin</code>(실데이터 기반 incident / 추론 inferred)도 포함되어, 운영 중 추론 시나리오를 식별하고 데이터가 누적되면 재검증할 수 있다.</p>
+        <p style="font-family:ui-monospace,monospace;font-size:12.5px;background:rgb(var(--subtle));border:1px solid rgb(var(--line));border-radius:10px;padding:14px;line-height:1.9">
+          weather.temp_min &lt;= 0&nbsp;&nbsp;<span style="color:rgb(var(--muted))"># 기상: 인과(물의 빙점)</span><br>store.warehouse &gt;= 26&nbsp;<span style="color:rgb(var(--muted))"># 매장: 통계(직영점 분석)</span><br>store.has_stairs == 1&nbsp;<span style="color:rgb(var(--muted))"># 매장: 구조 필수조건</span><br><span style="color:rgb(var(--muted))"># (조건 없음 → C풀 상시)</span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section id="s5">
+    <div class="container-essay">
+      <div class="sec-head">
+        <div class="meta"><span class="num">05</span><span class="small-caps">오프라인 · 이미지</span></div>
+        <h2>안전 카드 이미지 생성</h2>
+      </div>
+      <div class="prose">
+        <p>시나리오와 조건식 구축이 완료되면, 각 시나리오에 연결할 <strong>카드뉴스 이미지</strong>를 생성한다. 카드뉴스는 “생성 이미지 + 사고원인 + 안전수칙”으로 구성되므로, 이미지의 품질이 곧 전달력으로 이어진다. 이 단계 또한 하나의 멀티모달 에이전트 파이프라인으로 운영된다.</p>
+
+        <div class="note">
+          <span class="tag2">역할 분담</span>
+          <strong>구조화와 평가는 에이전트(Claude)가 직접</strong> 멀티모달로 수행한다 — 시나리오를 장면 명세로 확장하는 작업과 생성된 이미지를 평가·채점하는 작업 모두 포함된다. <strong>이미지 생성만</strong> 외부 이미지 모델을 스크립트로 호출하며, 외부 API가 필요한 단계는 이 하나뿐이다.
+        </div>
+
+        <h3>두 가지 일관성 — 캐릭터와 배경</h3>
+        <p>핵심 원칙은 “무엇을 고정하고 무엇을 변경할 것인가”의 분리다.</p>
+        <ul>
+          <li><strong>캐릭터 = 동일성 일관성.</strong> <em>참조 이미지로 고정</em>한다. 다이소 <strong>40~50대 여성 직원</strong> 3명 풀로 구성하며, 대부분의 사고 장면은 1명이므로 항상 <strong>대표 캐릭터 1명</strong>을 사용한다(직원이 “그 직원”으로 기억하도록 시리즈 일관성 유지). 여러 명의 상호작용이 필요한 경우에만 보조 캐릭터를 2→3 순으로 추가한다. 공통 유니폼은 빨간 셔츠 + 네이비 앞치마 + 검정 바지 + 흰 운동화이며, 앞치마는 비워 둔다(로고·텍스트 없음).</li>
+          <li><strong>배경 = 스타일 일관성 + 장소 가변.</strong> 배경은 참조 이미지를 사용하지 않고 <em>텍스트로만</em> 제어한다. 화풍(2D 플랫 카툰)과 “한국형 균일가 잡화점” 디테일은 고정하되, 장소는 시나리오에 맞게 선택한다.</li>
+        </ul>
+
+        <div class="note warn">
+          <span class="tag2">필수 원칙 — 사고 ‘직전’ 장면만</span>
+          항상 <strong>사고 직전(pre-accident)</strong> 순간만 묘사한다. 부상·유혈·쓰러진 모습은 표현하지 않는다. 표정·자세·연출로 위험을 <em>직관적으로</em> 전달하는 것이 카툰 형식의 강점이다. 캐릭터 연령(40~50대) 또한 모든 장면에서 일관되게 유지한다(더 젊게 묘사하지 않는다).
+        </div>
+
+        <h3>파이프라인 — 생성·평가 루프</h3>
+        <p>전체 파이프라인은 위에서 아래로 흐른다. 핵심은 <strong>STEP 4(생성) ↔ STEP 5(평가)</strong> 사이의 <strong>피드백 루프</strong>다 — 별도의 “수정 단계”가 따로 있는 것이 아니라, STEP 5 평가에서 미통과하면 <strong>STEP 4로 되돌아가</strong> 다시 생성한다. 통과하면 STEP 6(산출물)으로 진행한다. 특히 <strong>STEP 5의 평가는 반드시 별도의 평가 전용 서브에이전트(VLM)</strong>가 수행해, 생성 주체와 평가 주체를 분리한다.</p>
+        <div class="demo">
+          <div class="dh"><span class="dot"></span><span class="small-caps">생성·평가 루프 흐름</span></div>
+          <p class="dsub">시나리오 1건이 이미지로 완성되기까지의 흐름을 위에서 아래로 나타낸다. STEP 5에서 미통과하면 <span style="color:rgb(var(--warn))">↩</span> 화살표를 따라 STEP 4로 되돌아간다. <span style="color:rgb(var(--warn))">●</span> = 외부 모델 호출 · <span style="color:rgb(var(--accent))">◆</span> = 별도 서브에이전트.</p>
+          <div id="imgPipe"></div>
+        </div>
+
+        <h3>STEP 1~3 — 시나리오를 장면 명세로</h3>
+        <p>카탈로그의 시나리오 객체(정의·예방수칙·대표 예시)를 입력으로 하여, 표정·자세·연출이 포함된 <strong>장면 명세</strong>로 확장한다. 이때 <code>장소 타입</code>을 시나리오에 맞게 선택하고(통로 a / 계단 b / 창고 c / 운반구 d), 인물 수에 따라 캐릭터 참조를 결정한 뒤, 베이스 블록(캐릭터 규칙 + 배경 스타일)과 결합해 프롬프트를 구성한다.</p>
+
+        <div class="demo">
+          <div class="dh"><span class="dot"></span><span class="small-caps">시나리오 → 장면 명세</span></div>
+          <p class="dsub">시나리오를 선택하면, 에이전트가 생성하는 명세와 자동 선택되는 장소 타입·캐릭터를 확인할 수 있습니다.</p>
+          <div class="seg" id="specSeg" style="margin-bottom:14px"></div>
+          <div id="specBox"></div>
+        </div>
+
+        <h3>STEP 4 · 5 — 생성과 평가의 루프</h3>
+        <p><strong>STEP 4(생성)</strong>에서는 선택한 캐릭터 참조를 첨부해 <strong>1장</strong>을 생성한다(세로형 1024×1536). 여러 장의 후보를 생성하는 대신 1장을 생성한다. 이어 <strong>STEP 5(평가)</strong>에서는 <strong>별도의 평가 전용 서브에이전트(VLM)가</strong> 그 이미지를 <strong>엄격하게</strong> 채점한다 — 치명 항목(사고 직전 아님·위험 가독성 부족·해부학 붕괴·캐릭터 불일치·장소 불일치 등)과 품질 항목(위험 메커니즘 가독성·표정 강도·주석 정확도·배경 사실성·구도)을 함께 평가한다.</p>
+
+        <div class="note">
+          <span class="tag2">평가는 반드시 별도 서브에이전트</span>
+          STEP 5의 평가는 생성을 수행한 주체가 아니라 <strong>독립된 평가 전용 서브에이전트(VLM)</strong>가 담당한다. 생성과 평가를 동일 주체가 수행하면 자기 결과를 관대하게 평가하는 편향이 발생할 수 있으므로, 주체를 분리해 <strong>객관적 검증</strong>을 보장한다. 이 평가 결과가 STEP 4로의 재생성 여부를 결정한다.
+        </div>
+
+        <div class="demo">
+          <div class="dh"><span class="dot"></span><span class="small-caps">VLM 평가 판정기 (STEP 5)</span></div>
+          <p class="dsub">치명 항목과 품질 미흡 개수를 변경하면, 통과(→ STEP 6) 또는 STEP 4 재생성 진입 여부가 결정됩니다.</p>
+          <div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:6px">
+            <div><div style="font-size:12px;color:rgb(var(--muted));margin-bottom:6px">치명 항목</div>
+              <div class="seg" id="critSeg"><button data-v="0" class="on">0개</button><button data-v="1">1개 이상</button></div></div>
+            <div><div style="font-size:12px;color:rgb(var(--muted));margin-bottom:6px">품질 미흡</div>
+              <div class="seg" id="qualSeg"><button data-v="0" class="on">0개</button><button data-v="1">1개</button><button data-v="2">2개 이상</button></div></div>
+          </div>
+          <div class="verdict" id="imgVerdict"></div>
+        </div>
+
+        <p>STEP 5에서 통과하지 못하면 <strong>STEP 4로 되돌아가 재생성</strong>한다. 이때 오류 성격에 따라 재생성 방식이 두 가지로 구분된다 — <strong>(A) 국소 오류</strong>(주석 위치·표정 강도·손가락 결함)는 직전 이미지를 <code>--edit</code>로 첨부해 해당 부분만 수정하고, <strong>(B) 구도·앵글 자체의 오류</strong>(장소 타입 오류 등)는 잘못된 구도를 반복하지 않도록 직전 이미지를 제외하고 프롬프트만 수정해 새로 생성한다. 이 STEP 4 ↔ 5 루프는 <strong>최대 2회</strong> 수행하며, 통과 시 즉시 종료하고 STEP 6으로 진행한다. 직전보다 결과가 저하되면 롤백하고, 2회를 모두 수행해도 통과하지 못하면 전체 회차 중 최상위 결과를 최종 채택한다(무한 루프 방지).</p>
+
+        <h3>STEP 6 — 산출물</h3>
+        <p>회차별 이미지·평가는 <code>iterations/</code>에 누적되며, 최상위 결과만 <code>final/</code>에 복사된다(<code>final_image.png</code> + <code>final_prompt.txt</code> + <code>final_vqa.json</code>). 별도의 인간 검수 단계는 없으나, 운영자가 <code>final/</code>만으로 배포 후보를 확인할 수 있도록 정리한다. 이 <code>final_image.png</code>가 시나리오의 <code>image_url</code>로 연결되어 카드뉴스에 게시된다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section id="s6">
+    <div class="container-essay">
+      <div class="sec-head">
+        <div class="meta"><span class="num">06</span><span class="small-caps">온라인 · 라우팅</span></div>
+        <h2>A · B · C 풀 라우팅</h2>
+      </div>
+      <div class="prose">
+        <p>여기서부터는 매일 실행되는 온라인 단계다. 구축해 둔 조건식을 당일 입력으로 평가하되, <strong>점수를 부여하지 않는다</strong>. 대신 각 시나리오를 조건에 따라 세 개의 <strong>풀(pool)</strong>로 라우팅하며, 우선순위가 핵심 원리다.</p>
+        <table class="tbl">
+          <thead><tr><th>풀</th><th>조건</th><th>의미</th></tr></thead>
+          <tbody>
+            <tr><td><span class="tag t-w">A · 기상</span></td><td>날씨 조건이 <strong>그날 발화</strong></td><td>비/눈/폭염 등 그날에 한정된 위험. 미발화 시 제외(EXCLUDE).</td></tr>
+            <tr><td><span class="tag t-mul">B · 매장</span></td><td>매장 조건 보유 (창고·객수·계단 등)</td><td>모든 B 시나리오를 전 매장에 노출하되, 조건 충족·신호 강도로 <strong>노출 빈도에 가중</strong>.</td></tr>
+            <tr><td><span class="tag t-gate">C · 상시</span></td><td>매장·기상 조건 전무</td><td>매장·날씨와 무관한 부주의 사고. 전 매장에 <strong>복제 없이 순차</strong> 노출.</td></tr>
+          </tbody>
+        </table>
+        <p>이와 별도로 <strong>필수조건(necessity)</strong>이 존재한다 — 계단이 없는 매장의 계단 사고처럼 “해당 요소가 없으면 사고가 물리적으로 발생할 수 없는” 조건이다. 이 조건은 불만족 시 풀에 포함하지 않고 <strong>제외(EXCLUDE)</strong>한다. 이것이 “계단이 없는 매장에 계단 카드가 발송되지 않는” 이유다.</p>
+
+        <div class="note">
+          <span class="tag2">B풀 개편 — 배제가 아니라 가중</span>
+          B풀은 조건 충족 여부로 후보를 넣고 빼는 것이 아니라, <strong>모든 B 시나리오를 전 매장에 최소 1회 노출</strong>하되 <strong>노출 빈도에 가중</strong>을 준다. 그 매장이 조건식에 걸리면 그 사고가 발생할 확률이 상대적으로 높다는 신호이므로, <strong>신호가 강하면 3배·약하면 2배</strong>로 후보 배열에 더 자주 등장시키고(→ 더 자주 발송), 조건에 걸리지 않는 매장은 <strong>1배</strong>로 최소 노출만 유지한다. 강/약 신호는 04장에서 판정한 표본 신뢰도(사고매장 ≥8=강, 5~7=약)를 그대로 사용한다.
+        </div>
+
+        <div class="demo">
+          <div class="dh"><span class="dot"></span><span class="small-caps">계단 조건 시뮬레이터</span></div>
+          <p class="dsub"><code>has_stairs</code>를 끄면, 필수조건(계단)과 노출조건(매장 규모)이 어떻게 다르게 반응하는지 확인할 수 있습니다.</p>
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">
+            <span style="font-size:13px;color:rgb(var(--muted))">매장에 계단이</span>
+            <div class="seg" id="stairSeg"><button data-v="1" class="on">있음 (1)</button><button data-v="0">없음 (0)</button></div>
+          </div>
+          <div id="gateDemo"></div>
+        </div>
+
+        <p>결측은 ‘거짓’이 아니라 <strong>중립</strong>으로 처리한다. 유통점은 <code>box_count</code>가 없으며(결측), 이 경우 해당 조건을 미발화로 간주해 시나리오를 강제로 배제하지 않는다. 특히 기상 조건이 API 실패로 결측되는 경우, 기상 장애로 인해 안전 시나리오가 잘못 억제되지 않도록 처리한다.</p>
+
+        <div class="note">
+          <span class="tag2">조건 미충족이어도 B에 남는다</span>
+          B풀 시나리오는 조건을 충족하지 못해도 <strong>C로 내려가지 않고 B풀에 1배로 잔류</strong>한다. 따라서 “사고가 발생했던 소규모 매장”이 B 임계값에 미달하더라도 그 시나리오를 여전히 받되, 조건을 충족한 매장보다는 <strong>덜 자주</strong> 노출된다. <strong>B는 우선 가중, C는 조건이 전혀 없는 상시 사고</strong> — 위험이 높은 매장에는 자주, 나머지 매장에도 빠짐없이 노출하는 구조다.
+        </div>
+
+        <p>아래 시뮬레이터는 구축된 <strong>조건식이 실제 온라인 서빙에서 동작하는 방식</strong>을 그대로 재현한다. 매장·날씨를 변경하면 각 시나리오가 자체 조건식으로 평가되어 A/B/C/제외로 분류되며(분류 이유 포함), 슬롯 규칙에 따라 <strong>오늘의 3장</strong>이 선정된다 — 발송 백엔드가 매일 아침 수행하는 것과 동일한 연산이다.</p>
+
+        <div class="demo">
+          <div class="dh"><span class="dot"></span><span class="small-caps">조건식 → 풀 → 3장 추적기</span></div>
+          <p class="dsub">매장·날씨를 변경하면 각 시나리오의 풀 배정과 그 <strong>이유</strong>가 실시간으로 갱신되며, 상단에 최종 3장이 어느 풀(A/B/C 슬롯)에서 선정되었는지 표시됩니다.</p>
+          <div class="today" id="simToday"></div>
+          <div class="ctrl">
+            <div class="f"><label>형태 <b id="formV">직영점</b></label>
+              <div class="seg" id="formSeg"><button data-v="직영점" class="on">직영점</button><button data-v="유통점">유통점</button></div></div>
+            <div class="f"><label>계단 <b id="stV">있음</b></label>
+              <div class="seg" id="stSeg"><button data-v="1" class="on">있음</button><button data-v="0">없음</button></div></div>
+            <div class="f"><label>일배송 박스수 <b id="boxV">300</b></label><input type="range" id="box" min="0" max="500" value="300"></div>
+            <div class="f"><label>창고(평) <b id="whV">30</b></label><input type="range" id="wh" min="0" max="60" value="30"></div>
+            <div class="f"><label>최저기온 <b id="tminV">-3°</b></label><input type="range" id="tmin" min="-10" max="15" value="-3"></div>
+            <div class="f"><label>강수 <b id="rainV">5mm</b></label><input type="range" id="rain" min="0" max="20" value="5"></div>
+            <div class="f"><label>최대풍속 <b id="windV">6</b></label><input type="range" id="wind" min="0" max="20" value="6"></div>
+            <div class="f"><label>최고기온 <b id="tmaxV">10°</b></label><input type="range" id="tmax" min="0" max="38" value="10"></div>
+          </div>
+          <div id="simList"></div>
+        </div>
+        <p style="font-size:13px;color:rgb(var(--muted))">각 시나리오 옆의 <small style="font-family:ui-monospace,monospace">작은 글씨</small>는 해당 풀로 분류된 <strong>이유</strong>와 <strong>배수</strong>를 나타낸다. <span class="tag t-w" style="font-size:9px">A풀</span> 기상발화 · <span class="tag t-mul" style="font-size:9px">B풀</span> 매장(배수 <span class="tag t-sel" style="font-size:9px">×3/×2/×1</span>) · <span class="tag t-gate" style="font-size:9px">제외</span>는 회색 · ★ = 오늘 3장에 선정. 강수를 0으로 조정하면 빗길 3종이 “기상 미발화”로 제외되고, 창고를 26 미만으로 조정하면 적재 사고의 배수가 <strong>×3에서 ×1</strong>로 낮아지는(B풀엔 그대로 잔류) 것을 확인할 수 있다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section id="s7">
+    <div class="container-essay">
+      <div class="sec-head">
+        <div class="meta"><span class="num">07</span><span class="small-caps">온라인 · 선정</span></div>
+        <h2>일일 3장 선정</h2>
+      </div>
+      <div class="prose">
+        <p>풀만 나눠서는 부족하다. 풀 안에서 매번 같은 시나리오가 나가면 맑은 날에는 매일 동일한 알림이 발송되어 습관화가 발생한다. 이를 방지하기 위해 <strong>슬롯별 선정 + 무상태 로테이션</strong>을 적용한다 — A·B·C 세 슬롯이 각각 자기 풀에서 그날의 1장(C는 나머지)을 뽑되, B는 <strong>신호 강도로 가중</strong>하고 C는 <strong>순차로 균등</strong>하게 돌린다.</p>
+        <table class="tbl">
+          <thead><tr><th>슬롯</th><th>후보 풀</th><th>방식</th></tr></thead>
+          <tbody>
+            <tr><td><strong>슬롯 A</strong> (최대 1장)</td><td>A · 기상 (20) 중 <em>그날 발화한 것만</em></td><td>복수 발화 시 날짜 로테이션</td></tr>
+            <tr><td><strong>슬롯 B</strong> (1장)</td><td>B · 매장 (21, 전 시나리오)</td><td>신호 강도·조건 충족으로 <strong>가중 복제(×3/×2/×1)</strong>한 배열을 로테이션</td></tr>
+            <tr><td><strong>슬롯 C</strong> (나머지)</td><td>C · 상시 (45)</td><td>복제 없이 순차 로테이션</td></tr>
+          </tbody>
+        </table>
+        <p>B·C 후보는 매장이 동일하면 매일 같은 결과가 되므로, <strong>무상태 로테이션</strong>으로 다양성을 확보한다. <strong>B풀</strong>은 각 시나리오를 신호 강도·조건 충족에 따른 <strong>배수(×3/×2/×1)</strong>만큼 복제하되, <strong>라운드-로빈 인터리빙</strong>으로 같은 시나리오가 연속되지 않게 1차원 배열에 배치한다(예: 강 A·B, 약 C면 <code>A,B,C,A,B,A</code>). 배수가 큰(위험이 높은) 시나리오일수록 배열에 더 여러 번 등장해 더 자주 선택된다. <strong>C풀</strong>은 후보가 많아(45개) 복제 없이 배열에 나열한다. 두 배열 모두 <strong>날짜마다 소비한 장수만큼 순차 전진</strong>하며 선택하므로(서로소 보폭이 아니다), 연속된 날짜에 같은 시나리오가 겹치지 않고 한 주기를 순회하면 모든 등장이 빠짐없이 노출된다. 슬롯 A가 비는 경우(맑은 날) B·C가 그 자리를 채워 항상 3장을 구성한다.</p>
+
+        <div class="note">
+          <span class="tag2">대분류 다양성 — A는 자유, B·C는 서로 다르게</span>
+          하루 3장이 비슷한 사고 유형만 담기지 않도록 <strong>대분류(넘어짐·베임 등) 다양성</strong>도 관리한다. 다만 <strong>기상 카드(A)는 발화 맥락이 특별해 제약에서 제외</strong>한다 — 빗길 넘어짐(A)과 계단 넘어짐(B)이 같은 ‘넘어짐’이어도 성격이 달라 함께 나가도 무방하다. 반면 <strong>B와 C는 서로 다른 대분류</strong>가 되도록 한다. 이를 위해 B·C 배열을 만들 때 <strong>대분류가 인접하지 않게 인터리빙</strong>해 두므로, 하루에 C를 2장 뽑아도 자연히 서로 다른 유형이 된다(별도의 “건너뛰기”가 없어 연속일 중복도 생기지 않는다).
+        </div>
+
+        <div class="demo">
+          <div class="dh"><span class="dot"></span><span class="small-caps">B슬롯 로테이션 시뮬레이터</span></div>
+          <p class="dsub">B슬롯 예시입니다(강 ×3 · 약 ×2 · 미충족 ×1). 배수만큼 복제하되 <strong>라운드-로빈 인터리빙</strong>으로 같은 시나리오가 연속되지 않게 배치하고, 날짜마다 <strong>1칸씩 순차 전진</strong>하며 하루 1장을 고릅니다. 강신호일수록 배열에 자주 등장해 더 자주 뽑히고, 한 주기를 돌면 전수 노출됩니다.</p>
+          <div class="arr" id="spreadArr"></div>
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:6px">
+            <input type="range" id="day" min="0" max="5" value="0" style="flex:1;min-width:160px">
+            <span class="mono" style="font-size:12px;color:rgb(var(--muted))">Day <b id="dayV" style="color:rgb(var(--fg))">0</b></span>
+          </div>
+          <div class="cov"><i id="covBar" style="width:0%"></i></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:rgb(var(--muted))">
+            <span>오늘의 B슬롯: <b id="todayPick" class="mono" style="color:rgb(var(--fg))">—</b></span>
+            <span>전수 노출: <b id="covV" style="color:rgb(var(--ok))">0 / 6</b></span>
+          </div>
+        </div>
+
+        <p>라운드-로빈 인터리빙이 같은 시나리오의 연속 노출을 막으므로 별도의 간격 조정 장치가 필요하지 않다. 배수가 큰 시나리오는 배열에 여러 번 등장해 그만큼 더 자주 노출되며, 한 주기를 순차로 순회하면 모든 등장이 전수 노출된다. 동일한 <code>(매장·날씨·날짜)</code> 조합에서는 항상 동일한 3장이 선정되는 <strong>결정론적</strong> 동작으로, 이는 발송 백엔드와 가이드 페이지가 정확히 동일한 규칙으로 동작하도록 보장하기 위한 설계다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section id="s8">
+    <div class="container-essay">
+      <div class="sec-head">
+        <div class="meta"><span class="num">08</span><span class="small-caps">근거 · 부록</span></div>
+        <h2>설계 근거 · 참고자료</h2>
+      </div>
+      <div class="prose">
+        <div class="refintro">
+          <p class="reflead">본 서비스의 설계는 임의의 선택이 아니라, <b>안전 커뮤니케이션·인지과학·생성형 AI 평가</b> 세 분야의 선행 연구에 근거한다. 아래는 “왜 이 방식이 사고 예방에 효과적인가”를 뒷받침하는 근거를 <b>핵심 설계 요소별</b>로 정리한 것이다. 각 항목의 <b style="color:rgb(var(--accent))">파란 글씨</b>가 그 연구가 본 서비스에 주는 시사점이다.</p>
+        </div>
+
+        <h3>가. 왜 ‘이미지 카드’가 사고 예방에 효과적인가</h3>
+        <p>카드뉴스의 전달력은 <strong>생성 이미지</strong>에서 나온다. 시각 자료는 텍스트보다 빠르게 주의를 끌고 위험을 직관적으로 이해시키며, <strong>언어·문해 수준의 장벽을 넘는다</strong> — 연령대가 다양한 매장 직원층에 특히 중요한 특성이다. 이는 “카드를 열람하는 것만으로 효과가 발생한다”는 01장의 전제를 뒷받침한다.</p>
+        <ol class="reflist">
+          <li>
+            <span class="rn">01</span>
+            <div class="rc">
+              <div class="rt">Visual communication design in laboratory safety: effectiveness and optimization of warning signs</div>
+              <div class="rv">Scientific Reports (Nature), 2025 · 아이트래킹·이해도·행동반응 혼합 실험(N=120)</div>
+              <div class="rk"><b>시사점:</b> 최적화된 시각 경고물은 <b>주의 포착 +35.9%, 위험 탐지 정확도 +42.3%, 절차 준수 +37.8%</b>를 달성했다. 그래픽은 언어 장벽을 넘어 텍스트보다 빠르게 위험을 전달한다 — 이미지 중심 카드 설계의 직접적 근거.</div>
+              <a class="rl" href="https://www.nature.com/articles/s41598-025-26061-6" target="_blank" rel="noopener">nature.com/articles/s41598-025-26061-6</a>
+            </div>
+          </li>
+          <li>
+            <span class="rn">02</span>
+            <div class="rc">
+              <div class="rt">Comprehension and hazard communication of three pictorial symbols designed for warnings</div>
+              <div class="rv">Safety Science, 2010 · 그림 기호의 이해도·위험 인지 측정</div>
+              <div class="rk"><b>시사점:</b> 경고 메시지에 <b>그림 기호</b>를 결합하면 이해도와 위험 인지가 유의하게 향상된다. 위험 상황을 그림으로 보여주는 것이 “안전불감증 완화”라는 서비스 목표에 부합함을 뒷받침한다.</div>
+              <a class="rl" href="https://www.sciencedirect.com/science/article/abs/pii/S0925753509002306" target="_blank" rel="noopener">sciencedirect.com/…/S0925753509002306</a>
+            </div>
+          </li>
+        </ol>
+
+        <h3>나. 짧고 잦은 반복, 그리고 습관화 방지</h3>
+        <p>‘매일 3장 + 결정론적 무상태 로테이션’이라는 발송 설계는 검증된 두 원리를 결합한다 — <strong>(1)</strong> 짧고 규칙적인 안전 리마인더가 길고 드문 교육보다 사고 감소에 효과적이며, <strong>(2)</strong> 같은 경고를 반복하면 주의가 급감(습관화)하므로 내용을 계속 바꿔야 한다. 07장의 <em>라운드-로빈 인터리빙·비반복</em> 설계가 바로 이 습관화를 겨냥한 장치다.</p>
+        <ol class="reflist">
+          <li>
+            <span class="rn">03</span>
+            <div class="rc">
+              <div class="rt">Effectiveness of Toolbox Talks as a Workplace Safety Intervention: A Scoping Review</div>
+              <div class="rv">Safety (MDPI), 2025, 11(2):35 · 2000–2024년 문헌 스코핑 리뷰</div>
+              <div class="rk"><b>시사점:</b> 근무 시작 시 전달하는 <b>짧고 구조화된 안전 대화</b>가 안전 지식·태도·행동 개선에 효과적이며, 언어·구성이 다양한 인력에도 적합하다. “짧게 자주”가 “길게 가끔”을 이긴다 — 일일 3장 카덴스의 근거.</div>
+              <a class="rl" href="https://www.mdpi.com/2313-576X/11/2/35" target="_blank" rel="noopener">mdpi.com/2313-576X/11/2/35</a>
+            </div>
+          </li>
+          <li>
+            <span class="rn">04</span>
+            <div class="rc">
+              <div class="rt">Habituation, Dishabituation, and Recovery Effects in Visual Warnings</div>
+              <div class="rv">Kim &amp; Wogalter · Proc. Human Factors and Ergonomics Society, 2009</div>
+              <div class="rk"><b>시사점:</b> 동일 경고를 반복 노출하면 주의가 감소(<b>습관화</b>)하지만, 경고의 외형·내용을 바꾸면(동적·변형 경고) 습관화가 완화된다. “같은 매장·같은 날이면 같은 3장”을 유지하되 <b>날짜마다 내용을 바꾸는</b> 설계의 근거.</div>
+              <a class="rl" href="https://journals.sagepub.com/doi/abs/10.1177/154193120905302015" target="_blank" rel="noopener">journals.sagepub.com/doi/abs/10.1177/154193120905302015</a>
+            </div>
+          </li>
+          <li>
+            <span class="rn">05</span>
+            <div class="rc">
+              <div class="rt">What Do We Really Know about How Habituation to Warnings Occurs Over Time?</div>
+              <div class="rv">Anderson, Vance et al. · Proc. ACM CHI, 2017 · 5일간 눈추적 실험</div>
+              <div class="rk"><b>시사점:</b> 반복 경고에 주의가 급감하나, <b>다형(polymorphic·변형) 경고는 습관화에 훨씬 강하고</b> 노출을 걸러 주면 주의가 회복된다. 매일 다른 시나리오를 순환시키는 로테이션·비반복 인터리빙의 실증적 근거.</div>
+              <a class="rl" href="https://dl.acm.org/doi/10.1145/3025453.3025896" target="_blank" rel="noopener">dl.acm.org/doi/10.1145/3025453.3025896</a>
+            </div>
+          </li>
+        </ol>
+
+        <h3>다. 그날의 위험을 짚는 맥락 기반 알림 (A풀 · 기상)</h3>
+        <p>A풀(기상 조건)이 “그날에 한정된 위험”만 발화시키는 이유는, 사고 위험이 실제로 날씨에 반응하기 때문이다. 강수·저온은 낙상 같은 특정 사고를 유의하게 증가시키고 그 효과는 며칠간 지속된다. <strong>위험이 오른 날 해당 경고를 띄우는 것</strong>은 문헌이 직접 권고하는 예방 방식이다.</p>
+        <ol class="reflist">
+          <li>
+            <span class="rn">06</span>
+            <div class="rc">
+              <div class="rt">The risk of injuries during work and its association with precipitation (case-crossover)</div>
+              <div class="rv">Frontiers in Public Health, 2023 · 감시체계 기반 케이스-크로스오버 설계</div>
+              <div class="rk"><b>시사점:</b> 강수 <b>10mm 증가마다 당일 재해율 +1.57%</b>, 그 영향이 <b>이후 3일까지 지속</b>. 비 오는 날 낙상 위험은 +2.63%로 특히 높고 고령 근로자가 더 취약하다. 기상 조건을 발화 신호로 쓰는 A풀의 정량적 근거.</div>
+              <a class="rl" href="https://www.frontiersin.org/journals/public-health/articles/10.3389/fpubh.2023.1117948/full" target="_blank" rel="noopener">frontiersin.org/…/fpubh.2023.1117948</a>
+            </div>
+          </li>
+          <li>
+            <span class="rn">07</span>
+            <div class="rc">
+              <div class="rt">Weather Conditions and Outdoor Fall Injuries in Northwestern Russia</div>
+              <div class="rv">Int. J. Environ. Res. Public Health, 2020 · 기상·낙상 발생률 분석</div>
+              <div class="rk"><b>시사점:</b> 특정 기상 조건에서 낙상이 급증하며, 논문은 <b>“기상 예보와 함께 낙상 위험 경고를 알리는 것이 효과적인 예방 수단”</b>이라고 직접 권고한다. 날씨 기반 안전 알림이라는 서비스 컨셉을 그대로 지지.</div>
+              <a class="rl" href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7504524/" target="_blank" rel="noopener">ncbi.nlm.nih.gov/pmc/articles/PMC7504524</a>
+            </div>
+          </li>
+        </ol>
+
+        <h3>라. 사고 기록 텍스트 → 합성 이미지: 검증된 방법론</h3>
+        <p>실제 부상 장면을 촬영하는 것은 윤리적·현실적으로 불가능하지만, 사고를 서술한 <strong>텍스트</strong>는 풍부하다. 사고 텍스트를 안전 교육용 합성 이미지로 바꾸는 접근은 이미 학계에서 개발·평가되어 왔으며, 본 서비스의 <em>텍스트→구조화→생성→평가</em> 파이프라인과 거의 동일한 구조의 선행 연구가 존재한다.</p>
+        <ol class="reflist">
+          <li>
+            <span class="rn">08</span>
+            <div class="rc">
+              <div class="rt">Generative AI for Visualizing Highway Construction Hazards Through Synthetic Images and Temporal Sequences</div>
+              <div class="rv">arXiv:2605.11276, 2026 · OSHA 중대재해 보고서(SIR) 서술 → 합성 이미지</div>
+              <div class="rk"><b>시사점:</b> 위험 상황 이미지 교육 자료가 <b>윤리·현실적 제약으로 희소</b>하다는 문제의식에서 출발해, 사고 텍스트로부터 이미지를 생성. 단일 생성 이미지가 <b>교육 적합성 81.1%</b>(충실도 4.14/5)를 달성 — 본 서비스와 동기·구조가 사실상 동일한 가장 직접적 선례.</div>
+              <a class="rl" href="https://arxiv.org/abs/2605.11276" target="_blank" rel="noopener">arxiv.org/abs/2605.11276</a>
+            </div>
+          </li>
+          <li>
+            <span class="rn">09</span>
+            <div class="rc">
+              <div class="rt">Scene Graph-Guided Generative AI Framework for Synthesizing and Evaluating Industrial Hazard Scenarios</div>
+              <div class="rv">Acharjee et al. · arXiv:2511.13970, 2025 · OSHA 사고서술 약 89,000건</div>
+              <div class="rk"><b>시사점:</b> OSHA 사고서술을 <b>GPT-4o로 위험 추론 → 씬 그래프 → 디퓨전 생성 → VQA로 평가</b>하는 통합 파이프라인. “텍스트→구조화→생성→VLM 기반 평가”라는 흐름이 본 서비스 05장과 가장 유사한 연구.</div>
+              <a class="rl" href="https://arxiv.org/abs/2511.13970" target="_blank" rel="noopener">arxiv.org/abs/2511.13970</a>
+            </div>
+          </li>
+          <li>
+            <span class="rn">10</span>
+            <div class="rc">
+              <div class="rt">Image generation of hazardous situations in construction sites using text-to-image generative model</div>
+              <div class="rv">Automation in Construction, 2024 · 27개 위험 시나리오 합성 데이터셋</div>
+              <div class="rk"><b>시사점:</b> 현실에서 재현하기 어렵거나 부재한 위험 시나리오를 <b>text-to-image로 합성</b>해 안전 도메인의 이미지 데이터 부족을 보완할 수 있음을 입증. 합성 이미지 접근의 타당성을 뒷받침.</div>
+              <a class="rl" href="https://www.sciencedirect.com/science/article/abs/pii/S0926580524003510" target="_blank" rel="noopener">sciencedirect.com/…/S0926580524003510</a>
+            </div>
+          </li>
+        </ol>
+
+        <h3>마. 생성·평가 루프와 ‘평가자 분리’: 품질 보증의 근거</h3>
+        <p>05장의 <strong>생성↔평가 피드백 루프</strong>와 <strong>생성 주체·평가 주체의 분리(별도 VLM 서브에이전트)</strong>, 그리고 <strong>최대 2회·롤백·운영자 확인</strong>이라는 제어 장치는 모두 최근 연구가 반복해서 도달한 결론을 반영한다 — 피드백 루프는 단순 다중 샘플링보다 우수하고, 스스로를 평가하면 편향이 누적되며, VLM 평가는 미세 시각 결함에 약해 엄격한 루브릭과 사람의 최종 확인이 필요하다.</p>
+        <ol class="reflist">
+          <li>
+            <span class="rn">11</span>
+            <div class="rc">
+              <div class="rt">Reflect-DiT: Inference-Time Scaling for Text-to-Image Diffusion Transformers via In-Context Reflection</div>
+              <div class="rv">Li et al. · ICCV 2025 (arXiv:2503.12271)</div>
+              <div class="rk"><b>시사점:</b> <b>VLM 피드백 판정자 + 생성기</b>를 루프로 묶어 객체 수·위치·속성 오류를 능동 교정하고, 개선점이 없거나 최대 반복에 도달하면 종료. STEP 4↔5 루프와 “최대 2회 후 종료” 설계의 직접적 근거.</div>
+              <a class="rl" href="https://arxiv.org/abs/2503.12271" target="_blank" rel="noopener">arxiv.org/abs/2503.12271</a>
+            </div>
+          </li>
+          <li>
+            <span class="rn">12</span>
+            <div class="rc">
+              <div class="rt">Iterative Refinement Improves Compositional Image Generation</div>
+              <div class="rv">arXiv:2601.15286 · 생성기+비평가+편집기+검증기 루프</div>
+              <div class="rk"><b>시사점:</b> 반복 정제 루프가 동일 연산량의 <b>병렬 샘플링을 능가</b>하고 인간 평가 <b>59% 선호</b>. 대표 실패 모드로 ‘불완전한 비평가/편집기’를 보고 — 부분편집(A) vs 신규생성(B) 경로 분기와 롤백·반복 제한의 근거.</div>
+              <a class="rl" href="https://arxiv.org/abs/2601.15286" target="_blank" rel="noopener">arxiv.org/abs/2601.15286</a>
+            </div>
+          </li>
+          <li>
+            <span class="rn">13</span>
+            <div class="rc">
+              <div class="rt">Pride and Prejudice: LLM Amplifies Self-Bias in Self-Refinement</div>
+              <div class="rv">Xu et al. · ACL 2024 (arXiv:2402.11436)</div>
+              <div class="rk"><b>시사점:</b> 모델이 자기 생성물을 선호하는 <b>자기 편향(self-bias)</b>은 반복 정제로 증폭되며, <b>외부 피드백·별도 평가자</b>로 완화된다. 생성과 평가를 같은 주체가 하지 않고 <b>별도 VLM 서브에이전트</b>로 분리한 설계의 핵심 근거.</div>
+              <a class="rl" href="https://aclanthology.org/2024.acl-long.826/" target="_blank" rel="noopener">aclanthology.org/2024.acl-long.826</a>
+            </div>
+          </li>
+          <li>
+            <span class="rn">14</span>
+            <div class="rc">
+              <div class="rt">ImagenWorld: Stress-Testing Image Generation Models with Explainable Human Evaluation</div>
+              <div class="rv">arXiv:2603.27862 · VLM 평가 vs 인간 평가 비교</div>
+              <div class="rk"><b>시사점:</b> VLM 자동 평가는 프롬프트 적합성·미적 품질 같은 <b>고수준 기준엔 신뢰할 대리 지표</b>지만, 손·글자·경계 붕괴 같은 <b>미세 시각 결함은 과소평가</b>해 인간 판단이 여전히 필수. 엄격한 채점 루브릭과 운영자의 최종 확인(final/) 단계의 근거.</div>
+              <a class="rl" href="https://arxiv.org/abs/2603.27862" target="_blank" rel="noopener">arxiv.org/abs/2603.27862</a>
+            </div>
+          </li>
+        </ol>
+
+        <div class="note">
+          <span class="tag2">요약 — 두 축, 하나의 파이프라인</span>
+          본 서비스가 사고 예방에 효과적인 근거는 세 갈래로 수렴한다. <strong>① 무엇을 보내는가</strong> — 이미지는 텍스트보다 빠르고 강하게 위험을 각인시킨다(가). <strong>② 어떻게 보내는가</strong> — 짧고 잦되 계속 바뀌는 알림이 습관화를 막고 그날의 위험을 짚는다(나·다). <strong>③ 어떻게 만드는가</strong> — 사고 텍스트→합성 이미지는 검증된 방법론이며, 생성·평가 분리 루프가 품질을 보증한다(라·마). 세 축 모두 독립적 선행 연구의 지지를 받는다.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /essay -->
+</div><!-- /layout -->
+</main>
+
+<footer>SAGO AI — 매장 직원 안전사고 예방 알림 서비스 · 86 시나리오(실데이터 71 + 추론 15) · 매일 3장</footer>
+
+<script>
+(function(){
+  "use strict";
+  var doc=document;
+
+  /* theme */
+  var tBtn=doc.getElementById('themeBtn');
+  if(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){doc.documentElement.classList.add('dark');}
+  tBtn.addEventListener('click',function(){doc.documentElement.classList.toggle('dark');});
+
+  /* scrollspy */
+  var links=[].slice.call(doc.querySelectorAll('.toclink'));
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if(e.isIntersecting){var id='#'+e.target.id;
+          links.forEach(function(a){a.classList.toggle('active',a.getAttribute('href')===id);});}
+      });
+    },{rootMargin:'-30% 0px -65% 0px'});
+    links.forEach(function(a){var s=doc.querySelector(a.getAttribute('href'));if(s)io.observe(s);});
+  }
+
+  /* 01 daily flow (정적 플로우) — 3개 입력이 하나로 합류 후 직선 */
+  var cycleInputs=[
+    {t:'오늘 날씨',d:'Open-Meteo API',c:'wx'},{t:'매장 환경',d:'고정 피처'},{t:'오늘 날짜',d:'day_index'}
+  ];
+  var cycleChain=[
+    {t:'조건식 평가',d:'86개 A/B/C 라우팅'},{t:'선정',d:'3장 고르기'},{t:'카드뉴스',d:'이미지+수칙'},{t:'카카오 발송',d:'알림톡',c:'ok'}
+  ];
+  function cycleCard(s){
+    var n=doc.createElement('div');
+    n.style.cssText='border:1px solid rgb(var(--line));border-radius:10px;padding:10px;background:rgb(var(--bg))';
+    n.innerHTML='<div style="font-size:12.5px;font-weight:600">'+s.t+'</div><div style="font-size:10.5px;color:rgb(var(--muted));font-family:ui-monospace,monospace;margin-top:3px">'+s.d+'</div>';
+    if(s.c==='wx')n.style.borderColor='rgb(var(--warn) / .4)';
+    if(s.c==='ok')n.style.borderColor='rgb(var(--ok) / .4)';
+    return n;
+  }
+  function cycleArrow(){
+    var arr=doc.createElement('div');
+    arr.textContent='→';
+    arr.style.cssText='display:flex;align-items:center;color:rgb(var(--muted));font-size:14px;flex:none';
+    return arr;
+  }
+  var stage=doc.getElementById('cycleStage');
+  if(stage){
+    /* 왼쪽: 세 입력 피처를 세로로 묶은 열 */
+    var inputCol=doc.createElement('div');
+    inputCol.style.cssText='display:flex;flex-direction:column;gap:8px;min-width:120px;position:relative';
+    cycleInputs.forEach(function(s){inputCol.appendChild(cycleCard(s));});
+    stage.appendChild(inputCol);
+    /* 합류 표시: 세로 브래킷 + 화살표 (세 입력이 하나로 모임) */
+    var merge=doc.createElement('div');
+    merge.style.cssText='display:flex;align-items:center;flex:none;gap:0;align-self:stretch';
+    merge.innerHTML='<div style="width:10px;align-self:stretch;border-top:1px solid rgb(var(--line));border-bottom:1px solid rgb(var(--line));border-right:1px solid rgb(var(--line));border-radius:0 6px 6px 0"></div>'
+      +'<div style="display:flex;align-items:center;color:rgb(var(--muted));font-size:14px;padding:0 2px">→</div>';
+    stage.appendChild(merge);
+    /* 오른쪽: 합류 후 직선 체인 */
+    cycleChain.forEach(function(s,i){
+      stage.appendChild(cycleCard(s));
+      if(i<cycleChain.length-1)stage.appendChild(cycleArrow());
+    });
+  }
+
+  /* 03 사고 → 시나리오 묶기 4단계 */
+  // 계단 관련 사고 6건 + 각각의 사후 피처 + 최종 예방수칙(=시나리오 키)
+  var GINC=[
+    {x:'계단 내려가다 마지막 칸 헛디딤', feat:['이동','하강','운반물 없음','시야 정상'], rule:'마지막 칸까지 발밑 보며 한 발씩'},
+    {x:'휴대폰 보다 계단서 발 헛디딤',   feat:['이동','하강','운반물 없음','시야 가림'], rule:'마지막 칸까지 발밑 보며 한 발씩'},
+    {x:'박스 안고 계단 내려가다 헛디딤', feat:['운반','하강','운반물 있음','시야 가림'], rule:'한 손 난간·운반물 나눠 들기'},
+    {x:'바구니 들고 계단 이동 중 미끄러짐', feat:['운반','하강','운반물 있음','시야 가림'], rule:'한 손 난간·운반물 나눠 들기'},
+    {x:'계단에 쌓아둔 파지 꺼내다 무너짐', feat:['정리','적재물','운반물 있음','시야 정상'], rule:'계단에 물건 적재 금지'},
+    {x:'비 온 날 젖은 계단서 미끄러짐',   feat:['이동','하강','운반물 없음','기상-젖음'], rule:'(기상) 우천 시 미끄럼 주의'}
+  ];
+  var gStage=doc.getElementById('groupStage'), gSeg=doc.getElementById('groupStepSeg');
+  var GSTEPS=['① 사후 피처 추출','② 대분류','③ 세부 분할','④ 분할 멈춤 · 최종'];
+  var gStep=0;
+  if(gSeg){
+    GSTEPS.forEach(function(t,i){
+      var b=doc.createElement('button');b.textContent=t;b.dataset.i=i;if(i===0)b.classList.add('on');
+      b.addEventListener('click',function(){gStep=i;renderGStep();});
+      gSeg.appendChild(b);
+    });
+  }
+  function chipRow(arr,color){
+    return arr.map(function(f){return '<span class="tag '+(color||'t-mul')+'" style="margin:2px 4px 2px 0;display:inline-block;font-weight:600">'+f+'</span>';}).join('');
+  }
+  function incLine(it,showFeat){
+    return '<div style="padding:7px 0;border-bottom:1px solid rgb(var(--line));font-size:13px">'+
+      '<div>'+it.x+'</div>'+(showFeat?'<div style="margin-top:4px">'+chipRow(it.feat)+'</div>':'')+'</div>';
+  }
+  function renderGStep(){
+    [].forEach.call(gSeg.children,function(b,i){b.classList.toggle('on',i===gStep);});
+    var h='';
+    if(gStep===0){
+      h='<p style="font-size:13px;color:rgb(var(--muted));margin:0 0 8px"><code>사고 내용</code> 텍스트에서 작업 맥락·동작 국면·운반물·시야 가림 등 <strong>사후 피처</strong>를 식별한다.</p>'+
+        GINC.map(function(it){return incLine(it,true);}).join('');
+    } else if(gStep===1){
+      h='<p style="font-size:13px;color:rgb(var(--muted));margin:0 0 8px"><code>기인물</code>·<code>재해 유형</code>으로 큰 묶음을 잡는다. 6건 모두 <strong>넘어짐 / 기인물=계단</strong> → 한 대분류.</p>'+
+        '<div class="grpbox"><div class="rule">대분류: 넘어짐 (계단)</div>'+
+        GINC.map(function(it){return '<div style="color:rgb(var(--muted));font-size:12.5px">· '+it.x+'</div>';}).join('')+
+        '<div style="font-size:12px;color:rgb(var(--accent));font-weight:600;margin-top:6px">→ 아직 6건이 하나의 묶음. 예방수칙이 제각각이라 분할이 필요하다.</div></div>';
+    } else if(gStep===2){
+      var groups={};GINC.forEach(function(it){(groups[it.rule]=groups[it.rule]||[]).push(it);});
+      h='<p style="font-size:13px;color:rgb(var(--muted));margin:0 0 8px">사후 피처가 다르면 분할한다. <strong>운반물·시야·기상</strong> 피처를 기준으로 갈라지며, 갈래마다 예방수칙이 달라진다.</p>';
+      Object.keys(groups).forEach(function(r){
+        h+='<div class="grpbox" style="margin-bottom:8px"><div class="rule">예방수칙: '+r+'</div>'+
+          groups[r].map(function(it){return '<div style="font-size:12.5px;color:rgb(var(--muted))">· '+it.x+' &nbsp;'+chipRow(it.feat.slice(2),'cat')+'</div>';}).join('')+'</div>';
+      });
+    } else {
+      var groups={};GINC.forEach(function(it){(groups[it.rule]=groups[it.rule]||[]).push(it);});
+      h='<p style="font-size:13px;color:rgb(var(--muted));margin:0 0 8px"><strong>예방수칙이 같아지면 분할을 멈춘다.</strong> 기본 규칙은 “표본 3건 미만이면 상위로 흡수(또는 ‘기타 OO’)”다. 예외는 한 가지 — <strong>발화 조건이 명백히 다른 경우(외부 기상 노출 등)에는 표본이 작아도 분리</strong>한다.</p>';
+      var keys=Object.keys(groups);
+      keys.forEach(function(r,i){
+        var n=groups[r].length, isWx=r.indexOf('기상')>-1;
+        var note = isWx ? '기상 발화로 조건이 상이 → 표본이 작아도 분리(A풀 후보)' : '예방수칙이 고유해 흡수 시 환기 효과가 소실 → 유지';
+        h+='<div class="scn sel" style="display:block"><div style="display:flex;align-items:center;gap:8px"><span class="tag t-sel">시나리오 '+(i+1)+'</span>'+
+          '<span class="nm" style="font-weight:600">'+r+'</span></div>'+
+          '<div style="font-size:11.5px;color:rgb(var(--muted));margin-top:5px">사고 '+n+'건 · '+note+'</div></div>';
+      });
+      h+='<div style="font-size:12.5px;color:rgb(var(--accent));font-weight:700;margin-top:10px">→ 계단 사고 6건이 최종 '+keys.length+'개 시나리오로 정리된다. 동일한 방식으로 실제 사고가 <strong>71개</strong> 시나리오로 묶였으며(정보성 없는 잔여 시나리오는 제외), 여기에 기상 추론 시나리오 15개를 더해 카탈로그는 86개가 된다.</div>';
+    }
+    gStage.innerHTML=h;
+  }
+  if(gStage){
+    renderGStep();
+    doc.getElementById('groupNext').addEventListener('click',function(){gStep=(gStep+1)%GSTEPS.length;renderGStep();});
+    doc.getElementById('groupReset').addEventListener('click',function(){gStep=0;renderGStep();});
+  }
+
+  /* 04 시나리오 → 조건식 부여 흐름 (5단계) */
+  // 세 가지 성격: 기상형(A) / 매장통계형(B) / 둘 다 없음(C)
+  var CSCN=[
+    {
+      key:'ice', tab:'빙판 낙상', cat:'넘어짐', sample:'직영점 3곳 · 겨울 외부',
+      examples:['직원 A, 영하 아침 외부 매대 정리 중 빙판에 미끄러짐','직원 B, 눈 녹다 재결빙된 입구 경사로에서 넘어짐'],
+      feat:['장소: 외부','동작: 이동','기상: 결빙'],
+      wx:{ ask:'영하 + 물기가 없으면 이 사고가 물리적으로 가능한가?', verdict:true,
+           reason:'물이 얼어야 빙판이 형성된다 — 기상이 사라지면 메커니즘 자체가 성립하지 않음. 필요조건 ⭘',
+           rule:'weather.temp_min ≤ 0 AND (rain&gt;0 OR snow&gt;0 OR humidity≥85)', src:'물리: 0℃ 빙점 + 물기 (확립된 임계값)' },
+      store:{ ask:'특정 매장 환경에서만 발생하는 사고인가?', verdict:false,
+              reason:'외부에 빙판이 형성되면 어느 매장에서나 발생 — 매장 피처로 변별되지 않음' },
+      adv:{ target:'기상: temp_min≤0 & 물기', survives:true, reason:'반증 시도: “비가 오면 계단이 더 위험”과 같은 상관적 악화가 아니라 결빙이 곧 미끄럼면에 해당 → 기각 실패(=통과)' },
+      pool:'A', poolWhy:'기상 필요조건 등록 → A풀. 그날 발화하는 경우에만 노출된다.'
+    },
+    {
+      key:'rack', tab:'선반 위 박스 낙하', cat:'물체에맞음', sample:'직영점 10곳',
+      examples:['직원 A, 창고 높은 선반의 박스를 내리다 옆 박스가 떨어져 맞음','직원 B, 적재 선반 상단 정리 중 물건 낙하'],
+      feat:['장소: 창고','동작: 상승/적재','운반물: 있음'],
+      wx:{ ask:'이 사고에 필요한 기상 메커니즘이 있는가?', verdict:false,
+           reason:'실내 적재 사고로 날씨와 무관 — 기상 조건 없음' },
+      store:{ ask:'사고가 발생한 매장과 그렇지 않은 매장의 피처가 변별되는가? (효과크기)', verdict:true,
+              reason:'직영점 한정 비교 시 창고(warehouse) 효과크기 small+ — “창고가 클수록 적재량 많음 = 낙하 노출↑” 인과 해석 ⭘',
+              rule:'store.warehouse ≥ 26', src:'통계: 사고매장 65% 포함 임계값 (하위 35% 지점)' },
+      adv:{ target:'매장: warehouse 노출', survives:true, reason:'반증 시도: 노출편향(큰 매장일수록 보고 多)인가? → 직영점만으로 재분석해 면적편향 제거 후에도 잔존하는 신호 → 통과(단, 신호로 한정)' },
+      pool:'B', poolWhy:'매장 노출조건 등록 → B풀. 조건 충족 매장에 우선·빈번하게 노출하며, 미달 매장은 C풀이 보완한다.'
+    },
+    {
+      key:'cut', tab:'비닐 칼로 긋다 베임', cat:'베임', sample:'직영점 6곳',
+      examples:['직원 A, 박스 비닐을 커터칼로 긋다 손가락 베임','직원 B, 상품 포장 절단 중 베임'],
+      feat:['장소: 매장 전역','동작: 절단','도구: 커터칼'],
+      wx:{ ask:'이 사고에 필요한 기상 메커니즘이 있는가?', verdict:false,
+           reason:'날씨와 무관한 도구 취급 사고 → 기상 조건 없음' },
+      store:{ ask:'사고가 발생한 매장과 그렇지 않은 매장의 피처가 변별되는가? (효과크기)', verdict:false,
+              reason:'모든 매장에서 유사한 빈도로 발생 — 매장 피처 효과크기 미미. 부주의성 사고' },
+      adv:null,
+      pool:'C', poolWhy:'두 축 모두 조건 없음 → 조건 없이 C풀(상시). 전 매장에 빈도 로테이션으로 환기한다.'
+    }
+  ];
+  var cScn=0, cStep=0;
+  var CSTEPS=['① 시나리오 입력','② 두 축 질문','③ 인과검문·통계검증','④ 적대적 반증','⑤ 조건 확정·풀 배정'];
+  var cScnSeg=doc.getElementById('condScnSeg'), cStepSeg=doc.getElementById('condStepSeg'), cStage=doc.getElementById('condStage');
+  function yn(v){return v?'<span style="color:rgb(var(--ok));font-weight:700">예</span>':'<span style="color:rgb(var(--muted));font-weight:700">아니오</span>';}
+  function axisCard(title,o,kind){
+    // kind: 'wx' or 'store'
+    var head=(kind==='wx'?'기상 축':'매장 축');
+    return '<div class="grpbox" style="margin-bottom:8px"><div class="rule">'+head+' — '+title+'</div>'+
+      '<div style="font-size:12.5px;color:rgb(var(--muted));margin-top:4px">질문: '+o.ask+'</div>'+
+      '<div style="font-size:13px;margin-top:6px">판정: '+yn(o.verdict)+' — '+o.reason+'</div>'+
+      (o.verdict&&o.rule?'<div style="margin-top:6px;font-family:ui-monospace,monospace;font-size:12px;color:rgb(var(--accent))">'+o.rule+'<br><span style="color:rgb(var(--muted))"># '+o.src+'</span></div>':'')+
+      '</div>';
+  }
+  function renderCStep(){
+    [].forEach.call(cScnSeg.children,function(b,i){b.classList.toggle('on',i===cScn);});
+    [].forEach.call(cStepSeg.children,function(b,i){b.classList.toggle('on',i===cStep);});
+    var s=CSCN[cScn], h='';
+    if(cStep===0){
+      h='<p style="font-size:13px;color:rgb(var(--muted));margin:0 0 8px">묶인 시나리오와 그 <strong>사고 사례·사후 피처</strong>가 입력이 된다. 이를 근거로 조건을 설정한다.</p>'+
+        '<div class="grpbox"><div class="rule">'+s.tab+' <span style="font-weight:400;color:rgb(var(--muted))">· '+s.cat+' · '+s.sample+'</span></div>'+
+        s.examples.map(function(e){return '<div style="font-size:12.5px;color:rgb(var(--muted))">· '+e+'</div>';}).join('')+
+        '<div style="margin-top:6px">'+s.feat.map(function(f){return '<span class="tag t-mul" style="margin:2px 4px 2px 0;display:inline-block;font-weight:600">'+f+'</span>';}).join('')+'</div></div>';
+    } else if(cStep===1){
+      h='<p style="font-size:13px;color:rgb(var(--muted));margin:0 0 8px">순차가 아니라 <strong>두 축을 동시에</strong> 검토한다 — 기상 축과 매장 축. 대부분의 시나리오는 두 축 모두 “아니오”인 것이 일반적이다.</p>'+
+        '<div style="display:flex;gap:10px;flex-wrap:wrap"><div style="flex:1;min-width:240px" class="grpbox"><div class="rule">기상 축</div><div style="font-size:12.5px;color:rgb(var(--muted));margin-top:4px">'+s.wx.ask+'</div></div>'+
+        '<div style="flex:1;min-width:240px" class="grpbox"><div class="rule">매장 축</div><div style="font-size:12.5px;color:rgb(var(--muted));margin-top:4px">'+s.store.ask+'</div></div></div>';
+    } else if(cStep===2){
+      h='<p style="font-size:13px;color:rgb(var(--muted));margin:0 0 8px">기상은 <strong>인과 검문</strong>(해당 날씨가 없으면 성립하지 않는가?)을 통해 확립된 임계값을 적용하고, 매장은 <strong>효과크기 통계</strong>로 변별되는 피처만 등록한다.</p>'+
+        axisCard('인과 검문', s.wx, 'wx')+axisCard('효과크기 통계', s.store, 'store');
+    } else if(cStep===3){
+      if(s.adv){
+        h='<p style="font-size:13px;color:rgb(var(--muted));margin:0 0 8px"><strong>등록 전 적대적 반증.</strong> “의심스러우면 기각”이 기본 원칙으로, 상관적 악화(“~하면 더 위험”)를 필요조건으로 잘못 설정한 경우는 반드시 탈락시킨다.</p>'+
+          '<div class="grpbox"><div class="rule">반증 대상: '+s.adv.target+'</div>'+
+          '<div style="font-size:13px;margin-top:6px">'+(s.adv.survives?'<span style="color:rgb(var(--ok));font-weight:700">기각 실패 → 조건 생존 ⭘</span>':'<span style="color:rgb(var(--warn));font-weight:700">기각 → 조건 폐기</span>')+'</div>'+
+          '<div style="font-size:12.5px;color:rgb(var(--muted));margin-top:5px">'+s.adv.reason+'</div></div>';
+      } else {
+        h='<p style="font-size:13px;color:rgb(var(--muted));margin:0 0 8px"><strong>등록할 조건이 없으므로 반증 대상도 없다.</strong> 두 축 모두 “아니오”였던 부주의성 사고는 이 단계를 생략한다.</p>'+
+          '<div class="grpbox" style="color:rgb(var(--muted));font-size:13px">등록된 조건 0개 → 적대적 반증 생략</div>';
+      }
+    } else {
+      var pt=s.pool==='A'?'t-w':s.pool==='B'?'t-mul':'cat';
+      var pname=s.pool==='A'?'기상':s.pool==='B'?'매장':'상시';
+      var ruleLine = s.pool==='A'?s.wx.rule : s.pool==='B'?s.store.rule : '(조건 없음)';
+      h='<p style="font-size:13px;color:rgb(var(--muted));margin:0 0 8px">검문을 통과한 조건이 시나리오에 등록되며, 이것이 곧 발송 단계의 <strong>풀</strong>을 결정한다(→ 06).</p>'+
+        '<div class="scn sel" style="display:block"><div style="display:flex;align-items:center;gap:8px"><span class="tag '+pt+'">'+s.pool+'풀 · '+pname+'</span>'+
+        '<span class="nm" style="font-weight:600">'+s.tab+'</span></div>'+
+        '<div style="margin-top:7px;font-family:ui-monospace,monospace;font-size:12.5px;color:rgb(var(--accent))">'+ruleLine+'</div>'+
+        '<div style="font-size:12px;color:rgb(var(--muted));margin-top:6px">'+s.poolWhy+'</div></div>';
+    }
+    cStage.innerHTML=h;
+  }
+  if(cScnSeg&&cStage){
+    CSCN.forEach(function(s,i){
+      var b=doc.createElement('button');b.textContent=s.tab;b.dataset.i=i;if(i===0)b.classList.add('on');
+      b.addEventListener('click',function(){cScn=i;cStep=0;renderCStep();});
+      cScnSeg.appendChild(b);
+    });
+    CSTEPS.forEach(function(t,i){
+      var b=doc.createElement('button');b.textContent=t;b.dataset.i=i;if(i===0)b.classList.add('on');
+      b.addEventListener('click',function(){cStep=i;renderCStep();});
+      cStepSeg.appendChild(b);
+    });
+    renderCStep();
+    doc.getElementById('condNext').addEventListener('click',function(){cStep=(cStep+1)%CSTEPS.length;renderCStep();});
+    doc.getElementById('condReset').addEventListener('click',function(){cStep=0;renderCStep();});
+  }
+
+  /* 04 verdict (매장 조건 판정기) */
+  var pV='sig',mV='strong';
+  function bindV(id,setter){
+    doc.querySelectorAll('#'+id+' button').forEach(function(b){
+      b.addEventListener('click',function(){
+        doc.querySelectorAll('#'+id+' button').forEach(function(x){x.classList.remove('on');});
+        b.classList.add('on');setter(b.dataset.v);renderVerdict();
+      });
+    });
+  }
+  bindV('pSeg',function(v){pV=v;});
+  bindV('mSeg',function(v){mV=v;});
+  function renderVerdict(){
+    var box=doc.getElementById('verdictBox'),cls,txt,sub;
+    // pV: sig=효과크기 small+ / ns=미미   mV: strong=n>=8 / weak=n5~7 / none=n<5
+    if(pV==='ns'){cls='v-none';txt='C풀로 분류';sub='효과크기 미미 → 매장 변별 없음. 조건 없이 상시(C풀)로 분류.';}
+    else if(mV==='strong'){cls='v-verified';txt='B풀 등록 (신뢰)';sub='효과크기 있음 + 표본 ≥8 → 매장 조건으로 채택.';}
+    else if(mV==='weak'){cls='v-observe';txt='B풀 등록 (약함도 채택)';sub='표본 5~7로 약하지만 신호는 분명 → B풀에 등록(잠정). C풀이 보완하므로 등록에 따른 손실 없음.';}
+    else{cls='v-none';txt='보류 (표본 부족)';sub='표본 5건 미만은 효과크기가 크더라도 노이즈 가능성 → 채택하지 않음.';}
+    box.className='verdict '+cls;
+    box.innerHTML=txt+'<small>'+sub+'</small>';
+  }
+  renderVerdict();
+
+  /* 06 GATE vs MULTIPLY */
+  var gd=doc.getElementById('gateDemo'),stairOn=1;
+  doc.querySelectorAll('#stairSeg button').forEach(function(b){
+    b.addEventListener('click',function(){
+      doc.querySelectorAll('#stairSeg button').forEach(function(x){x.classList.remove('on');});
+      b.classList.add('on');stairOn=+b.dataset.v;renderGate();
+    });
+  });
+  function renderGate(){
+    var rows=[{id:'FALL-STAIRS-DISTRACTION',nm:'주의분산형 계단 낙상',type:'GATE'},{id:'FALL-STAIRS-MISSTEP',nm:'계단 헛디딤',type:'MUL'}];
+    gd.innerHTML=rows.map(function(r){
+      var cls,label;
+      if(r.type==='GATE'){var kept=stairOn===1;label=kept?'후보 유지 (배수 ×1.6)':'후보 제외 (score 0)';cls=kept?'':'ex';}
+      else{label=stairOn===1?'후보 유지 (배수 ×1.3)':'후보 유지 (배수 미적용)';cls='';}
+      return '<div class="scn '+cls+'"><span class="tag '+(r.type==='GATE'?'t-gate':'t-mul')+'">'+r.type+'</span>'+
+        '<span class="nm">'+r.nm+'<small>'+r.id+'</small></span>'+
+        '<span style="font-size:12px;color:'+(cls==='ex'?'rgb(var(--warn))':'rgb(var(--ok))')+'">'+label+'</span></div>';
+    }).join('');
+  }
+  renderGate();
+
+  /* 06 풀 라우팅 시뮬레이터 — 실제 scenario_matcher 규칙 (B풀 가중 개편) */
+  // nec: 필수조건(불만족→제외) / w: 기상조건(발화→A, 미발화→제외)
+  // expo: 노출조건(충족+신호강도로 배수) / sig: 신호강도('강'/'약'). B는 미충족도 1배로 잔류.
+  var SCN=[
+    {id:'STRUCK-CARRY-FALL-RAIN',nm:'빗길에 짐 들고 넘어짐',cat:'넘어짐',w:{f:'rain',op:'>=',v:3,lab:'rain≥3'}},
+    {id:'FALL-WET-GROUND',nm:'빗물 바닥 미끄러짐',cat:'넘어짐',w:{f:'rain',op:'>=',v:3,lab:'rain≥3'}},
+    {id:'FALL-ICE-OUTDOOR',nm:'빙판 낙상',cat:'넘어짐',w:{f:'temp_min',op:'<=',v:0,lab:'temp_min≤0 & 물기'}},
+    {id:'HEAT-EXHAUSTION-OUTDOOR',nm:'폭염 온열 탈진',cat:'기타',w:{f:'temp_max',op:'>=',v:33,lab:'temp_max≥33'}},
+    {id:'STRUCK-DOOR-WIND',nm:'강풍 출입문 부딪힘',cat:'물체에맞음',w:{f:'wind_max',op:'>=',v:30,lab:'wind_max≥30'}},
+    {id:'STRUCK-BOX-RACK-OVERHEAD',nm:'선반 위 박스 낙하',cat:'물체에맞음',expo:{f:'warehouse',op:'>=',v:26,lab:'warehouse≥26'},sig:'강'},
+    {id:'LIFT-BOX-FLOOR-BACK',nm:'바닥 박스 들기',cat:'무리한동작',expo:{f:'warehouse',op:'>=',v:28,lab:'warehouse≥28'},sig:'강'},
+    {id:'FALL-FLOOR-BOX-TRIP',nm:'바닥 박스 걸림',cat:'넘어짐',expo:{f:'box_count',op:'>=',v:249,lab:'box_count≥249'},sig:'강'},
+    {id:'FALL-LADDER-DEFECT',nm:'사다리 결함',cat:'떨어짐',expo:{f:'customer_count',op:'>=',v:1200,lab:'customer≥1200'},sig:'강'},
+    {id:'STRUCK-PRODUCT-DISPLAY-SHELF',nm:'진열대 상품 낙하',cat:'물체에맞음',expo:{f:'box_count',op:'>=',v:249,lab:'box_count≥249'},sig:'약'},
+    {id:'FALL-STAIR-DOWN-CARRY',nm:'짐 들고 계단 내려감',cat:'넘어짐',nec:{f:'has_stairs',op:'==',v:1,lab:'has_stairs=1'},expo:{f:'real_pyeong',op:'>=',v:275,lab:'real_pyeong≥275'},sig:'강'},
+    {id:'FALL-STAIR-DOWN-LASTSTEP',nm:'계단 마지막칸 헛디딤',cat:'넘어짐',nec:{f:'has_stairs',op:'==',v:1,lab:'has_stairs=1'},sig:'강'},
+    {id:'CUT-OPEN-VINYL-KNIFE',nm:'비닐 칼로 긋다 베임',cat:'베임'},
+    {id:'OVEREXERT-LIFT-HEAVY',nm:'무거운 물건 들기',cat:'무리한동작'},
+    {id:'CAUGHT-ROLLTAINER-TIPOVER',nm:'롤테이너 전도',cat:'끼임'}
+  ];
+  var els={form:'직영점',st:1,box:300,wh:30,tmin:-3,rain:5,wind:6,tmax:10};
+  function cmp(a,op,b){return op==='>='?a>=b:op==='<='?a<=b:op==='=='?a===b:false;}
+  var SIGMULT={'강':3,'약':2};
+  // 한 시나리오를 평가해 풀(A/B/C/EXCLUDE)·이유·배수(mult)를 반환
+  function routeScn(s){
+    var store={has_stairs:els.st,box_count:(els.form==='유통점'?null:els.box),warehouse:els.wh,
+               real_pyeong:(els.form==='유통점'?null:els.box*0.9),customer_count:(els.form==='유통점'?null:1500)};
+    var weather={temp_min:els.tmin,rain:els.rain,wind_max:els.wind,temp_max:els.tmax};
+    // 1) 필수조건 불만족 → 제외
+    if(s.nec){var nv=store[s.nec.f];
+      if(nv!==null&&nv!==undefined&&!cmp(nv,s.nec.op,s.nec.v))
+        return {pool:'EXCLUDE',mult:0,why:'필수조건 불만족 ('+s.nec.lab+')'};}
+    // 2) 기상 → A(발화) / 제외(미발화)
+    if(s.w){var wv=weather[s.w.f];
+      if(wv!==null&&wv!==undefined&&cmp(wv,s.w.op,s.w.v)) return {pool:'A',mult:1,why:'기상 발화 ('+s.w.lab+')'};
+      return {pool:'EXCLUDE',mult:0,why:'기상 미발화 ('+s.w.lab+')'};}
+    // 3) 매장 조건 보유 → B (미충족도 1배로 잔류)
+    if(s.expo){var ev=store[s.expo.f];
+      if(ev!==null&&ev!==undefined&&cmp(ev,s.expo.op,s.expo.v)){
+        var m=SIGMULT[s.sig]||1;
+        return {pool:'B',mult:m,why:'조건 충족·'+(s.sig||'')+'신호 → '+m+'배 ('+s.expo.lab+')'};}
+      return {pool:'B',mult:1,why:'조건 미달 → 1배 최소 노출 ('+s.expo.lab+')'};}
+    // 3-2) 계단형(necessity만): 계단 보유 시 B, 신호강도로 배수
+    if(s.nec){var m2=SIGMULT[s.sig]||1;
+      return {pool:'B',mult:m2,why:'계단 보유·'+(s.sig||'')+'신호 → '+m2+'배'};}
+    // 4) 조건 전무 → C (복제 없이 순차)
+    return {pool:'C',mult:1,why:'조건 없음 → 상시(순차)'};
+  }
+  function runSim(){
+    var res=SCN.map(function(s){var r=routeScn(s);return {s:s,pool:r.pool,why:r.why,mult:r.mult};});
+    var A=res.filter(function(r){return r.pool==='A';});
+    // B는 배수 큰(강 신호+조건 충족) 순으로 — 가중 로테이션에서 더 자주 뽑히는 것을 데모에서 대표로 표시
+    var B=res.filter(function(r){return r.pool==='B';}).sort(function(a,b){return b.mult-a.mult||(a.s.id<b.s.id?-1:1);});
+    var C=res.filter(function(r){return r.pool==='C';});
+    // 슬롯 선정: A 1장 + B 1장(배수 최상위) + C 나머지 (데모 단순화, 실제는 날짜 가중 로테이션)
+    var sel=[],selIds={};
+    if(A.length){sel.push({r:A[0],slot:'A'});}
+    if(B.length&&sel.length<3){sel.push({r:B[0],slot:'B'});}
+    while(sel.length<3&&C.length){sel.push({r:C.shift(),slot:'C'});}
+    sel.forEach(function(x){selIds[x.r.s.id]=x.slot;});
+    // 오늘의 3장 카드
+    var poolColor={A:'wx',B:'',C:''};
+    doc.getElementById('simToday').innerHTML=sel.map(function(x){
+      var r=x.r;
+      return '<div class="c'+(x.slot==='A'?' wx':'')+'"><div class="k">'+x.slot+'풀 · '+(x.slot==='A'?'기상':x.slot==='B'?'매장':'상시')+'</div>'+
+        '<div class="v">'+r.s.nm+'</div><div class="m">'+r.s.id+'</div></div>';
+    }).join('')||'<div class="c"><div class="v">선정 없음</div></div>';
+    // 풀별 정렬: A→B(배수 큰 순)→C→EXCLUDE
+    var order={A:0,B:1,C:2,EXCLUDE:3};
+    var ordered=res.slice().sort(function(a,b){return order[a.pool]-order[b.pool]||(b.mult-a.mult)||(a.s.id<b.s.id?-1:1);});
+    doc.getElementById('simList').innerHTML=ordered.map(function(r){
+      var ex=r.pool==='EXCLUDE';
+      var cls='scn'+(selIds[r.s.id]?' sel':'')+(ex?' ex':'');
+      var pt=r.pool==='A'?'t-w':r.pool==='B'?'t-mul':r.pool==='EXCLUDE'?'t-gate':'cat';
+      var tags='<span class="tag '+pt+'">'+(ex?'제외':r.pool+'풀')+'</span>';
+      // B풀은 배수 배지 표시
+      if(r.pool==='B')tags+=' <span class="tag t-sel" style="background:color-mix(in srgb,rgb(var(--accent)) '+(r.mult>=3?'26':r.mult>=2?'16':'8')+'%,transparent)">×'+r.mult+'</span>';
+      if(selIds[r.s.id])tags+=' <span class="tag t-sel">★ '+selIds[r.s.id]+'슬롯 선정</span>';
+      return '<div class="'+cls+'">'+tags+'<span class="nm">'+r.s.nm+
+        '<small>'+r.why+'</small></span></div>';
+    }).join('');
+  }
+  function bindSeg(segId,key,labelId,fmt){
+    doc.querySelectorAll('#'+segId+' button').forEach(function(b){
+      b.addEventListener('click',function(){
+        doc.querySelectorAll('#'+segId+' button').forEach(function(x){x.classList.remove('on');});
+        b.classList.add('on');var v=b.dataset.v;els[key]=(key==='st')?+v:v;
+        if(labelId)doc.getElementById(labelId).textContent=fmt?fmt(v):v;runSim();
+      });
+    });
+  }
+  bindSeg('formSeg','form','formV');
+  bindSeg('stSeg','st','stV',function(v){return v==='1'?'있음':'없음';});
+  function bindRange(id,key,labelId,suf){
+    var el=doc.getElementById(id);
+    el.addEventListener('input',function(){els[key]=+el.value;doc.getElementById(labelId).textContent=el.value+(suf||'');runSim();});
+  }
+  bindRange('box','box','boxV');bindRange('wh','wh','whV');
+  bindRange('tmin','tmin','tminV','°');bindRange('rain','rain','rainV','mm');
+  bindRange('wind','wind','windV');bindRange('tmax','tmax','tmaxV','°');
+  runSim();
+
+  /* 07 B슬롯 로테이션 데모 — 실제 강/약 신호 시나리오, 가중 인터리빙, 매일 1칸 순차 */
+  // v=복제 배수(강3/약2/미충족1). 조건 충족한 큰 직영점 가정 예시.
+  var NW=[
+    {id:'선반',nm:'선반 위 박스 낙하',v:3,cat:0,sig:'강'},
+    {id:'걸림',nm:'바닥 박스 걸림',v:3,cat:1,sig:'강'},
+    {id:'계단',nm:'계단 마지막칸 헛디딤',v:3,cat:1,sig:'강'},
+    {id:'진열',nm:'진열대 상품 낙하',v:2,cat:0,sig:'약'},
+    {id:'충돌',nm:'고객과 충돌',v:2,cat:1,sig:'약'},
+    {id:'베임',nm:'포장끈 칼 베임',v:1,cat:2,sig:'미충족'}
+  ];
+  var catColors=['var(--warn)','var(--accent)','var(--ok)','var(--gate)','142 68 173','41 151 255'];
+  var L=NW.reduce(function(a,s){return a+s.v;},0);
+  // 라운드-로빈 인터리빙: 배수 큰 것부터 한 바퀴씩 돌며 배치 → 같은 시나리오가 연속되지 않음
+  var order=NW.slice().sort(function(a,b){return b.v-a.v||(a.id<b.id?-1:1);});
+  var rem={};order.forEach(function(s){rem[s.id]=s.v;});
+  var maxV=order.reduce(function(a,s){return Math.max(a,s.v);},0);
+  var slots=[];
+  for(var r=0;r<maxV;r++){
+    order.forEach(function(s){
+      if(rem[s.id]>0){slots.push({id:s.id,cat:s.cat,nm:s.nm,sig:s.sig});rem[s.id]--;}
+    });
+  }
+  var arrEl=doc.getElementById('spreadArr');
+  function colorFor(cat){var c=catColors[cat%catColors.length];return c.indexOf(' ')>-1?('rgb('+c+')'):('rgb(var('+c+'))');}
+  function renderArr(day){
+    // B슬롯: 하루 1장, 매일 1칸씩 순차 전진
+    var pick=day%L,seen={};
+    for(var d=0;d<=day;d++){var c=slots[d%L];if(c)seen[c.id]=1;}
+    arrEl.innerHTML=slots.map(function(c,i){
+      var isPick=(i===pick),col=c?colorFor(c.cat):'var(--line)';
+      var bg=isPick?col:(c?('color-mix(in srgb,'+col+' 16%, transparent)'):'rgb(var(--bg))');
+      return '<div class="cell'+(isPick?' pick':'')+'" style="background:'+bg+';color:'+(isPick?'#fff':'inherit')+';border-color:'+col+'">'+(c?c.id:'·')+'</div>';
+    }).join('');
+    var pc=slots[pick];
+    var multOf={'강':3,'약':2,'미충족':1};
+    doc.getElementById('todayPick').textContent=pc?(pc.nm+' ('+pc.sig+'신호 ×'+(multOf[pc.sig]||1)+')'):'-';
+    var covN=Object.keys(seen).length;
+    doc.getElementById('covV').textContent=covN+' / '+NW.length;
+    doc.getElementById('covBar').style.width=Math.round(covN/NW.length*100)+'%';
+    doc.getElementById('dayV').textContent=day;
+  }
+  var daySlider=doc.getElementById('day');
+  daySlider.max=L-1;   // 한 바퀴 = 배열 길이
+  daySlider.addEventListener('input',function(){renderArr(+daySlider.value);});
+  renderArr(0);
+
+  /* 05 image pipeline — 아래로 흐르는 플로우 + STEP5→STEP4 피드백 루프 */
+  var pipeSteps=[
+    {t:'STEP 0 · 환경 확인',d:'.env · 대표 캐릭터 파일 존재 확인'},
+    {t:'STEP 1 · 시나리오 구조화',d:'카탈로그 객체 → 장면 명세 JSON (Claude 직접)'},
+    {t:'STEP 2 · 캐릭터 선택',d:'대표 1명 기본, 다인은 2→3 추가'},
+    {t:'STEP 3 · 프롬프트 조립',d:'BLOCK_1A(캐릭터)+BLOCK_1B(배경)+장소 타입'},
+    {t:'STEP 4 · 이미지 생성',d:'이미지 모델 호출 · 1장 (1024×1536)',ext:true,loop:true},
+    {t:'STEP 5 · VLM 평가',d:'치명·품질 채점 (별도 평가 서브에이전트)',sub:true,loop:true},
+    {t:'STEP 6 · 산출물 정리',d:'최상위 결과 → final/ 복사'}
+  ];
+  var pipe=doc.getElementById('imgPipe');
+  if(pipe){
+    var wrap=doc.createElement('div');
+    wrap.style.cssText='display:flex;gap:12px;align-items:stretch';
+    var col=doc.createElement('div');
+    col.style.cssText='flex:1;display:flex;flex-direction:column;gap:0';
+    pipeSteps.forEach(function(s,i){
+      var n=doc.createElement('div');
+      n.className='pipe-node';
+      var bc=s.ext?'rgb(var(--warn) / .45)':s.sub?'rgb(var(--accent) / .45)':'rgb(var(--line))';
+      n.style.cssText='border:1px solid '+bc+';border-radius:10px;padding:10px 13px;background:rgb(var(--bg))';
+      var badge=s.ext?'<span style="color:rgb(var(--warn))">● </span>':s.sub?'<span style="color:rgb(var(--accent))">◆ </span>':'';
+      n.innerHTML='<span style="font-size:13px;font-weight:600">'+badge+s.t+'</span>'+
+        '<span style="font-size:11.5px;color:rgb(var(--muted));font-family:ui-monospace,monospace;float:right;max-width:62%;text-align:right">'+s.d+'</span>';
+      col.appendChild(n);
+      // 노드 사이 아래 화살표 (마지막 제외)
+      if(i<pipeSteps.length-1){
+        var ar=doc.createElement('div');
+        ar.style.cssText='text-align:center;color:rgb(var(--muted));font-size:13px;line-height:1.4;padding:2px 0';
+        // STEP5 다음 화살표엔 두 갈래: 통과↓STEP6  /  미통과↩STEP4
+        ar.innerHTML = (i===5)
+          ? '<span style="color:rgb(var(--ok))">↓ <span style="font-size:10.5px">통과 → STEP 6</span></span>'
+            +'&nbsp;&nbsp;|&nbsp;&nbsp;<span style="color:rgb(var(--warn))"><span style="font-size:10.5px">미통과 →</span> ↩ STEP 4</span>'
+          : '↓';
+        col.appendChild(ar);
+      }
+    });
+    // 피드백 루프 라벨 (STEP5 미통과 → STEP4)
+    var loopLbl=doc.createElement('div');
+    loopLbl.id='pipeLoopLbl';
+    loopLbl.style.cssText='border:1px dashed rgb(var(--warn) / .55);border-radius:9px;padding:7px 11px;margin-top:8px;font-size:12px;color:rgb(var(--warn))';
+    loopLbl.innerHTML='<b>↩ 피드백 루프</b> · STEP 5 미통과 → <b>STEP 4 재생성</b> (부분편집 / 신규생성, 최대 2회)';
+    wrap.appendChild(col);
+    pipe.appendChild(wrap);
+    pipe.appendChild(loopLbl);
+  }
+
+  /* 06 scenario -> scene spec */
+  var specs={
+    'FALL-STAIRS-CARRYING':{nm:'계단 운반물 낙상',loc:'b_stairway · 실내/공용 계단',n:'대표 1명',
+      action:'박스 더미를 안고 계단을 내려가며 발밑이 가림',hazard:'시야 가림 + 난간 미파지',
+      moment:'안 보이는 계단 끝을 디뎌 발뒤꿈치가 미끄러짐 (아직 안 넘어짐)',drama:'눈 크게·입 벌림·상체 앞으로 쏠림',
+      ann:['점선 원: 가려진 발·계단','곡선 화살표: 전방·하향 전도','경고 삼각형','위험 구역: 아래 계단']},
+    'FALL-FLOOR-OBSTACLE-TRIP':{nm:'바닥 장애물 걸림',loc:'a_aisle · 매장 통로',n:'대표 1명',
+      action:'통로를 걷다 바닥 적치물에 발이 걸림',hazard:'동선 위 장애물',
+      moment:'발끝이 박스에 걸려 균형이 무너지기 직전',drama:'놀란 표정·팔 휘저으며 휘청',
+      ann:['점선 원: 걸린 발·박스','화살표: 넘어지는 방향','경고 삼각형']},
+    'CUT-BOXKNIFE':{nm:'박스칼 베임',loc:'c_stockroom · 후방 창고',n:'대표 1명',
+      action:'창고에서 박스칼로 상자를 개봉',hazard:'칼날이 손 쪽으로 향함',
+      moment:'칼이 손가락 가까이서 미끄러지기 직전',drama:'집중하다 무방비한 손',
+      ann:['점선 원: 칼날·손','경고 삼각형']},
+    'MISC-ROLLTAINER-TIPOVER':{nm:'롤테이너 전도',loc:'d_cart · 운반구/대차',n:'대표 1명',
+      action:'박스를 높이 적재한 운반구를 민다',hazard:'적재물이 기울어 불안정',
+      moment:'운반구가 한쪽으로 기울며 쏟아지기 직전',drama:'당황하며 막으려는 자세',
+      ann:['점선 원: 기운 적재물','화살표: 전도 방향','위험 구역: 바닥 낙하 구역']}
+  };
+  var specSeg=doc.getElementById('specSeg'),specBox=doc.getElementById('specBox'),curSpec='FALL-STAIRS-CARRYING';
+  if(specSeg){
+    Object.keys(specs).forEach(function(id,i){
+      var b=doc.createElement('button');b.textContent=specs[id].nm;if(i===0)b.classList.add('on');
+      b.addEventListener('click',function(){
+        specSeg.querySelectorAll('button').forEach(function(x){x.classList.remove('on');});
+        b.classList.add('on');curSpec=id;renderSpec();
+      });
+      specSeg.appendChild(b);
+    });
+    function row(k,v){return '<div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid rgb(var(--line))"><span style="flex:none;width:96px;font-size:11px;color:rgb(var(--muted));font-family:ui-monospace,monospace">'+k+'</span><span style="font-size:13px">'+v+'</span></div>';}
+    function renderSpec(){
+      var s=specs[curSpec];
+      var ann=s.ann.map(function(a){return '<span class="tag t-w" style="margin:2px 4px 2px 0;display:inline-block">'+a+'</span>';}).join('');
+      specBox.innerHTML='<div style="background:rgb(var(--bg));border:1px solid rgb(var(--line));border-radius:11px;padding:14px">'+
+        '<div style="font-family:ui-monospace,monospace;font-size:11px;color:rgb(var(--muted));margin-bottom:8px">scenario_id: '+curSpec+'</div>'+
+        row('장소 타입',s.loc)+row('인물 수',s.n+' (대표 캐릭터)')+row('action',s.action)+
+        row('hazard',s.hazard)+row('critical',s.moment)+row('표정·연출',s.drama)+
+        '<div style="padding-top:8px"><span style="flex:none;width:96px;font-size:11px;color:rgb(var(--muted));font-family:ui-monospace,monospace">annotations</span><div style="margin-top:6px">'+ann+'</div></div>'+
+        '</div>';
+    }
+    renderSpec();
+  }
+
+  /* 06 VLM verdict */
+  var critV='0',qualV='0';
+  function bindIV(id,setter){
+    doc.querySelectorAll('#'+id+' button').forEach(function(b){
+      b.addEventListener('click',function(){
+        doc.querySelectorAll('#'+id+' button').forEach(function(x){x.classList.remove('on');});
+        b.classList.add('on');setter(b.dataset.v);renderIVerdict();
+      });
+    });
+  }
+  bindIV('critSeg',function(v){critV=v;});
+  bindIV('qualSeg',function(v){qualV=v;});
+  function renderIVerdict(){
+    var box=doc.getElementById('imgVerdict');if(!box)return;var cls,txt,sub;
+    if(critV!=='0'){cls='v-none';txt='재생성 필수';sub='치명 항목 존재 → 피드백 루프 (B) 신규 생성으로 재작업한다.';}
+    else if(qualV==='2'){cls='v-observe';txt='피드백 루프';sub='품질 미흡 2개 이상 → 부분편집 또는 신규생성으로 개선 (최대 2회).';}
+    else{cls='v-verified';txt='통과 → final 채택';sub='치명 0개 AND 품질 미흡 1개 이하. 완벽을 강요하지 않아 무한 루프를 방지한다.';}
+    box.className='verdict '+cls;box.innerHTML=txt+'<small>'+sub+'</small>';
+  }
+  renderIVerdict();
+})();
+</script>
+</body>
+</html>
