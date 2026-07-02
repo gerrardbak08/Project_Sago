@@ -634,6 +634,24 @@ function App() {
           </div>
         </div>
 
+        {/* ── 모바일 서브탭 바 — 활성 그룹의 하위 탭 (데스크톱은 사이드바에서 노출) ── */}
+        {activeGroup && activeGroup.items.length > 1 && (
+          <div className="lg:hidden bg-white border-t border-stone-100">
+            <div className="flex gap-1.5 overflow-x-auto px-3 py-2" style={{ scrollbarWidth: "none" }}>
+              {activeGroup.items.map(t => (
+                <button key={t.id} onClick={() => setTab(t.id)}
+                  className={`flex items-center gap-1 px-3 min-h-[34px] rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 transition active:opacity-75 ${tab === t.id ? "bg-[#002B6D] text-white" : "bg-stone-100 text-stone-600"}`}>
+                  <t.Icon size={12} className="flex-shrink-0" />
+                  {t.l}
+                  {NONAUTO_TABS.has(t.id) && (
+                    <span title="비자동 — 수동/추정" className={`text-[8px] font-bold rounded px-1 ${tab === t.id ? "bg-white/20 text-amber-100" : "text-amber-600 bg-amber-50 border border-amber-200"}`}>비자동</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* ── 옛 상단 탭바 — 사이드바(데스크톱)/하단 네비(모바일)로 대체, 숨김 ── */}
         <div className="hidden">
           {/* 상위: 7개 그룹 */}
@@ -738,7 +756,8 @@ function App() {
         </div>
       </div>
       
-      <div className="max-w-[1400px] mx-auto px-4 py-4 text-xs text-stone-500 border-t border-stone-100 mt-6 flex justify-between flex-wrap gap-2">
+      <div className="max-w-[1400px] mx-auto px-4 pt-4 text-xs text-stone-500 border-t border-stone-100 mt-6 flex justify-between flex-wrap gap-2"
+        style={{ paddingBottom: isMobile ? "calc(72px + env(safe-area-inset-bottom))" : "1rem" }}>
         <div>© ㈜아성다이소 안전보건팀 · v9 · {new Date().getFullYear()}.{String(new Date().getMonth()+1).padStart(2,"0")}</div>
       </div>
       </div>{/* ═══ /메인 컬럼 ═══ */}

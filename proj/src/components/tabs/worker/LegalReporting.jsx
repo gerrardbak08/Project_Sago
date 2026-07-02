@@ -15,11 +15,11 @@ function LegalReporting({ D, yearFilter, allYearly, basis, rawKind }) {
   const k = D.kpis;
   const basisLabel = basis === 'approval' ? '산재 승인' : '사고경위';
   // 라이브 연도별 데이터 — 기준 전환 시 재빌드됨 (2023 유령 없음)
-  const yearlyApproval = (allYearly || []).map(y => ({
-    year: y.year,
-    count: (y.s || 0) + (y.j || 0) + (y.e || 0),
-    lossDays: y.loss_days || 0,
-  }));
+  const yearlyApproval = (allYearly || []).map((y, i, arr) => {
+    const count = (y.s || 0) + (y.j || 0) + (y.e || 0);
+    const prev = i > 0 ? ((arr[i - 1].s || 0) + (arr[i - 1].j || 0) + (arr[i - 1].e || 0)) : null;
+    return { year: y.year, count, lossDays: y.loss_days || 0, yoy: prev ? ((count - prev) / prev) * 100 : null };
+  });
   const kindData = Object.entries(D.kind).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
   
   // F2: 실제 데이터 기반 알림 규칙 동적 계산
@@ -57,6 +57,24 @@ function LegalReporting({ D, yearFilter, allYearly, basis, rawKind }) {
   const countDeath    = useCountUp(D.kind["사망"] || 0,       900, kpiInView);
   const countCommute  = useCountUp(D.kind["출퇴근"] || 0,     900, kpiInView);
 
+  // 막대 위 라벨 — 건수(굵게) + 전년대비 증감율(색상). 라인과 겹쳐도 보이도록 흰 테두리(halo).
+  const CountYoYLabel = ({ x, y, width, value, index }) => {
+    const row = yearlyApproval[index];
+    const cx = x + width / 2;
+    const halo = { paintOrder: 'stroke', stroke: '#fff', strokeWidth: 3.5, strokeLinejoin: 'round' };
+    return (
+      <g>
+        {row?.yoy != null && (
+          <text x={cx} y={y - 20} textAnchor="middle" fontSize={9.5} fontWeight={800}
+            fill={row.yoy < 0 ? '#047857' : '#B91C1C'} style={halo}>
+            {row.yoy < 0 ? '▼' : '▲'}{Math.abs(row.yoy).toFixed(0)}%
+          </text>
+        )}
+        <text x={cx} y={y - 7} textAnchor="middle" fontSize={11} fontWeight={700} fill="#1C1917" style={halo}>{value}</text>
+      </g>
+    );
+  };
+
   return (
     <div className="space-y-3 sm:space-y-4">
       <div className="flex items-center gap-2 text-xs text-stone-500 -mb-1">
@@ -69,10 +87,10 @@ function LegalReporting({ D, yearFilter, allYearly, basis, rawKind }) {
       <div ref={kpiRef} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* 산재 승인 현황 — 라이브 기준 (상단 필터·기준 전환 연동) */}
         <div className="rounded-[20px] p-4 sm:p-5 bg-white border border-blue-100 relative overflow-hidden dash-fade-in transition-shadow hover:shadow-md" style={{ animationDelay: '0ms' }}>
-          <div className="text-[11px] font-semibold uppercase tracking-widest text-stone-400">산재 승인 현황</div>
+          <div className="text-[11px] font-semibold uppercase tracking-widest text-stone-400">{basisLabel} 현황</div>
           <div className="flex items-baseline gap-3 mt-2">
             <div className="text-3xl font-extrabold tabular-nums text-[#071E4A]">{countTotal.toLocaleString()}<span className="text-sm text-stone-500 font-normal ml-1">건</span></div>
-            <div className="text-xs text-stone-500">{basisLabel}</div>
+            <div className="text-xs text-stone-500">{basis === 'approval' ? '근로복지공단 승인 기준' : '사고 발생 기준'}</div>
           </div>
           <div className="text-xs text-stone-500 mt-1">
             근로손실 <b className="tabular-nums">{fmt(lossTotal)}</b>일 · 평균 {lossAvg != null ? Number(lossAvg).toFixed(1) : "-"}일
@@ -95,11 +113,11 @@ function LegalReporting({ D, yearFilter, allYearly, basis, rawKind }) {
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card title="재해 종류별 분포" titleIcon={ClipboardList} sub="사고/출퇴근/질병/불인정 구분 — 법적 카테고리" right={<ExportBtn rows={kindData.map(r=>({재해종류:r.name,건수:r.value}))} filename="재해종류별_분포.csv" />}>
-          <ResponsiveContainer width="100%" height={200} debounce={50}>
+          <ResponsiveContainer width="100%" height={Math.max(200, kindData.length * 26)} debounce={50}>
             <BarChart data={kindData} layout="vertical" margin={{ left: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "#44403C" }} axisLine={false} tickLine={false} width={70} />
+              <XAxis type="number" domain={[0, dm => Math.max(1, Math.ceil(dm * 1.12))]} tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="name" interval={0} tick={{ fontSize: 10, fill: "#44403C" }} axisLine={false} tickLine={false} width={72} />
               <Tooltip content={<TT />} />
               <Bar dataKey="value" radius={[0,6,6,0]}>
                 {kindData.map((e, i) => {
@@ -115,19 +133,19 @@ function LegalReporting({ D, yearFilter, allYearly, basis, rawKind }) {
         {yearlyApproval.length > 0 ? (
           <div ref={chartRef}>
             <Card title="연도별 산재 승인 추세" titleIcon={ShieldCheck} sub={`승인 건수 · 근로손실일수 — ${basisLabel} 기준`} right={<ExportBtn rows={yearlyApproval.map(y=>({연도:y.year,승인건수:y.count,근로손실일수:y.lossDays}))} filename="연도별_산재승인.csv" />}>
-              <ResponsiveContainer width="100%" height={200} debounce={50}>
-                <ComposedChart key={chartInView ? 1 : 0} data={yearlyApproval} margin={{ left: 0, right: isMobile ? 4 : 8 }}>
+              <ResponsiveContainer width="100%" height={220} debounce={50}>
+                <ComposedChart key={chartInView ? 1 : 0} data={yearlyApproval} margin={{ top: 34, left: 0, right: isMobile ? 4 : 8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" vertical={false} />
                   <XAxis dataKey="year" tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="l" tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} width={28} />
+                  <YAxis yAxisId="l" domain={[0, dm => Math.ceil((dm * 1.55) / 10) * 10]} tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} width={28} />
                   {isMobile
-                    ? <YAxis yAxisId="r" orientation="right" hide />
-                    : <YAxis yAxisId="r" orientation="right" tick={{ fontSize: 10, fill: "#A8A29E" }} axisLine={false} tickLine={false} width={40} />
+                    ? <YAxis yAxisId="r" orientation="right" domain={[0, dm => Math.ceil(dm * 1.2)]} hide />
+                    : <YAxis yAxisId="r" orientation="right" domain={[0, dm => Math.ceil(dm * 1.2)]} tick={{ fontSize: 10, fill: "#A8A29E" }} axisLine={false} tickLine={false} width={40} />
                   }
                   <Tooltip content={<TT />} />
                   <Bar yAxisId="l" dataKey="count" name="승인 건수" radius={[6,6,0,0]} fill={BL} maxBarSize={48}
                     isAnimationActive={chartInView} animationDuration={600} animationBegin={0}>
-                    <LabelList dataKey="count" position="top" style={{ fontSize: 10, fill: "#1C1917", fontWeight: 700 }} />
+                    <LabelList content={<CountYoYLabel />} />
                   </Bar>
                   <Line yAxisId="r" dataKey="lossDays" name="근로손실일수" stroke={OR} strokeWidth={2} dot={{ r: 3 }}
                     isAnimationActive={chartInView} animationDuration={800} animationBegin={300} />
