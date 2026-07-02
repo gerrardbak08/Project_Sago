@@ -127,7 +127,7 @@ const _INIT_HASH_PARAMS = (() => {
 // 라이브 시트(Apps Script)가 채우지 못하는 항목이 있는 탭 — '비자동(수동/추정)' 표기 대상
 const NONAUTO_TABS = new Set(['human', 'riskmap', 'severity', 'parjang']);
 const NONAUTO_NOTE = '인적속성(연령·성별·고용)·매장좌표·실비용(KRW)·상병명은 라이브 시트에 없어 수동 업로드/추정값입니다. 시트 갱신으로 자동 반영되지 않습니다.';
-const ALERT_ADMIN_PW = "9999"; // 알림 관리자 비밀번호(소프트 게이트)
+const ALERT_ADMIN_PW = "admin1234"; // 알림 관리자 비밀번호(소프트 게이트)
 
 // ── 데이터 머지 헬퍼 ──────────────────────────────────────
 // 라이브(buildWorkerDataFromLive)가 채운 섹션은 라이브(최신 rows 기준),
