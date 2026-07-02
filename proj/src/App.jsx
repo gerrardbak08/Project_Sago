@@ -33,7 +33,7 @@ import { processWorkers }     from './utils/processData.js';
 import { LayoutDashboard, Building, Building2, MapPin, FileText, Search,
          TrendingUp, GitBranch, UserCircle, Users, Scale, Banknote,
          Stethoscope, Bell, ChevronRight, ShieldCheck, Store,
-         X, AlertCircle, Send, Lock } from 'lucide-react';
+         X, AlertCircle, Send, Lock, ExternalLink } from 'lucide-react';
 import AlertMonitoring from './components/tabs/alert/AlertMonitoring.jsx';
 import AlertSend       from './components/tabs/alert/AlertSend.jsx';
 import AlertReview     from './components/tabs/alert/AlertReview.jsx';
@@ -90,6 +90,27 @@ class TabErrorBoundary extends Component {
   }
 }
 
+function AlertPasswordGate({ onUnlock }) {
+  const [pw, setPw] = useState("");
+  const [err, setErr] = useState(false);
+  const submit = (e) => { e.preventDefault(); if (pw === ALERT_ADMIN_PW) { onUnlock(); } else { setErr(true); } };
+  return (
+    <div className="flex items-center justify-center py-20 px-4">
+      <form onSubmit={submit} className="w-full max-w-sm bg-white border border-stone-200 rounded-2xl p-7 shadow-[0_12px_40px_rgba(7,30,74,0.12)] text-center">
+        <div className="inline-flex w-12 h-12 rounded-xl items-center justify-center bg-blue-50 border border-blue-100 mb-4"><Lock size={22} className="text-[#1D4ED8]" /></div>
+        <div className="text-base font-bold text-[#071E4A]">알림 관리 — 관리자 인증</div>
+        <div className="text-xs text-stone-500 mt-1 mb-5">발송·수신 관리 기능입니다. 관리자 비밀번호를 입력하세요.</div>
+        <input type="password" value={pw} autoFocus
+          onChange={e => { setPw(e.target.value); setErr(false); }}
+          placeholder="비밀번호"
+          className={`w-full px-3.5 py-2.5 rounded-lg border text-sm outline-none transition ${err ? "border-red-300 focus:ring-2 focus:ring-red-200" : "border-stone-200 focus:ring-2 focus:ring-[#1D4ED8]/30 focus:border-[#1D4ED8]"}`} />
+        {err && <div className="text-xs text-red-600 mt-2 font-medium">비밀번호가 올바르지 않습니다.</div>}
+        <button type="submit" className="w-full mt-4 py-2.5 rounded-lg bg-[#002B6D] text-white text-sm font-bold cursor-pointer hover:bg-[#071E4A] transition active:opacity-80">확인</button>
+      </form>
+    </div>
+  );
+}
+
 const _INIT_HASH_PARAMS = (() => {
   try {
     if (typeof window === "undefined") return {};
@@ -106,6 +127,7 @@ const _INIT_HASH_PARAMS = (() => {
 // 라이브 시트(Apps Script)가 채우지 못하는 항목이 있는 탭 — '비자동(수동/추정)' 표기 대상
 const NONAUTO_TABS = new Set(['human', 'riskmap', 'severity', 'parjang']);
 const NONAUTO_NOTE = '인적속성(연령·성별·고용)·매장좌표·실비용(KRW)·상병명은 라이브 시트에 없어 수동 업로드/추정값입니다. 시트 갱신으로 자동 반영되지 않습니다.';
+const ALERT_ADMIN_PW = "9999"; // 알림 관리자 비밀번호(소프트 게이트)
 
 // ── 데이터 머지 헬퍼 ──────────────────────────────────────
 // 라이브(buildWorkerDataFromLive)가 채운 섹션은 라이브(최신 rows 기준),
@@ -176,6 +198,7 @@ function App() {
   const [tab, setTabState] = useState("overview");
   const [lastSentDate, setLastSentDate] = useState(null);
   const [preFillStore, setPreFillStore] = useState(null);
+  const [alertUnlocked, setAlertUnlocked] = useState(false);
   const [currentRole, setCurrentRole] = useState(_INIT_HASH_PARAMS.role || initialRole || null);
   const [yearFilter, setYearState] = useState(String(CURRENT_YEAR)); // 첫 화면 항상 2026 고정 (해시 무관)
 
@@ -560,19 +583,21 @@ function App() {
               </>
             )}
             <div className="flex-1" />
-            <select value={currentRole || ""} onChange={(e) => {
-              const r = e.target.value || null;
-              setCurrentRole(r);
-              if (r && ROLE_LANDING[r]) setTab(ROLE_LANDING[r]);
-              else if (!r) setTab("overview");
-            }} className="h-9 sm:h-7 px-2 rounded-md border border-stone-200 text-xs font-medium text-stone-700 bg-white cursor-pointer" style={{ fontFamily: "inherit" }}>
-              <option value="">역할 선택</option>
-              <option value="ceo">경영진</option>
-              <option value="manager">영업부문장</option>
-              <option value="team">팀장</option>
-              <option value="part">파트장</option>
-              <option value="safety">안전보건팀</option>
-            </select>
+            {!inAlert && (
+              <select value={currentRole || ""} onChange={(e) => {
+                const r = e.target.value || null;
+                setCurrentRole(r);
+                if (r && ROLE_LANDING[r]) setTab(ROLE_LANDING[r]);
+                else if (!r) setTab("overview");
+              }} className="h-9 sm:h-7 px-2 rounded-md border border-stone-200 text-xs font-medium text-stone-700 bg-white cursor-pointer" style={{ fontFamily: "inherit" }}>
+                <option value="">역할 선택</option>
+                <option value="ceo">경영진</option>
+                <option value="manager">영업부문장</option>
+                <option value="team">팀장</option>
+                <option value="part">파트장</option>
+                <option value="safety">안전보건팀</option>
+              </select>
+            )}
             {dashMode === "worker" && !inAlert && <XlsxBtn D={dataFiltered} filename={`사고현황_${basis === 'approval' ? '산재승인' : '사고경위'}_요약.xlsx`} />}
             {dashMode === "worker" && !inAlert && <button onClick={() => setShowSearch(true)} className="h-9 sm:h-7 px-2.5 rounded-md border border-stone-300 text-xs font-medium text-stone-700 bg-white hover:bg-stone-50 cursor-pointer flex items-center gap-1 transition active:opacity-75"><Search size={12} strokeWidth={2} /> 조회</button>}
             {dashMode === "worker" && !inAlert && <button onClick={() => setShowReport(true)} className="h-9 sm:h-7 px-2.5 rounded-md text-white text-xs font-semibold cursor-pointer flex items-center gap-1 transition active:opacity-75" style={{background:"#002B6D"}}><FileText size={12} strokeWidth={2} /> 보고서</button>}
@@ -698,9 +723,25 @@ function App() {
             {tab === "legal" && <LegalReporting D={dataFiltered} yearFilter={yearFilter} allYearly={data.yearly} rawKind={data.kind} basis={basis} />}
             {tab === "rawdb" && <RawDbViewer rows={LIVE_SNAPSHOT.rows} approvalRows={LIVE_SNAPSHOT.approvalRows} sheetUrl="https://docs.google.com/spreadsheets/d/1pWfoDWXSowQRHBbIiVDgEd_0oK2XcFxtG4R5Kryvfus/edit" />}
             {/* 알림 관리 — 사이드바 유지형 통합 (근로자 셸 안에서 렌더) */}
-            {tab === "alert_monitor" && <AlertMonitoring initialDate={lastSentDate} onSendRequest={(storeCode) => { if (storeCode) setPreFillStore(storeCode); setTab("alert_send"); }} />}
-            {tab === "alert_send" && <AlertSend onSent={(sentDate) => { setLastSentDate(sentDate); setTab("alert_monitor"); }} preFillStore={preFillStore} onPreFillConsumed={() => setPreFillStore(null)} />}
-            {tab === "alert_review" && <AlertReview onSendRequest={(storeCode) => { if (storeCode) setPreFillStore(storeCode); setTab("alert_send"); }} />}
+            {inAlert && !alertUnlocked && <AlertPasswordGate onUnlock={() => setAlertUnlocked(true)} />}
+            {inAlert && alertUnlocked && (
+              <>
+                <a href="https://d2teksqi92gf4g.cloudfront.net/" target="_blank" rel="noopener noreferrer"
+                   className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 hover:bg-blue-100 transition-colors group">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <ExternalLink size={16} className="text-[#1D4ED8] flex-shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold text-[#071E4A]">㈜아성다이소 알림 시스템 열기</div>
+                      <div className="text-xs text-stone-500 truncate">실제 발송·수신 시스템(로그인 필요) — 새 탭에서 열립니다</div>
+                    </div>
+                  </div>
+                  <span className="text-xs font-semibold text-[#1D4ED8] flex-shrink-0 group-hover:underline whitespace-nowrap">새 탭으로 열기 ↗</span>
+                </a>
+                {tab === "alert_monitor" && <AlertMonitoring initialDate={lastSentDate} onSendRequest={(storeCode) => { if (storeCode) setPreFillStore(storeCode); setTab("alert_send"); }} />}
+                {tab === "alert_send" && <AlertSend onSent={(sentDate) => { setLastSentDate(sentDate); setTab("alert_monitor"); }} preFillStore={preFillStore} onPreFillConsumed={() => setPreFillStore(null)} />}
+                {tab === "alert_review" && <AlertReview onSendRequest={(storeCode) => { if (storeCode) setPreFillStore(storeCode); setTab("alert_send"); }} />}
+              </>
+            )}
           </TabErrorBoundary>
         </div>
       </div>
