@@ -183,7 +183,9 @@ function DeptTeamStore({ D, yearFilter }) {
         return (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-              {cards.map((c, i) => (
+              {cards.map((c, i) => {
+                const cardYoy = (c.spkData && c.spkData.length >= 2 && c.spkData[0]) ? ((c.spkData[1] - c.spkData[0]) / c.spkData[0] * 100) : null;
+                return (
                 <div key={c.label}
                      className="rounded-lg p-3 sm:p-4 dash-slide-up"
                      style={{
@@ -197,13 +199,19 @@ function DeptTeamStore({ D, yearFilter }) {
                     <span className="text-[11px] font-bold uppercase tracking-wider" style={{color: c.labelColor}}>{c.label}</span>
                   </div>
                   <div className="flex items-end justify-between gap-2">
-                    <div className="flex items-baseline gap-1.5">
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
                       <span className="text-3xl lg:text-4xl font-bold tracking-tight" style={{color: c.valueColor}}>
                         {c.ir != null
                           ? <Odometer value={Math.round(c.ir * 100)} duration={1100} format={(n) => (n / 100).toFixed(2)} />
                           : "—"}
                       </span>
-                      <span className="text-sm text-stone-500 font-medium">건/100명</span>
+                      <span className="text-sm text-stone-500 font-medium">%</span>
+                      {cardYoy != null && (
+                        <span title="전년 대비('24→'25)" className="text-[11px] font-bold px-1.5 py-0.5 rounded-full tabular-nums"
+                          style={{ background: cardYoy < 0 ? '#ECFDF5' : '#FEF2F2', color: cardYoy < 0 ? '#047857' : '#B91C1C' }}>
+                          {cardYoy < 0 ? '▼' : '▲'}{Math.abs(cardYoy).toFixed(0)}%
+                        </span>
+                      )}
                     </div>
                     {c.spkData && c.spkData.length >= 2 && (
                       <Sparkline data={c.spkData} color={c.labelColor} width={60} height={20} />
@@ -213,7 +221,8 @@ function DeptTeamStore({ D, yearFilter }) {
                     사고 {c.incidents.toLocaleString()}건 · 재직 {c.workers.toLocaleString()}명 · 매장 {c.stores}개
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </>
         );
@@ -235,7 +244,7 @@ function DeptTeamStore({ D, yearFilter }) {
             <div className="flex-1 min-w-0">
               <div className="text-sm font-bold" style={{ color: "#92400E" }}>팀 IR 임계값 초과 — {overTeams.length}개 팀</div>
               <div className="text-xs text-stone-600 mt-0.5 break-keep">
-                평균({avgIr.toFixed(2)}건/100명)의 1.5배({threshold.toFixed(2)}건/100명) 초과: {overTeams.slice(0, 3).map(t => t.team).join("·")}{overTeams.length > 3 ? ` 외 ${overTeams.length - 3}개` : ""}
+                평균({avgIr.toFixed(2)}%)의 1.5배({threshold.toFixed(2)}%) 초과: {overTeams.slice(0, 3).map(t => t.team).join("·")}{overTeams.length > 3 ? ` 외 ${overTeams.length - 3}개` : ""}
               </div>
             </div>
           </div>
@@ -291,7 +300,7 @@ function DeptTeamStore({ D, yearFilter }) {
                   <div>매장 {p.stores}개 · 사고 {p.incidents}건{p.workers != null ? ` · 인원 ${p.workers.toLocaleString()}명` : ""}</div>
                   <div className="font-bold mt-1 flex items-center gap-1.5" style={{color: g.color}}>📦 매장당 사고율: {p.per_store.toFixed(2)}건 <span className="px-1.5 py-0.5 rounded-full text-[10px]" style={{background:g.bg}}>{g.label}</span></div>
                   {p.ir_per100 != null && (
-                    <div className="font-bold mt-0.5" style={{color: "#E11D48"}}>👥 100명당 IR: {p.ir_per100.toFixed(2)}건
+                    <div className="font-bold mt-0.5" style={{color: "#E11D48"}}>👥 100명당 IR: {p.ir_per100.toFixed(2)}%
                       {p.ir_reliability && <span className="ml-1.5 text-[10px] font-semibold" style={{color: p.ir_reliability==="high"?GN:p.ir_reliability==="low"?AM:"#78716C"}}>[{p.ir_reliability}]</span>}
                     </div>
                   )}
@@ -312,7 +321,7 @@ function DeptTeamStore({ D, yearFilter }) {
                 }
                 return <Cell key={i} fill={baseColor} />;
               })}
-              <LabelList dataKey={isPer100 ? "ir_per100" : "per_store"} position="right" style={{ fontSize: 10, fill: NV, fontWeight: 700 }} formatter={v => v.toFixed(2)} />
+              <LabelList dataKey={isPer100 ? "ir_per100" : "per_store"} position="right" style={{ fontSize: 10, fill: NV, fontWeight: 700 }} formatter={v => isPer100 ? v.toFixed(2) + '%' : v.toFixed(2)} />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -325,7 +334,7 @@ function DeptTeamStore({ D, yearFilter }) {
           </div>
         ) : (
           <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-            <div className="p-2 rounded-lg text-xs font-medium" style={{background:GRADES.danger.bg,color:GRADES.danger.color}}><b>20+</b> 100명당 — 매우 위험</div>
+            <div className="p-2 rounded-lg text-xs font-medium" style={{background:GRADES.danger.bg,color:GRADES.danger.color}}><b>20+</b> % — 매우 위험</div>
             <div className="p-2 rounded-lg text-xs font-medium" style={{background:GRADES.watch.bg,color:GRADES.watch.color}}><b>10-20</b> 주의</div>
             <div className="p-2 rounded-lg text-xs font-medium" style={{background:GRADES.good.bg,color:GRADES.good.color}}><b>5-10</b> 일반</div>
             <div className="p-2 rounded-lg text-xs font-medium" style={{background:"#F1F5F9",color:"#475569"}}><b>&lt;5</b> 낮음 / 회색=⚠️ unstable</div>
