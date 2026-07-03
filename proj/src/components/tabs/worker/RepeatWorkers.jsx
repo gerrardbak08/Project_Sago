@@ -181,8 +181,8 @@ function RepeatWorkers({ D, yearFilter }) {
                       <td className="py-2.5 sm:py-1.5 px-2 text-center whitespace-nowrap">
                         {yr ? (
                           <span className="tabular-nums leading-snug">
-                            <span className="font-extrabold text-red-600">{filterCount}회</span>
-                            <span className="block text-[9px] text-stone-400 font-normal">전체 {w.count}회</span>
+                            <span className="font-extrabold text-red-600">{w.count}회</span>
+                            <span className="block text-[9px] text-stone-400 font-normal">{yrLabel} {filterCount}건</span>
                           </span>
                         ) : (
                           <span className="font-extrabold text-red-600 tabular-nums">{w.count}회</span>
