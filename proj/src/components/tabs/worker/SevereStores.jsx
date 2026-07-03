@@ -44,7 +44,7 @@ function SevereStores({ D, yearFilter }) {
   const total = yr ? (sev['y' + yr] ?? 0) : (sev.total ?? 0);
   const storeCount = stores.length;
   const yCount = yr ? (n) => (D.accidents || []).filter(a => a.store === n && a.loss_days >= 91 && a.year === +yr).length : null;
-  const repeat2 = stores.filter(s => (yCount ? yCount(s.store) : (s.count || 0)) >= 2).length;
+  const repeat2 = stores.filter(s => (s.count || 0) >= 2).length; // 전체기간 중상해 2건+ 매장(연도필터 무관 — 목록에 뜬 매장 중)
   const lossSum = yr
     ? (D.accidents || []).filter(a => a.store && a.loss_days >= 91 && a.year === +yr).reduce((s, a) => s + a.loss_days, 0)
     : stores.reduce((s, x) => s + (x.lossDays || 0), 0);
@@ -143,15 +143,18 @@ function SevereStores({ D, yearFilter }) {
                         <td className="py-3 px-3 sm:py-2 sm:px-2 text-stone-600 hidden sm:table-cell">{s.dept} · {s.team}</td>
                         <td className="py-3 px-3 sm:py-2 sm:px-2 text-stone-500 tabular-nums hidden sm:table-cell">{s.recentDate || '-'}</td>
 
-                        {/* 건수 + count>=2 "반복" amber 칩 */}
+                        {/* 건수 = 전체기간 중상해 건수(primary) + 연도필터 시 해당연도 건수 라벨. '반복' 칩은 전체기간 2건+ 기준 */}
                         <td className="py-3 px-3 sm:py-2 sm:px-2 text-right tabular-nums">
-                          <div className="flex items-center justify-end gap-1 flex-wrap">
-                            <span>{(yCount ? yCount(s.store) : s.count)}건</span>
-                            {(yCount ? yCount(s.store) : (s.count || 0)) >= 2 && (
-                              <span className="inline-block px-1 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-700 leading-none">
-                                반복
-                              </span>
-                            )}
+                          <div className="flex flex-col items-end leading-snug">
+                            <div className="flex items-center justify-end gap-1 flex-wrap">
+                              <span>{s.count}건</span>
+                              {(s.count || 0) >= 2 && (
+                                <span className="inline-block px-1 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-700 leading-none">
+                                  반복
+                                </span>
+                              )}
+                            </div>
+                            {yr && <span className="text-[9px] text-stone-400 font-normal">{yr}년 {yCount ? yCount(s.store) : 0}건</span>}
                           </div>
                         </td>
 
