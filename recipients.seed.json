@@ -1,0 +1,32 @@
+{
+  "version": "2.0-seed",
+  "comment": "개발/테스트용 mock 수신자 시드. users 맵은 영업조직 소속(부문/영업부/팀/매장, org_rollup 키와 일치)을 명시. 실배포 시 실제 수신자로 recipients.json 의 users 를 채운다. 이름은 전부 mock.",
+  "default": [],
+  "stores": {},
+  "users": {
+    "u-mock-bumun-sudo": {
+      "name": "김수도(mock)", "role": "영업부문장", "phone": "010-0000-0001",
+      "부문": "수도권", "영업부": null, "팀": null, "매장": null
+    },
+    "u-mock-bumun-jibang": {
+      "name": "박지방(mock)", "role": "영업부문장", "phone": "010-0000-0002",
+      "부문": "지방", "영업부": null, "팀": null, "매장": null
+    },
+    "u-mock-dept-incheon": {
+      "name": "이인천(mock)", "role": "영업부장", "phone": "010-0000-0003",
+      "부문": "수도권", "영업부": "인천영업부", "팀": null, "매장": null
+    },
+    "u-mock-dept-gyeongbuk": {
+      "name": "최경북(mock)", "role": "영업부장", "phone": "010-0000-0004",
+      "부문": "지방", "영업부": "경북영업부", "팀": null, "매장": null
+    },
+    "u-mock-team-ilsan": {
+      "name": "정일산(mock)", "role": "팀장", "phone": "010-0000-0005",
+      "부문": "수도권", "영업부": "인천영업부", "팀": "일산팀", "매장": null
+    },
+    "u-mock-store-goyang": {
+      "name": "한고양(mock)", "role": "점장", "phone": "010-0000-0006",
+      "부문": "수도권", "영업부": "인천영업부", "팀": "일산팀", "매장": "고양화정점"
+    }
+  }
+}

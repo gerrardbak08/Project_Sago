@@ -43,6 +43,27 @@ class BaseNotifier(ABC):
             {"sent": [...성공 수신자...], "failed": [...실패 수신자...]}
         """
 
+    def send_alimtalk(
+        self,
+        recipients: list[str],
+        variables: dict,
+        link: str,
+        template_id: str | None = None,
+    ) -> dict[str, list[str]]:
+        """정기(월간) 브리핑 알림톡 발송(정보성 템플릿).
+
+        recipients = **전화번호 목록**(알림톡은 카카오톡 가입 전화번호로 매칭 — UUID/부서 아님).
+        기본 구현은 mock(로그 출력) — 발신프로필·템플릿 승인·대행사 확정 전 개발용.
+        KakaoNotifier 가 실제 대행사 API 발송으로 오버라이드한다.
+        """
+        print(
+            f"[notifier:alimtalk:mock] 수신 {len(recipients)}명 · "
+            f"[{variables.get('role_label','')}] {variables.get('조직명','')} {variables.get('기간','')} "
+            f"{variables.get('건수','')}건 · 목표대비 {variables.get('목표대비','')} · "
+            f"핵심 {variables.get('핵심유형','')}"
+        )
+        return {"sent": list(recipients), "failed": []}
+
 
 # ---------------------------------------------------------------------------
 # Mock (프로토타입 — 실제 발송 없이 성공 처리)
@@ -85,6 +106,37 @@ class KakaoNotifier(BaseNotifier):
         }
         template_str = json.dumps(template, ensure_ascii=False, separators=(",", ":"))
         return self._send_to_friends(recipients, template_str)
+
+    def send_alimtalk(
+        self,
+        recipients: list[str],
+        variables: dict,
+        link: str,
+        template_id: str | None = None,
+    ) -> dict[str, list[str]]:
+        """카카오 알림톡(정보성) 발송 — 정기 브리핑용. recipients = 전화번호 목록.
+
+        발신프로필·템플릿 승인(ALIMTALK_SENDER_KEY / ALIMTALK_TEMPLATE_BRIEFING) + 대행사 확정 전에는
+        상위 클래스 mock 으로 폴백한다. 승인 후 아래 tmpl_args 를 대행사 알림톡 API 규격으로 전송.
+        """
+        sender_key = os.environ.get("ALIMTALK_SENDER_KEY")
+        tmpl = template_id or os.environ.get("ALIMTALK_TEMPLATE_BRIEFING")
+        if not sender_key or not tmpl or not recipients:
+            return super().send_alimtalk(recipients, variables, link, template_id)
+
+        # 템플릿 변수(#{조직명} 등) 매핑 — requirements/alimtalk-briefing-template.md 참조
+        tmpl_args = {  # noqa: F841 — 승인 후 API 페이로드에 사용
+            "조직명": str(variables.get("조직명", "")),
+            "기간": str(variables.get("기간", "")),
+            "건수": str(variables.get("건수", "")),
+            "목표대비": str(variables.get("목표대비", "")),
+            "전년대비": str(variables.get("전년대비", "")),
+            "핵심유형": str(variables.get("핵심유형", "")),
+            "대시보드링크": link,
+        }
+        # TODO(대행사 확정 후): sender_key·tmpl·tmpl_args·recipients(전화번호)로 대행사 알림톡 API 호출.
+        #                       발신프로필/템플릿/대행사키 확보 전까지는 구조만 두고 mock 으로 폴백한다.
+        return super().send_alimtalk(recipients, variables, link, template_id)
 
     # 안전 가이드 피드 템플릿 발송
     def send_guide(

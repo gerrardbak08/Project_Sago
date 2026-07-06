@@ -500,6 +500,66 @@ resource "aws_lambda_permission" "eventbridge_batch" {
 }
 
 # ---------------------------------------------------------------------------
+# Lambda — briefing (월간 조직단위 사고현황 브리핑)
+#   ⚠️ terraform state 유실(2026-06-30) 상태라 apply 불가 — state 복구(terraform import) 후 적용.
+#      org_rollup.json·kpi_targets.json 은 배포 시 S3(models 버킷)로 업로드해야 함.
+#      알림톡 실발송은 ALIMTALK_SENDER_KEY·ALIMTALK_TEMPLATE_BRIEFING 승인 후 주입(전까지 mock).
+# ---------------------------------------------------------------------------
+
+resource "aws_lambda_function" "briefing" {
+  function_name    = "${local.resource_prefix}-briefing"
+  role             = aws_iam_role.lambda_exec.arn
+  handler          = "handler.lambda_handler"
+  runtime          = "python3.12"
+  filename         = "${path.module}/../dist/briefing.zip"
+  source_code_hash = filebase64sha256("${path.module}/../dist/briefing.zip")
+
+  memory_size = 256
+  timeout     = 300
+
+  layers = [aws_lambda_layer_version.core.arn]
+
+  environment {
+    variables = {
+      MODELS_BUCKET  = aws_s3_bucket.models.id
+      NOTIFY_CHANNEL = "mock" # 승인 후 "kakao"
+      FRONTEND_URL   = "http://daiso-safety-v1-frontend.s3-website.ap-northeast-2.amazonaws.com"
+      # ALIMTALK_SENDER_KEY / ALIMTALK_TEMPLATE_BRIEFING : 발신프로필·템플릿 승인 후 주입
+    }
+  }
+
+  tags = {
+    Project       = var.project
+    DeployVersion = var.deploy_version
+  }
+}
+
+# EventBridge — 매월 1일 06:00 KST (cron(0 21 1 * ? *) UTC)
+resource "aws_cloudwatch_event_rule" "monthly_briefing" {
+  name                = "${local.resource_prefix}-monthly-briefing"
+  description         = "매월 1일 06:00 KST 조직단위 사고현황 브리핑"
+  schedule_expression = "cron(0 21 1 * ? *)"
+
+  tags = {
+    Project       = var.project
+    DeployVersion = var.deploy_version
+  }
+}
+
+resource "aws_cloudwatch_event_target" "briefing_target" {
+  rule = aws_cloudwatch_event_rule.monthly_briefing.name
+  arn  = aws_lambda_function.briefing.arn
+}
+
+resource "aws_lambda_permission" "eventbridge_briefing" {
+  statement_id  = "AllowEventBridgeInvokeBriefing"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.briefing.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.monthly_briefing.arn
+}
+
+# ---------------------------------------------------------------------------
 # Outputs
 # ---------------------------------------------------------------------------
 

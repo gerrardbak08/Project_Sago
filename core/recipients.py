@@ -145,3 +145,72 @@ def resolve_recipients(
         out.extend(t_uuids)
 
     return _dedup(out)
+
+
+# ---------------------------------------------------------------------------
+# 역인덱스 — 수신자 → 자기 조직 스코프 (정기 사고현황 브리핑용)
+#
+# resolve_recipients 는 "조직 → 담당자 UUID"(발송 대상 산출)인 반면,
+# scope_for_user 는 "수신자 UUID → 그 사람의 사고집계 스코프"(무슨 데이터를 보낼지)다.
+# 브리핑은 users 맵의 각 사람을 순회하며 자기 소속 범위(부문/영업부/팀/매장)의 현황만 받는다.
+#
+# ⚠️ recipients.json 의 stores 트리(매장→식품/비식품 부서→신선/가공 팀)는 '상품 부서' 계층이라
+#    브리핑이 쓰는 '영업 조직' 계층(부문 수도권/지방 → 영업부 인천영업부 → 팀 일산팀 → 매장)과 다르다.
+#    따라서 브리핑 소속은 트리 위치가 아니라 users 맵에 영업조직 값으로 명시한다(org_rollup 키와 일치).
+#
+# users 맵 스키마:
+#   "users": {
+#     "<uuid>": {"name":"홍길동","role":"영업부장","phone":"010-...",
+#                "부문":"수도권","영업부":"인천영업부","팀":null,"매장":null}
+#   }
+# 가장 깊게 채워진 소속이 그 사람의 스코프(점장=매장, 팀장=팀, 영업부장=영업부, 부문장=부문).
+# ---------------------------------------------------------------------------
+
+def scope_for_user(recipients_data: dict, uuid: str) -> dict | None:
+    """수신자 UUID → 사고집계 스코프. users 맵 필요. 없거나 소속 미상이면 None.
+
+    반환: {uuid, name, role, contact, level, key, 부문, 영업부, 팀, 매장}
+      level = store|team|dept|bumun (가장 구체적인 소속), key = 그 레벨의 조직명(org_rollup 키).
+    """
+    if not isinstance(recipients_data, dict):
+        return None
+    u = (recipients_data.get("users") or {}).get(str(uuid).strip())
+    if not isinstance(u, dict):
+        return None
+    bumun = _nfc(u.get("부문"))
+    dept = _nfc(u.get("영업부") or u.get("부서"))
+    team = _nfc(u.get("팀"))
+    store = _nfc(u.get("매장"))
+    level, key = None, None
+    if store:
+        level, key = "store", store
+    elif team:
+        level, key = "team", team
+    elif dept:
+        level, key = "dept", dept
+    elif bumun:
+        level, key = "bumun", bumun
+    if level is None:
+        return None
+    return {
+        "uuid": str(uuid).strip(),
+        "name": u.get("name"),
+        "role": u.get("role"),
+        "phone": u.get("phone"),                 # 알림톡 발송 키
+        "contact": u.get("phone") or u.get("kakao_uuid"),
+        "consent": u.get("consent", True),        # 수신 근거(정보성 안내·수신거부 반영)
+        "level": level,
+        "key": key,
+        "부문": bumun, "영업부": dept, "팀": team, "매장": store,
+    }
+
+
+def all_user_scopes(recipients_data: dict) -> list[dict]:
+    """users 맵 전체를 스코프 리스트로 산출한다 (브리핑 발송 대상 순회용)."""
+    users = (recipients_data or {}).get("users") or {}
+    out: list[dict] = []
+    for uuid in users:
+        sc = scope_for_user(recipients_data, uuid)
+        if sc:
+            out.append(sc)
+    return out
