@@ -13,14 +13,20 @@ import { RISK_COLORS } from '../../../constants/riskColors.js';
 import { useAiGuide } from '../../../hooks/useAiGuide.js';
 import { fmtShort } from '../../../utils/format.js';
 import { AiOutput } from '../../../components/shared/AiOutput.jsx';
-import { buildRuleBasedBriefing } from '../../../utils/ruleSummary.js';
+import { AiBriefing } from '../../../components/shared/AiBriefing.jsx';
+import { buildRuleBasedBriefing, buildRuleBasedBriefingStructured } from '../../../utils/ruleSummary.js';
+import { AI_SYSTEM, buildBriefingPrompt, parseAiResponse } from '../../../constants/aiSchema.js';
 import PeriodComparison from '../../../components/shared/PeriodComparison.jsx';
 import { STORE_SNAPSHOTS, WORKER_SNAPSHOTS } from '../../../data/snapshots.js';
+import { getKpiProgress, getMonthsElapsed, useKpiVersion } from '../../../utils/kpiStore.js';
+import { STATUS_COLOR, STATUS_LABEL } from '../../../utils/kpiProgress.js';
+import { normalizeStoreName } from '../../../utils/processStores.js';
 
 const WORKER_COUNT_ESTIMATE = 1337 * 5;
 const yoy = (cur, prev) => prev ? ((cur - prev) / prev * 100) : null;
 
 function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
+  useKpiVersion(); // KPI 목표 저장 시 자동 재렌더
   const aiSummary = useAiGuide();
   const isCEO = role === "ceo";
   const isManager = role === "manager";
@@ -77,6 +83,10 @@ function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
   const cPeriodSudo   = useCountUp(periodSudo,   1200, kpiInView);
   const cPeriodJibang = useCountUp(periodJibang, 1200, kpiInView);
   const bumPie = [{ name: "수도권", value: periodSudo, color: BL }, { name: "지방", value: periodJibang, color: OR }, { name: "기타", value: periodCount - periodSudo - periodJibang, color: GR }];
+  // KPI 배지 — 부문별 2026 YTD vs 프로레이션 목표
+  const kpiMe = getMonthsElapsed();
+  const kpiSudo = getKpiProgress('bumun', '수도권');
+  const kpiJibang = getKpiProgress('bumun', '지방');
   const proj = D.projection ?? {};
   const submitRate = pct(k.submitted, k.submitted + k.not_submitted);
   const severeShare = D.severity?.dist ? pct(D.severity.dist["중상"] ?? 0, Object.values(D.severity.dist).reduce((s,v)=>s+v,0)) : "산출불가";
@@ -152,8 +162,23 @@ function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
       {/* === 임계값 알림 배너 === */}
       {(() => {
         const alerts = [];
-        // 동일 매장 재발 (3건 이상)
-        const hotStores = (D.stores || []).filter(s => s.total >= 3);
+        // 동일 매장 재발 (3건 이상) — 실집계(D.accidents) 기준. 위험지도 liveCount와 동일 로직(정규화매칭·연도필터)이라
+        // 매장명·건수가 위험지도와 정합. (D.stores.total은 연도필터 시 비례추정이라 실카운트와 모순되어 사용 안 함)
+        const hotStores = (() => {
+          if (D.accidents?.length) {
+            const cnt = {};
+            for (const a of D.accidents) {
+              if (!a.store) continue;
+              if (yearFilter !== "all" && String(a.year) !== yearFilter) continue;
+              const key = normalizeStoreName(a.store);
+              if (!cnt[key]) cnt[key] = { store: a.store, total: 0 };
+              cnt[key].total++;
+            }
+            return Object.values(cnt).filter(s => s.total >= 3).sort((a, b) => b.total - a.total);
+          }
+          // 폴백: 라이브 사고기록 부재 시 정적 누적(전체 기간에서만 실값)
+          return (D.stores || []).filter(s => s.total >= 3);
+        })();
         if (hotStores.length > 0) {
           alerts.push({
             level: "danger",
@@ -208,8 +233,8 @@ function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" ref={kpiGridRef}>
         {[
           { l: "총 사고건수", raw: yearFilter === "all" ? countKTotal : cPeriodCount, v: fmt(yearFilter === "all" ? countKTotal : cPeriodCount), s: yearFilter === "all" ? `'24년 ${countTotal2024}건 · '25년 ${countTotal2025}건 · '26년 ${countTotal2026}건` : `${yearFilter}년 단독`, Icon: AlertTriangle, delta: yearFilter === "all" ? yoyPct : null, deltaLabel: "'24→'25 전년대비:", yearBars: yearFilter === "all" ? [{ yr:"2024", v:countTotal2024, color:"#A8A29E" }, { yr:"2025", v:countTotal2025, color:DAISO_RED }, { yr:"2026(현)", v:countTotal2026, color:"#78716C" }] : null, sparklineData: [k.y2024, k.y2025, k.y2026].filter(n => n != null) },
-          { l: "수도권", raw: yearFilter === "all" ? countKSudo : cPeriodSudo, v: fmt(yearFilter === "all" ? countKSudo : cPeriodSudo), s: `전체 ${pct(periodSudo, periodCount)}%`, Icon: Building2 },
-          { l: "지방", raw: yearFilter === "all" ? countKJibang : cPeriodJibang, v: fmt(yearFilter === "all" ? countKJibang : cPeriodJibang), s: `전체 ${pct(periodJibang, periodCount)}%`, Icon: MapIcon },
+          { l: "수도권", raw: yearFilter === "all" ? countKSudo : cPeriodSudo, v: fmt(yearFilter === "all" ? countKSudo : cPeriodSudo), s: `전체 ${pct(periodSudo, periodCount)}%`, Icon: Building2, kpiProgress: kpiSudo, kpiMe },
+          { l: "지방", raw: yearFilter === "all" ? countKJibang : cPeriodJibang, v: fmt(yearFilter === "all" ? countKJibang : cPeriodJibang), s: `전체 ${pct(periodJibang, periodCount)}%`, Icon: MapIcon, kpiProgress: kpiJibang, kpiMe },
           { l: "2026 연 예측", v: `${proj.low ?? "—"}~${proj.high ?? "—"}`, s: `중간값 ${proj.center ?? "—"}건 · 95% CI`, Icon: TrendingUp },
         ].map((c, i) => (
           <div key={i}
@@ -280,6 +305,28 @@ function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
                     </div>
                   )}
                 </div>
+                {/* KPI 배지 — 2026 YTD vs 프로레이션 목표 */}
+                {c.kpiProgress && c.kpiProgress.status !== 'unknown' && (() => {
+                  const p = c.kpiProgress;
+                  const color = STATUS_COLOR[p.status];
+                  const dOver = p.delta != null && Math.abs(p.delta) >= 0.5
+                    ? ` ${p.delta > 0 ? '▲' : '▼'}${Math.abs(Math.round(p.delta))}건` : '';
+                  const tip = `2026 YTD ${p.actual}건 / ${c.kpiMe}개월 프로레이션 목표 ${p.target != null ? p.target.toFixed(1) : '—'}건`
+                    + (p.achievedPct != null ? ` · 목표절감 달성률 ${p.achievedPct.toFixed(0)}%` : '');
+                  return (
+                    <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] text-stone-400 flex-shrink-0">26 KPI</span>
+                      <span
+                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                        title={tip}
+                        style={{ background: color + '1A', color, border: `1px solid ${color}40` }}
+                      >
+                        {STATUS_LABEL[p.status]}{dOver}
+                      </span>
+                      <span className="text-[10px] text-stone-400 tabular-nums">{p.actual}건/{c.kpiMe}M</span>
+                    </div>
+                  );
+                })()}
               </>
             )}
           </div>
@@ -297,33 +344,36 @@ function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <button
             onClick={() => {
-              const prompt = `당신은 ㈜아성다이소 안전보건 전문가입니다. 아래 사고 현황 데이터를 분석하여 핵심 패턴, 위험 요소, 개선 포인트를 간결하게 요약해주세요.
-
-## 전체 사고 현황 (${yearFilter === "all" ? "전체 기간" : yearFilter + "년"})
-- 총 사고 건수: ${periodCount}건 (수도권 ${periodSudo}건 / 지방 ${periodJibang}건)
-- 2024년: ${k.y2024}건 / 2025년: ${k.y2025}건 / 2026년(4월까지): ${k.y2026}건
-- YoY 증감률: ${yoyPct !== null ? (yoyPct > 0 ? "+" : "") + yoyPct.toFixed(1) + "%" : "산출 불가"}
-- 추정 재무 손실: ${fmtShort(periodIncidents.fullLoss)}원
-
-## 주요 재해 패턴
-- 상위 재해 유형: ${(D.risk || []).slice(0,4).map(r => `${r.type} ${r.freq}건`).join(", ") || "데이터 없음"}
-- 산재 승인률: ${submitRate}% (전체 기간 기준)
-- 중상해 점유율: ${severeShare}%
-- 상위 2개 매장 집중도: ${top2Share}% (${top2Names})
-
-## 부서별 현황
-${(D.dept_ir || []).slice(0,5).map(d => `- ${d.dept}: 사고 ${d.incidents}건 / IR ${d.coverage_rate ?? d.rate}%`).join("\n")}
-
-위 데이터를 바탕으로 다음 형식으로 요약해주세요:
-1. **전체 사고 추세** (증감 방향과 주요 원인)
-2. **가장 시급한 위험 요소** (2~3가지)
-3. **즉시 실행 권장 사항** (구체적, 3가지)
-4. **모니터링 포인트** (향후 추적해야 할 지표)
-
-간결하고 실무적으로 작성해주세요.`;
-              // AI 서비스(Lambda) 연결 시 LLM 분석, 미연결(로컬/미배포) 시 규칙기반 자동 브리핑
-              if (import.meta.env.VITE_AI_URL) aiSummary.run(prompt);
-              else aiSummary.setResult(buildRuleBasedBriefing(D));
+              const prompt = buildBriefingPrompt({
+                scopeLabel: yearFilter === 'all' ? '전체 기간' : yearFilter + '년',
+                total: periodCount,
+                y2024: k.y2024 || 0,
+                y2025: k.y2025 || 0,
+                y2026: k.y2026 || 0,
+                sudo: periodSudo,
+                jibang: periodJibang,
+                yoyPct: yoyPct,
+                topTypes: (D.risk || []).slice(0, 4).map(r => ({ type: r.type, freq: r.freq })),
+                kpiSudo,
+                kpiJibang,
+                monthsElapsed: kpiMe,
+                severeShare,
+                submitRate,
+                lossStr: fmtShort(periodIncidents.fullLoss) + '원',
+                topStoreLine: topStores.map(s => `${s.store}(${s.total}건)`).join('·'),
+              });
+              if (import.meta.env.VITE_AI_URL) {
+                // Lambda 연결: JSON 응답 요청 (system 프롬프트로 JSON만 출력 강제)
+                aiSummary.run(prompt, { system: AI_SYSTEM });
+              } else {
+                // Lambda 미연결: 규칙기반 구조화 브리핑을 JSON 문자열로 직접 주입
+                const structured = buildRuleBasedBriefingStructured(D, {
+                  kpiSudo,
+                  kpiJibang,
+                  monthsElapsed: kpiMe,
+                });
+                aiSummary.setResult(JSON.stringify(structured));
+              }
             }}
             disabled={aiSummary.loading}
             className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-lg text-xs font-semibold text-white transition-all cursor-pointer disabled:opacity-50"
@@ -341,9 +391,19 @@ ${(D.dept_ir || []).slice(0,5).map(d => `- ${d.dept}: 사고 ${d.incidents}건 /
           </div>
         )}
         {!aiSummary.text && !aiSummary.error && !aiSummary.loading && (
-          <p className="text-[11px] text-stone-400 break-keep mt-1">버튼을 누르면 핵심 패턴 · 위험요소 · 개선 포인트를 요약합니다</p>
+          <p className="text-[11px] text-stone-400 break-keep mt-1">버튼을 누르면 핵심 패턴 · 위험요소 · 개선 포인트를 구조화 브리핑으로 요약합니다</p>
         )}
-        <AiOutput text={aiSummary.text} loading={aiSummary.loading} />
+        {/* 구조화 응답(JSON 스키마) → AiBriefing. 파싱 실패 시 → AiOutput(레거시 마크다운) */}
+        {(() => {
+          const structured = parseAiResponse(aiSummary.text);
+          if (structured !== null || aiSummary.loading) {
+            return <AiBriefing data={structured} loading={aiSummary.loading} />;
+          }
+          if (aiSummary.text) {
+            return <AiOutput text={aiSummary.text} loading={false} />;
+          }
+          return null;
+        })()}
       </Card>
     </div>
   );

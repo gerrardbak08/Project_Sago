@@ -33,7 +33,7 @@ import { processWorkers }     from './utils/processData.js';
 import { LayoutDashboard, Building, Building2, MapPin, FileText, Search,
          TrendingUp, GitBranch, UserCircle, Users, Scale, Banknote,
          Stethoscope, Bell, ChevronRight, ShieldCheck, Store,
-         X, AlertCircle, Send, Lock, ExternalLink } from 'lucide-react';
+         X, AlertCircle, Send, Lock, ExternalLink, Target } from 'lucide-react';
 import AlertMonitoring from './components/tabs/alert/AlertMonitoring.jsx';
 import AlertSend       from './components/tabs/alert/AlertSend.jsx';
 import AlertReview     from './components/tabs/alert/AlertReview.jsx';
@@ -41,6 +41,8 @@ import AlertReview     from './components/tabs/alert/AlertReview.jsx';
 // ── 공유 컴포넌트 ──────────────────────────────────────
 import { Card }              from './components/shared/Card.jsx';
 import AdminUpload           from './components/admin/AdminUpload.jsx';
+import AdminLoginPanel       from './components/admin/AdminLoginPanel.jsx';
+import KpiTargetPanel        from './components/admin/KpiTargetPanel.jsx';
 import CustomerDashboard     from './components/layout/CustomerDashboard.jsx';
 import ModeSidebar from './components/layout/ModeSidebar.jsx';
 import { SegmentedToggle } from './components/shared/MotionBits.jsx';
@@ -264,6 +266,8 @@ function App() {
   const [basis, setBasis] = useState('incident');         // 'incident'(사고경위) | 'approval'(산재승인)
   const [showReport, setShowReport] = useState(false);    // 요약 보고서 모달
   const [showSearch, setShowSearch] = useState(false);    // 데이터 조회 모달
+  const [showKpi, setShowKpi] = useState(false);          // KPI 목표설정 패널
+  const [kpiAdminUnlocked, setKpiAdminUnlocked] = useState(false);
   const liveFetchedRef = useRef(false);                   // StrictMode 이중호출 방지
   const basisRef = useRef('incident');                    // 라이브 fetch 콜백에서 최신 basis 읽기용
   const liveRef = useRef({                               // { rows, approvalIds } — 기준 전환 재빌드용 원본
@@ -606,6 +610,7 @@ function App() {
             )}
             {dashMode === "worker" && !inAlert && <XlsxBtn D={dataFiltered} filename={`사고현황_${basis === 'approval' ? '산재승인' : '사고경위'}_요약.xlsx`} />}
             {dashMode === "worker" && !inAlert && <button onClick={() => setShowSearch(true)} className="h-7 px-1.5 sm:px-2.5 rounded-md border border-stone-300 text-[10px] sm:text-xs font-medium text-stone-700 bg-white hover:bg-stone-50 cursor-pointer flex items-center gap-1 transition active:opacity-75"><Search size={12} strokeWidth={2} /> 조회</button>}
+            {dashMode === "worker" && !inAlert && <button onClick={() => setShowKpi(true)} className="h-7 px-1.5 sm:px-2.5 rounded-md border border-stone-300 text-[10px] sm:text-xs font-medium text-stone-700 bg-white hover:bg-stone-50 cursor-pointer flex items-center gap-1 transition active:opacity-75" title="사고절감 KPI 목표 설정 (관리자)"><Target size={12} strokeWidth={2} /> KPI 목표</button>}
             {dashMode === "worker" && !inAlert && <button onClick={() => setShowReport(true)} className="h-7 px-1.5 sm:px-2.5 rounded-md text-white text-[10px] sm:text-xs font-semibold cursor-pointer flex items-center gap-1 transition active:opacity-75" style={{background:"#002B6D"}}><FileText size={12} strokeWidth={2} /> 보고서</button>}
           </div>
         </div>
@@ -781,6 +786,18 @@ function App() {
       </nav>}
       {showReport && <ReportModal D={data} basis={basis} onClose={() => setShowReport(false)} />}
       {showSearch && <DataSearchModal D={data} onClose={() => setShowSearch(false)} />}
+      {/* KPI 목표설정 — AdminLoginPanel 게이트(PIN: dasoo2026) → KpiTargetPanel */}
+      {showKpi && !kpiAdminUnlocked && (
+        <AdminLoginPanel
+          onLogin={() => setKpiAdminUnlocked(true)}
+          onCancel={() => setShowKpi(false)}
+        />
+      )}
+      {showKpi && kpiAdminUnlocked && (
+        <KpiTargetPanel
+          onClose={() => { setShowKpi(false); setKpiAdminUnlocked(false); }}
+        />
+      )}
     </div>
   );
 }

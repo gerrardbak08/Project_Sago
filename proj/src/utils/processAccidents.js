@@ -1,5 +1,6 @@
 import { extractSido, parseDate, categorizeBum, parseTenure, tenureBucket, WD_NAMES } from './parseHelpers.js';
 import { computeStoreMerged } from './processStores.js';
+import { classifyWorkerSubCause, canonType, canonCauseObject } from '../constants/causeTaxonomy.js';
 
 
 function groupBy(arr, keyFn) {
@@ -284,12 +285,17 @@ function processAccidents(rows, storesData, workersData) {
     const tenure = parseTenure(r["근속기간 (년)"]);
     const rawWorkerId = r["사번"];
     const rawWorkerName = r["재해자명"];
+    // 세부원인 분류 (규칙기반, 순수함수) — 기존 type/cause는 그대로 두고 정본·세부원인을 필드로 추가(비파괴)
+    const _cls = classifyWorkerSubCause(r["재해 유형"], r["기인물"], r["사고 내용"]);
     ds.push({
       year: y, month: m, dept, team: r["팀명"], store: r["매장명"],
       bum, date: dt, wd: dt ? WD_NAMES[dt.getDay() === 0 ? 6 : dt.getDay() - 1] : null,
       age: r["나이대"], ageNum: parseInt(r["나이"]) || null, gender: r["성별"], emp: r["고용형태"],
       tenureYr: tenure, tenureBkt: tenureBucket(tenure),
       kind: r["재해 종류"], type: r["재해 유형"], cause: r["기인물"],
+      typeCanon: _cls.type, causeCanon: canonCauseObject(r["기인물"]),
+      subCause: _cls.subCause, subCauseLabel: _cls.subCauseLabel,
+      bodyPart: _cls.bodyPart, action: _cls.action, subMatched: _cls.matched,
       site: r["상해부위 (근골격계)"], content: r["사고 내용"],
       cost: parseFloat(r["공상 비용 계"]) || null,
       loss_days: parseFloat(r["근로손실일수"]) || null,
@@ -480,6 +486,8 @@ function processAccidents(rows, storesData, workersData) {
   const injury = countBy(sales, x => x.type);
   const injury_s = countBy(sales.filter(x => x.bum === "수도권"), x => x.type);
   const injury_j = countBy(sales.filter(x => x.bum === "지방"), x => x.type);
+  // 정본유형 분포(질병 4변종 통합 등) — 세부원인 드릴의 부모 총계. Σ세부원인 == injuryCanon[type] 성립.
+  const injuryCanon = countBy(sales, x => x.typeCanon);
   
   // Cause (top 15)
   const cause = Object.fromEntries(topN(countBy(sales, x => x.cause), 15));
@@ -512,7 +520,42 @@ function processAccidents(rows, storesData, workersData) {
     }
     return row;
   });
-  
+
+  // ── 재해유형별 세부원인 (규칙기반 분류, causeTaxonomy) ──────────────
+  // 정본유형(typeCanon) 기준 집계 → injury와 모수 동일(sales)하여 Σ세부원인 == injury[type] 불변식 성립.
+  // 기준토글(사고경위↔산재승인)·연도필터 시 D.accidents가 바뀌므로 자동 반영.
+  const subCauseByType = {};
+  for (const x of sales) {
+    const t = x.typeCanon;
+    if (!subCauseByType[t]) subCauseByType[t] = {};
+    const key = x.subCauseLabel;
+    if (!subCauseByType[t][key]) subCauseByType[t][key] = { id: x.subCause, label: key, n: 0, y24: 0, y25: 0, y26: 0 };
+    const rec = subCauseByType[t][key];
+    rec.n++;
+    if (x.year === 2024) rec.y24++; else if (x.year === 2025) rec.y25++; else if (x.year === 2026) rec.y26++;
+  }
+  for (const t of Object.keys(subCauseByType)) {
+    subCauseByType[t] = Object.values(subCauseByType[t]).sort((a, b) => b.n - a.n);
+  }
+
+  // 무리한 동작: 동작 × 부상부위 교차(균일축 → Matrix 컴포넌트용)
+  const _motion = sales.filter(x => x.typeCanon === '무리한 동작');
+  const BODY_PARTS = ['허리','손목','어깨','무릎','손·손가락','목','갈비·늑골','다리·종아리'];
+  const _motionActs = [...new Set(_motion.map(x => x.subCauseLabel))];
+  const motionMatrix = _motionActs.map(act => {
+    const row = { act };
+    for (const bp of BODY_PARTS) row[bp] = _motion.filter(x => x.subCauseLabel === act && x.bodyPart === bp).length;
+    return row;
+  });
+
+  // 세부원인 전체 요약(평탄) — 상위 노출·요약용
+  const subCauseTotals = [];
+  for (const t of Object.keys(subCauseByType)) {
+    for (const s of subCauseByType[t]) subCauseTotals.push({ type: t, id: s.id, label: s.label, n: s.n });
+  }
+  subCauseTotals.sort((a, b) => b.n - a.n);
+
+
   // 연령 x 근속
   const ages = ["10대","20대","30대","40대","50대","60대"];
   const tenures = ["1년 미만","1-2년","3-4년","5-9년","10-14년","15년 이상"];
@@ -690,7 +733,8 @@ function processAccidents(rows, storesData, workersData) {
     cross, crossTypes: topTypes, crossCauses: topCauses, ageTenure, deptType,
     gender, genderType, emp, empType, kind, site,
     costType, costDept: {}, risk, keywords, projection,
-    injury, injury_s, injury_j, cause, cause_s, cause_j,
+    injury, injury_s, injury_j, injuryCanon, cause, cause_s, cause_j,
+    subCauseByType, motionMatrix, subCauseTotals,   // 재해유형별 세부원인 (causeTaxonomy)
     age, age_s, age_j, tenure, tenure_s, tenure_j,
     accidents: all,   // 매장 상세 패널 · AI 프롬프트용 원본 레코드
     ...storeExtras,

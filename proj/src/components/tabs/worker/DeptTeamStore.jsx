@@ -10,6 +10,30 @@ import { Card, EstimateBadge } from '../../../components/shared/Card.jsx';
 import { CalcTip, HeatmapGrid, BarRank, Matrix, gradientCells } from '../../../components/shared/ChartHelpers.jsx';
 import { RISK_COLORS } from '../../../constants/riskColors.js';
 import { Odometer, Sparkline, SegmentedToggle } from '../../../components/shared/MotionBits.jsx';
+import { getKpiProgress, getMonthsElapsed, useKpiVersion } from '../../../utils/kpiStore.js';
+import { STATUS_COLOR, STATUS_LABEL } from '../../../utils/kpiProgress.js';
+
+// KPI 배지 — 부서/팀 테이블에서 사고건수 옆에 표시
+function KpiBadge({ level, orgKey }) {
+  const p = getKpiProgress(level, orgKey);
+  if (!p || p.status === 'unknown') return null;
+  const color = STATUS_COLOR[p.status];
+  const me = getMonthsElapsed();
+  // 배지엔 목표 대비 건수(▲초과/▼감축)를 표시 — 미달 시 achievedPct는 -1400% 같은 극단값이라 부적절.
+  const dOver = p.delta != null && Math.abs(p.delta) >= 0.5
+    ? ` ${p.delta > 0 ? '▲' : '▼'}${Math.abs(Math.round(p.delta))}건` : '';
+  const tip = `2026 YTD ${p.actual}건 / ${me}개월 프로레이션 목표 ${p.target != null ? p.target.toFixed(1) : '—'}건`
+    + (p.achievedPct != null ? ` · 목표절감 달성률 ${p.achievedPct.toFixed(0)}%` : '');
+  return (
+    <span
+      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
+      title={tip}
+      style={{ background: color + '1A', color, border: `1px solid ${color}40` }}
+    >
+      {STATUS_LABEL[p.status]}{dOver}
+    </span>
+  );
+}
 
 const yoy = (cur, prev) => prev ? ((cur - prev) / prev * 100) : null;
 
@@ -25,6 +49,7 @@ function TeamTick({ x, y, payload, data }) {
 }
 
 function DeptTeamStore({ D, yearFilter }) {
+  useKpiVersion(); // KPI 목표 저장 시 자동 재렌더
   const [bum, setBum] = useState("전체");
   const [selDept, setSelDept] = useState(null);
   const [storeSearch, setStoreSearch] = useState("");
@@ -369,7 +394,12 @@ function DeptTeamStore({ D, yearFilter }) {
                   <td className="py-2 px-3 font-semibold whitespace-nowrap">{d.dept}</td>
                   <td className="py-2 px-3 whitespace-nowrap"><span className={`text-xs px-2 py-0.5 rounded-full ${d.bum === "수도권" ? "bg-blue-50 text-[#1D4ED8] border border-blue-200" : "bg-stone-100 text-stone-700"}`}>{d.bum}</span></td>
                   <td className="py-2 px-3 text-right tabular-nums text-stone-600 whitespace-nowrap">{d.stores}</td>
-                  <td className="py-2 px-3 text-right tabular-nums font-bold whitespace-nowrap">{d.incidents}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <span className="tabular-nums font-bold">{d.incidents}</span>
+                      <KpiBadge level="dept" orgKey={d.dept} />
+                    </div>
+                  </td>
                   <td className="py-2 px-3 text-right tabular-nums font-extrabold whitespace-nowrap" style={{color: g.color}}>{g.value.toFixed(2)}<span className="text-[10px] font-normal text-stone-400 ml-0.5">건</span></td>
                   {hasWorker && <td className="py-2 px-3 text-right tabular-nums text-stone-600 whitespace-nowrap">{d.workers != null ? d.workers.toLocaleString() : "—"}</td>}
                   {hasWorker && (

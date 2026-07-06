@@ -6,6 +6,7 @@ import { SegmentedToggle } from '../../shared/MotionBits.jsx';
 import { Card } from '../../shared/Card.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { EmptyState } from '../../../utils/uiHelpers.jsx';
+import { classifyWorkerSubCause } from '../../../constants/causeTaxonomy.js';
 
 const COLS = [
   { key: 'year',            label: '년',           cls: 'tabular-nums text-stone-500' },
@@ -17,6 +18,7 @@ const COLS = [
   { key: 'accidentDate',    label: '재해일자',       cls: 'tabular-nums text-stone-500' },
   { key: 'accidentType',    label: '재해유형',       cls: 'text-stone-700' },
   { key: 'causeObject',     label: '기인물',         cls: 'text-stone-600' },
+  { key: 'subCause',        label: '세부원인',       cls: 'text-stone-600' },
   { key: 'lostDays',        label: '손실일',         cls: 'tabular-nums text-right text-stone-600' },
   { key: 'approvalYn',      label: '승인',           cls: 'text-center' },
   { key: 'accidentContent', label: '사고내용',       cls: 'text-stone-500', wide: true },
@@ -27,6 +29,7 @@ const RENDER_LIMIT = 300;
 function normalizeRow(r) {
   return {
     ...r,
+    subCause:     classifyWorkerSubCause(r.accidentType, r.causeObject, r.accidentContent).subCauseLabel,
     accidentDate: r.accidentDate ? String(r.accidentDate).slice(0, 10) : '-',
     approvalYn:   r.approvalYn === 'Y' ? 'Y' : '-',
     lostDays:     r.lostDays != null ? r.lostDays : '-',
@@ -40,6 +43,7 @@ function toExportRow(r, i) {
     '재해자': r.victimName,
     '재해일자': r.accidentDate ? String(r.accidentDate).slice(0, 10) : '',
     '재해유형': r.accidentType, '기인물': r.causeObject,
+    '세부원인': classifyWorkerSubCause(r.accidentType, r.causeObject, r.accidentContent).subCauseLabel,
     '근로손실일수': r.lostDays ?? '',
     '승인': r.approvalYn === 'Y' ? 'Y' : '-',
     '사고내용': r.accidentContent,

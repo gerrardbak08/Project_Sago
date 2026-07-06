@@ -5,7 +5,7 @@ import { CUSTOMER_BLUE, DEEP_BLUE, DAISO_RED, ALERT_RED, SAFE_GREEN, BL, OR, GR,
 import { pct, fmt, fmtKrw, TT, EmptyState } from '../../../utils/uiHelpers.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card } from '../../../components/shared/Card.jsx';
-import { gradientCells } from '../../../components/shared/ChartHelpers.jsx';
+import { gradientCells, Matrix } from '../../../components/shared/ChartHelpers.jsx';
 import { CUST_AMBER, CUST_PAL, CUST_GRAY, CUST_TEAL, TYPE_COLOR } from '../../../constants/customerColors.js';
 import { yearKey, compKey, cFilter } from '../../../utils/customerHelpers.js';
 import CUSTOMER_DATA from '../../../data/customerData.js';
@@ -120,6 +120,42 @@ function CTypePlace({ D }) {
           </ResponsiveContainer>
         </Card>
       </div>
+
+      {/* 원인3(행동·결과) — 원시데이터에 있으나 그간 미사용, 이제 노출 */}
+      {D.causes3 && D.causes3.length > 0 && (
+        <Card title="원인3 · 행동·결과 분포" titleIcon={AlertCircle} sub={`${yrLabel} 최종 행동/결과 (넘어짐·충돌·누액·파손 등)`}
+          right={<ExportBtn rows={D.causes3.map(c=>({행동결과:c.c,건수:c._show}))} filename={`고객사고_원인3_${yrLabel}.csv`}/>}>
+          <ResponsiveContainer width="100%" height={Math.max(200, D.causes3.length*26)} debounce={50}>
+            <BarChart data={D.causes3} layout="vertical" margin={{left:0}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false}/>
+              <XAxis type="number" tick={{fontSize:10,fill:"#78716C"}} axisLine={false} tickLine={false}/>
+              <YAxis type="category" dataKey="c" tick={{fontSize:11,fill:"#44403C"}} axisLine={false} tickLine={false} width={70} interval={0}/>
+              <Tooltip content={<TT/>}/>
+              <Bar dataKey="_show" fill={CUST_TEAL} radius={[0,4,4,0]} name="건수">
+                {gradientCells(D.causes3, CUST_TEAL)}
+                <LabelList dataKey="_show" position="right" style={{fontSize:10,fill:INK,fontWeight:700}}/>
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <div className="mt-3 p-3 rounded-lg bg-stone-50 border border-stone-200 text-xs text-stone-600 break-keep">
+            원인1(대분류)→원인2(세부)→<b>원인3(행동·결과)</b>의 3단계 중 마지막 축. <span className="text-stone-500">"부주의(원인1)→고객(원인2)→넘어짐(원인3)"처럼 사고가 실제로 귀결된 행동/결과입니다.</span>
+          </div>
+        </Card>
+      )}
+
+      {/* 교차 매트릭스 — 사고유형×원인1, 원인1×원인3(행동) */}
+      {D.typeCause?.rows && (
+        <Card title="사고유형 × 원인1 매트릭스" titleIcon={GitBranch} sub={`${yrLabel} 어떤 원인이 어떤 사고유형으로 이어지나`}
+          right={<ExportBtn rows={D.typeCause.rows} filename={`고객사고_유형×원인1_${yrLabel}.csv`}/>}>
+          <Matrix data={D.typeCause.rows} rowKey="row" cols={D.typeCause.cols}/>
+        </Card>
+      )}
+      {D.causeAction?.rows && (
+        <Card title="원인1 × 원인3(행동·결과) 매트릭스" titleIcon={GitBranch} sub={`${yrLabel} 원인이 어떤 행동·결과로 귀결되나`}
+          right={<ExportBtn rows={D.causeAction.rows} filename={`고객사고_원인1×원인3_${yrLabel}.csv`}/>}>
+          <Matrix data={D.causeAction.rows} rowKey="row" cols={D.causeAction.cols}/>
+        </Card>
+      )}
     </div>
   );
 }

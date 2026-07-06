@@ -1,4 +1,7 @@
-import rawCustomer from '../data/raw/customer_accidents.json';
+// 고객(안전사고) 원시데이터 → 대시보드용 집계.
+// 순수함수(rows 인자) — node 환경(scripts/bake-customer.mjs)에서 JSON을 주입해 customerData.js를 재생성한다.
+// (원시 1.5MB JSON을 클라 번들에 넣지 않기 위해 결과를 baked customerData.js로 커밋)
+import { CUSTOMER_NORM } from '../constants/causeTaxonomy.js';
 
 function parseDate(val) {
   if (!val) return null;
@@ -49,9 +52,7 @@ function diffDays(start, end) {
   return ms < 0 ? null : Math.round(ms / (1000 * 60 * 60 * 24));
 }
 
-function computeCustomer() {
-  const rows = rawCustomer.data;
-
+export function computeCustomer(rows) {
   // Normalize rows
   const ds = rows.map(r => {
     const dt    = parseDate(r['발생일시']);
@@ -65,16 +66,18 @@ function computeCustomer() {
     const dept  = normalizeDept(r['부문명']);
     const team  = r['지역명'] ? String(r['지역명']).trim() : null;
     const store = r['매장명'] ? String(r['매장명']).trim() : null;
-    const type  = r['사고유형'] ? String(r['사고유형']).trim() : null;
+    const type  = CUSTOMER_NORM.type(r['사고유형']);   // 낙성→낙상 오타 병합
     const place = r['장소'] ? String(r['장소']).trim() : null;
-    const c1    = r['원인1'] ? String(r['원인1']).trim() : null;
-    const c2    = r['원인2'] ? String(r['원인2']).trim() : null;
+    const c1    = CUSTOMER_NORM.c1(r['원인1']);         // 원인1(대분류) 정규화
+    const c2    = CUSTOMER_NORM.c2(r['원인2']);         // 원인2 괄호형식 통일
+    const c3    = CUSTOMER_NORM.c3(r['원인3']);         // 원인3(행동·결과) — 선행공백 제거(15→9종)
+    const summary = r['사고내용요약'] ? String(r['사고내용요약']).trim() : null;
     const age   = normalizeAge(r['연령대']);
     const gender = normalizeGender(r['성별']);
     const proc  = r['처리과정'] ? String(r['처리과정']).trim() : null;
     const open  = dtEnd == null && dt != null;
     return { year, month, hour, dt, dtCS, dtEnd, dept, bumun: dept ? BUMUN(dept) : null,
-             team, store, type, place, c1, c2, age, gender, comp, days, proc, open };
+             team, store, type, place, c1, c2, c3, summary, age, gender, comp, days, proc, open };
   }).filter(r => r.year && [2024, 2025, 2026].includes(r.year));
 
   const y24 = ds.filter(r => r.year === 2024);
@@ -154,6 +157,22 @@ function computeCustomer() {
   }
   const causes1 = buildCauses('c1');
   const causes2 = buildCauses('c2');
+  const causes3 = buildCauses('c3');   // 원인3(행동·결과) — 그간 미사용, 이제 노출
+
+  // 교차 매트릭스 (연도별) — 사고유형×원인1, 원인1×원인3(행동). Matrix 컴포넌트가 연도토글에 반응하도록 all/y24/y25/y26 사전계산.
+  function crossByYear(rowField, colField, rowVals, colVals) {
+    const mk = (arr) => rowVals.map(rv => {
+      const row = { row: rv };
+      for (const cv of colVals) row[cv] = arr.filter(r => r[rowField] === rv && r[colField] === cv).length;
+      return row;
+    });
+    return { cols: colVals, all: mk(ds), y24: mk(y24), y25: mk(y25), y26: mk(y26) };
+  }
+  const typeVals = types.map(t => t.type);
+  const c1Vals = causes1.map(c => c.c);
+  const c3Vals = causes3.map(c => c.c);
+  const typeCause   = crossByYear('type', 'c1', typeVals, c1Vals);   // 사고유형 × 원인1
+  const causeAction = crossByYear('c1', 'c3', c1Vals, c3Vals);       // 원인1 × 원인3(행동·결과)
 
   // Depts
   const allDepts = [...new Set(ds.map(r => r.dept).filter(Boolean))];
@@ -286,10 +305,9 @@ function computeCustomer() {
     kpis_y24: kpis(y24),
     kpis_y25: kpis(y25),
     kpis_y26: kpis(y26),
-    yearly, monthly, types, places, causes1, causes2,
+    yearly, monthly, types, places, causes1, causes2, causes3,
+    typeCause, causeAction,
     depts, bumun, teams, process, comp_bins, ages, hours,
     store_watchlist, days_by_proc,
   };
 }
-
-export default computeCustomer();

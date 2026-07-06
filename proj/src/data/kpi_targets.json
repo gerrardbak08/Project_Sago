@@ -1,0 +1,322 @@
+{
+  "version": "1.0",
+  "comment": "사고절감 목표. baseline=2025 실적×0.90 자동 프리필. 관리자 UI로 수정. S3 MODELS_BUCKET/kpi_targets.json.",
+  "baseline_year": 2025,
+  "target_year": 2026,
+  "factor": 0.1,
+  "updatedAt": "2026-07-04T08:27:54.920Z",
+  "levels": {
+    "bumun": {
+      "수도권": {
+        "baseline_incidents": 141,
+        "target_incidents": 127,
+        "target_ir": null,
+        "edited": false
+      },
+      "지방": {
+        "baseline_incidents": 107,
+        "target_incidents": 96,
+        "target_ir": null,
+        "edited": false
+      },
+      "기타": {
+        "baseline_incidents": 7,
+        "target_incidents": 6,
+        "target_ir": null,
+        "edited": false
+      }
+    },
+    "dept": {
+      "인천영업부": {
+        "baseline_incidents": 49,
+        "target_incidents": 44,
+        "target_ir": null,
+        "edited": false
+      },
+      "관악/평택/안산영업부": {
+        "baseline_incidents": 26,
+        "target_incidents": 23,
+        "target_ir": null,
+        "edited": false
+      },
+      "강북영업부": {
+        "baseline_incidents": 33,
+        "target_incidents": 30,
+        "target_ir": null,
+        "edited": false
+      },
+      "경남영업부": {
+        "baseline_incidents": 17,
+        "target_incidents": 15,
+        "target_ir": null,
+        "edited": false
+      },
+      "경북영업부": {
+        "baseline_incidents": 26,
+        "target_incidents": 23,
+        "target_ir": null,
+        "edited": false
+      },
+      "정보 없음": {
+        "baseline_incidents": 1,
+        "target_incidents": 1,
+        "target_ir": null,
+        "edited": false
+      },
+      "충청영업부": {
+        "baseline_incidents": 27,
+        "target_incidents": 24,
+        "target_ir": null,
+        "edited": false
+      },
+      "호남영업부": {
+        "baseline_incidents": 32,
+        "target_incidents": 29,
+        "target_ir": null,
+        "edited": false
+      },
+      "강남/구리영업부": {
+        "baseline_incidents": 19,
+        "target_incidents": 17,
+        "target_ir": null,
+        "edited": false
+      },
+      "강원영업부": {
+        "baseline_incidents": 5,
+        "target_incidents": 5,
+        "target_ir": null,
+        "edited": false
+      },
+      "수원/용인영업부": {
+        "baseline_incidents": 14,
+        "target_incidents": 13,
+        "target_ir": null,
+        "edited": false
+      },
+      "오픈지원부": {
+        "baseline_incidents": 6,
+        "target_incidents": 5,
+        "target_ir": null,
+        "edited": false
+      }
+    },
+    "team": {
+      "일산팀": {
+        "baseline_incidents": 25,
+        "target_incidents": 23,
+        "target_ir": null,
+        "edited": false
+      },
+      "관악팀": {
+        "baseline_incidents": 15,
+        "target_incidents": 14,
+        "target_ir": null,
+        "edited": false
+      },
+      "종로팀": {
+        "baseline_incidents": 6,
+        "target_incidents": 5,
+        "target_ir": null,
+        "edited": false
+      },
+      "신촌팀": {
+        "baseline_incidents": 13,
+        "target_incidents": 12,
+        "target_ir": null,
+        "edited": false
+      },
+      "평택팀": {
+        "baseline_incidents": 7,
+        "target_incidents": 6,
+        "target_ir": null,
+        "edited": false
+      },
+      "창원팀": {
+        "baseline_incidents": 7,
+        "target_incidents": 6,
+        "target_ir": null,
+        "edited": false
+      },
+      "경북팀": {
+        "baseline_incidents": 16,
+        "target_incidents": 14,
+        "target_ir": null,
+        "edited": false
+      },
+      "본사": {
+        "baseline_incidents": 0,
+        "target_incidents": 0,
+        "target_ir": null,
+        "edited": false
+      },
+      "충북팀": {
+        "baseline_incidents": 8,
+        "target_incidents": 7,
+        "target_ir": null,
+        "edited": false
+      },
+      "제주팀": {
+        "baseline_incidents": 5,
+        "target_incidents": 5,
+        "target_ir": null,
+        "edited": false
+      },
+      "강남팀": {
+        "baseline_incidents": 3,
+        "target_incidents": 3,
+        "target_ir": null,
+        "edited": false
+      },
+      "충남팀": {
+        "baseline_incidents": 7,
+        "target_incidents": 6,
+        "target_ir": null,
+        "edited": false
+      },
+      "동부산팀": {
+        "baseline_incidents": 8,
+        "target_incidents": 7,
+        "target_ir": null,
+        "edited": false
+      },
+      "강릉속초팀": {
+        "baseline_incidents": 2,
+        "target_incidents": 2,
+        "target_ir": null,
+        "edited": false
+      },
+      "안산팀": {
+        "baseline_incidents": 4,
+        "target_incidents": 4,
+        "target_ir": null,
+        "edited": false
+      },
+      "용인팀": {
+        "baseline_incidents": 7,
+        "target_incidents": 6,
+        "target_ir": null,
+        "edited": false
+      },
+      "중호오픈지원팀": {
+        "baseline_incidents": 1,
+        "target_incidents": 1,
+        "target_ir": null,
+        "edited": false
+      },
+      "울산팀": {
+        "baseline_incidents": 3,
+        "target_incidents": 3,
+        "target_ir": null,
+        "edited": false
+      },
+      "강북팀": {
+        "baseline_incidents": 14,
+        "target_incidents": 13,
+        "target_ir": null,
+        "edited": false
+      },
+      "전남팀": {
+        "baseline_incidents": 18,
+        "target_incidents": 16,
+        "target_ir": null,
+        "edited": false
+      },
+      "서부산팀": {
+        "baseline_incidents": 2,
+        "target_incidents": 2,
+        "target_ir": null,
+        "edited": false
+      },
+      "춘천원주팀": {
+        "baseline_incidents": 3,
+        "target_incidents": 3,
+        "target_ir": null,
+        "edited": false
+      },
+      "전북팀": {
+        "baseline_incidents": 9,
+        "target_incidents": 8,
+        "target_ir": null,
+        "edited": false
+      },
+      "오픈지원팀": {
+        "baseline_incidents": 0,
+        "target_incidents": 0,
+        "target_ir": null,
+        "edited": false
+      },
+      "수도권오픈지원팀": {
+        "baseline_incidents": 1,
+        "target_incidents": 1,
+        "target_ir": null,
+        "edited": false
+      },
+      "영남오픈지원팀": {
+        "baseline_incidents": 4,
+        "target_incidents": 4,
+        "target_ir": null,
+        "edited": false
+      },
+      "수원팀": {
+        "baseline_incidents": 7,
+        "target_incidents": 6,
+        "target_ir": null,
+        "edited": false
+      },
+      "강동팀": {
+        "baseline_incidents": 7,
+        "target_incidents": 6,
+        "target_ir": null,
+        "edited": false
+      },
+      "대전팀": {
+        "baseline_incidents": 12,
+        "target_incidents": 11,
+        "target_ir": null,
+        "edited": false
+      },
+      "남인천팀": {
+        "baseline_incidents": 17,
+        "target_incidents": 15,
+        "target_ir": null,
+        "edited": false
+      },
+      "북인천팀": {
+        "baseline_incidents": 7,
+        "target_incidents": 6,
+        "target_ir": null,
+        "edited": false
+      },
+      "대구팀": {
+        "baseline_incidents": 7,
+        "target_incidents": 6,
+        "target_ir": null,
+        "edited": false
+      },
+      "구리팀": {
+        "baseline_incidents": 9,
+        "target_incidents": 8,
+        "target_ir": null,
+        "edited": false
+      },
+      "매장리뉴얼팀": {
+        "baseline_incidents": 0,
+        "target_incidents": 0,
+        "target_ir": null,
+        "edited": false
+      },
+      "수도권서부지원팀": {
+        "baseline_incidents": 0,
+        "target_incidents": 0,
+        "target_ir": null,
+        "edited": false
+      },
+      "정보 없음": {
+        "baseline_incidents": 1,
+        "target_incidents": 1,
+        "target_ir": null,
+        "edited": false
+      }
+    }
+  }
+}

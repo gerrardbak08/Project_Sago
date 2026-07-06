@@ -52,7 +52,8 @@ function CrossAnalysis({ D, yearFilter }) {
         const causeAll = Object.entries(D.cause || {}).map(([name, value]) => ({ name, value })).filter(d => d.value > 0).sort((a, b) => b.value - a.value);
         const causeTop = causeAll.slice(0, 8);
         const causeEtc = causeAll.slice(8).reduce((s, c) => s + c.value, 0);
-        const causeArr = causeEtc > 0 ? [...causeTop, { name: '기타', value: causeEtc }] : causeTop;
+        // 오버플로 버킷은 '그 외'로 명명 — 기인물 '기타'가 상위8에 포함될 때 라벨 충돌(중복 key)·이중표기 방지
+        const causeArr = causeEtc > 0 ? [...causeTop, { name: '그 외', value: causeEtc }] : causeTop;
         const causeTotal = causeArr.reduce((s, c) => s + c.value, 0);
         return (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -118,7 +119,69 @@ function CrossAnalysis({ D, yearFilter }) {
           <div className="p-3 rounded-lg bg-white border border-stone-200 break-keep"><div className="text-xs font-bold text-amber-700">활용 가이드</div><div>큰 셀 = 빈도 높은 조합 → 현장 RCA 우선순위 후보. <span className="text-stone-500">실제 개입 효과는 노출량·예방 비용 등 추가 분석 필요.</span></div></div>
         </div>
       </Card>
-      
+
+      {/* 재해유형별 세부원인 — causeTaxonomy 규칙기반 분류 (사고경위 서술 근거). 예방수칙 단위 분할. */}
+      {D.subCauseByType && Object.keys(D.subCauseByType).length > 0 && (() => {
+        const yk = yearFilter && yearFilter !== 'all' ? (yearFilter === '2024' ? 'y24' : yearFilter === '2025' ? 'y25' : 'y26') : null;
+        const typePanels = Object.entries(D.subCauseByType)
+          .map(([type, subs]) => {
+            const items = subs.map(s => ({ name: s.label, value: yk ? (s[yk] || 0) : s.n })).filter(x => x.value > 0).sort((a, b) => b.value - a.value);
+            return { type, total: items.reduce((s, x) => s + x.value, 0), items };
+          })
+          .filter(t => t.total > 0)
+          .sort((a, b) => b.total - a.total);
+        const exportRows = typePanels.flatMap(t => t.items.map(it => ({ 재해유형: t.type, 세부원인: it.name, 건수: it.value })));
+        // 무리한 동작 동작×부위 — 컴포넌트 실집계(연도 반응). D.accidents는 필터 무관 원본이라 실카운트.
+        const motionAccs = (D.accidents || []).filter(a => a.typeCanon === '무리한 동작' && (a.bum === '수도권' || a.bum === '지방') && (!yk || String(a.year) === yearFilter));
+        const PARTS = ['허리', '손목', '어깨', '무릎', '손·손가락', '목', '갈비·늑골', '다리·종아리'];
+        const motionRows = [...new Set(motionAccs.map(a => a.subCauseLabel))].map(act => {
+          const row = { act };
+          for (const p of PARTS) row[p] = motionAccs.filter(a => a.subCauseLabel === act && a.bodyPart === p).length;
+          return row;
+        }).filter(r => PARTS.some(p => r[p] > 0));
+        const motionCols = PARTS.filter(p => motionRows.some(r => r[p] > 0));
+        return (
+          <Card title="재해유형별 세부원인" titleIcon={ClipboardList}
+            sub="사고경위 서술 기반 규칙분류 — '왜 그 유형이 발생했나' (예방수칙 단위 세부원인)"
+            right={<ExportBtn rows={exportRows} filename="재해유형별_세부원인.csv" />}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-4">
+              {typePanels.map(t => {
+                const mx = t.items[0]?.value || 1;
+                return (
+                  <div key={t.type} className="min-w-0">
+                    <div className="flex items-baseline justify-between mb-1.5 pb-1.5 border-b border-stone-100">
+                      <span className="text-sm font-bold text-stone-800">{t.type}</span>
+                      <span className="text-xs text-stone-400 tabular-nums">{t.total}건</span>
+                    </div>
+                    <div className="space-y-1">
+                      {t.items.map((it, i) => (
+                        <div key={it.name} className="flex items-center gap-2 py-0.5">
+                          <span className="text-[11px] text-stone-600 w-24 flex-shrink-0 break-keep leading-tight">{it.name}</span>
+                          <div className="flex-1 h-2 bg-stone-100 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all" style={{ width: `${(it.value / mx) * 100}%`, background: rankColor(i) }} />
+                          </div>
+                          <span className="text-[11px] font-bold tabular-nums text-stone-700 w-14 text-right">{it.value}<span className="text-stone-400 font-normal ml-0.5">{t.total ? Math.round(it.value / t.total * 100) : 0}%</span></span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {motionRows.length > 0 && (
+              <div className="mt-5 pt-4 border-t border-stone-200">
+                <div className="text-sm font-bold text-stone-700 mb-1">무리한 동작 · 동작 × 부상부위</div>
+                <div className="text-xs text-stone-500 mb-2">어떤 동작이 어느 부위 부담으로 이어지는가 — 근골격계 개입점</div>
+                <Matrix data={motionRows} rowKey="act" cols={motionCols} />
+              </div>
+            )}
+            <div className="mt-3 p-3 rounded-lg bg-stone-50 border border-stone-200 text-xs text-stone-600 break-keep">
+              세부원인은 사고경위 서술문의 규칙기반 분류입니다(예: 넘어짐 → 헛디딤·장애물 걸림·미끄러짐). <span className="text-stone-500">예방수칙이 다른 축으로 분할했으며, 저신호 서술은 '기타'로 남겨둡니다. 이 세부원인이 향후 매장별 예방 카드의 기반이 됩니다.</span>
+            </div>
+          </Card>
+        );
+      })()}
+
       <Card title="사고 내용 키워드 빈도분석" titleIcon={Search} sub="사고 서술문에서 추출한 핵심 키워드 — 숨은 위험 패턴 도출">
         {(() => {
           const maxC = Math.max(...(D.keywords || []).map(k => k.count), 1);

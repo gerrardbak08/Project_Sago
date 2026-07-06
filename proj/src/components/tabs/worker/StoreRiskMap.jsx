@@ -134,13 +134,27 @@ function StoreRiskMap({ D = {}, yearFilter = "all", setYearFilter = () => {}, sy
   const [guideError, setGuideError] = useState(null);
   const abortRef = useRef(null);
 
-  // 선택된 매장의 사고 레코드 (전체 연도)
+  // 선택된 매장의 사고 레코드 (전체 연도) — 매장명 정규화 매칭으로 지도 마커 카운트와 일치시킴
+  // (정확일치 시 매장명 표기흔들림[괄호·공백·접미사]에서 마커≠리스트 불일치가 생김)
   const storeAccidents = useMemo(() => {
     if (!selectedStore || !D.accidents) return [];
+    const key = normalizeStoreName(selectedStore.n);
     return D.accidents
-      .filter(a => a.store === selectedStore.n)
+      .filter(a => a.store && normalizeStoreName(a.store) === key)
       .sort((a, b) => (toDate(b.date)?.getTime() || 0) - (toDate(a.date)?.getTime() || 0));
   }, [selectedStore, D.accidents]);
+
+  // 선택 매장의 라이브 연도별 카운트 — 사고이력 리스트에서 직접 산출하여 배지·요약이 항상 일치.
+  // 정적 selectedStore.tot/y24…(storesData 스냅샷)는 stale이라 기준토글·재bake 시 어긋나므로 미사용.
+  const selCount = useMemo(() => {
+    const c = { tot: storeAccidents.length, y24: 0, y25: 0, y26: 0 };
+    for (const a of storeAccidents) {
+      if (a.year === 2024) c.y24++;
+      else if (a.year === 2025) c.y25++;
+      else if (a.year === 2026) c.y26++;
+    }
+    return c;
+  }, [storeAccidents]);
 
   // 매장별 사고수 — 라이브 D.accidents 기준. 기준 토글(사고경위↔산재승인) 전환 시
   // D.accidents가 바뀌므로 지도 마커·통계·요약이 즉시 전환된다.
@@ -194,6 +208,28 @@ function StoreRiskMap({ D = {}, yearFilter = "all", setYearFilter = () => {}, sy
     const top = [...inc].sort((a, b) => getYearCount(b) - getYearCount(a))[0];
     return { total: filteredStores.length, incident: inc.length, safe: filteredStores.length - inc.length, accidentCount, topStore: top || null };
   }, [filteredStores, getYearCount]);
+
+  // 지도 미표시 진단 — 라이브 사고 중 매장마스터(MAP_STORES)에 매칭 안 되는 매장의 사고건수.
+  // 편집거리 퍼지매칭은 오매칭(대치본점→대전본점 등) 위험이 커 정규화 매칭까지만 사용하고,
+  // 나머지는 은폐하지 않고 정직하게 노출하여 지도 합계 ↔ 대시보드 총계 괴리를 설명한다.
+  const unmappedCount = useMemo(() => {
+    const inRange = (a) => {
+      if (yearFilter === "2024" && a.year !== 2024) return false;
+      if (yearFilter === "2025" && a.year !== 2025) return false;
+      if (yearFilter === "2026" && a.year !== 2026) return false;
+      if (bumFilter  !== "전체" && a.bum  !== bumFilter)  return false;
+      if (deptFilter !== "전체" && a.dept !== deptFilter) return false;
+      if (teamFilter !== "전체" && a.team !== teamFilter) return false;
+      return true;
+    };
+    const mapKeys = new Set(MAP_STORES.map(s => normalizeStoreName(s.n)));
+    let n = 0;
+    (D.accidents || []).forEach(a => {
+      if (!a.store || !inRange(a)) return;
+      if (!mapKeys.has(normalizeStoreName(a.store))) n++;
+    });
+    return n;
+  }, [D.accidents, yearFilter, bumFilter, deptFilter, teamFilter]);
 
   // 최다 사고 매장 — 라이브 D.accidents 기준(필터 반영). 정적 storesData 카운트는 고정값이라 라이브 실데이터로 산출.
   const liveTopStore = useMemo(() => {
@@ -892,7 +928,7 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
       <div ref={kpiRef} className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         {[
           {l:"표시 매장",         v:`${cuTotal.toLocaleString()}개`,                        c:"text-stone-900"},
-          {l:`${yearLabel} 사고`,  v:`${cuAccidents.toLocaleString()}건`, sub:`발생 매장 ${cuIncident.toLocaleString()}개`, c:"text-[#D70011]"},
+          {l:`${yearLabel} 사고`,  v:`${cuAccidents.toLocaleString()}건`, sub:`발생 매장 ${cuIncident.toLocaleString()}개${unmappedCount>0?` · 미표시 ${unmappedCount}건`:""}`, c:"text-[#D70011]"},
           {l:"무사고 매장",       v:`${cuSafe.toLocaleString()}개`,                         c:"text-stone-500"},
           {l:"최다 사고 매장",    v:liveTopStore ? `${liveTopStore.n} (${cuTopC}건)` : "-", c:"text-stone-800"},
         ].map((k, i) => (
@@ -1144,6 +1180,9 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                   {missingCoordCount > 0 && (
                     <span className="text-amber-600 ml-1">· 좌표 누락 {missingCoordCount}개 제외</span>
                   )}
+                  {unmappedCount > 0 && (
+                    <span className="text-amber-600 ml-1" title="매장마스터에 등록되지 않은 매장(신규·명칭불일치)의 사고로, 지도 마커에는 표시되지 않습니다.">· 미등록매장 {unmappedCount}건 미표시</span>
+                  )}
                 </div>
               </div>
             )}
@@ -1249,7 +1288,7 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     {(() => {
                       const yearCnt = getYearCount(selectedStore) || 0;
-                      const tot = selectedStore.tot || 0;
+                      const tot = selCount.tot;
                       const badge = yearCnt >= 5 ? {l:"고위험", c: DAISO_RED, bg:"#FEE2E2"}
                         : yearCnt >= 2 ? {l:"주의", c:"#C2410C", bg:"#FED7AA"}
                         : yearCnt >= 1 ? {l:"관찰", c:"#A16207", bg:"#FEF3C7"}
@@ -1293,7 +1332,7 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
             {/* 요약 카드 그리드 */}
             <div className="flex-shrink-0 grid grid-cols-4 divide-x divide-stone-100 border-b border-stone-100">
               {(() => {
-                const tot = selectedStore.tot || 0;
+                const tot = selCount.tot;
                 // 최근 사고일
                 const recent = ymd(storeAccidents[0]?.date, ".")
                   || (storeAccidents[0]?.year ? `${storeAccidents[0].year}` : "-");
@@ -1442,10 +1481,10 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                   {/* 연도별 KPI */}
                   <div className="grid grid-cols-4 divide-x divide-stone-200 rounded-lg border border-stone-200 overflow-hidden">
                     {[
-                      {l:"전체",  v:selectedStore.tot, c: selectedStore.tot>=3?"text-[#D70011]":"text-stone-800"},
-                      {l:"2024", v:selectedStore.y24, c:"text-stone-700"},
-                      {l:"2025", v:selectedStore.y25, c:"text-stone-700"},
-                      {l:"2026", v:selectedStore.y26, c:"text-stone-700"},
+                      {l:"전체",  v:selCount.tot, c: selCount.tot>=3?"text-[#D70011]":"text-stone-800"},
+                      {l:"2024", v:selCount.y24, c:"text-stone-700"},
+                      {l:"2025", v:selCount.y25, c:"text-stone-700"},
+                      {l:"2026", v:selCount.y26, c:"text-stone-700"},
                     ].map(k => (
                       <div key={k.l} className="py-3 text-center">
                         <div className="text-[10px] text-stone-400 mb-1 uppercase tracking-wide">{k.l}</div>
