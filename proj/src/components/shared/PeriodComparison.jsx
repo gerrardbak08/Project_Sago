@@ -86,16 +86,12 @@ function PeriodComparison({ monthly, storeSnapshots, workerSnapshots }) {
     if (refYm === ym) setRefYm(null);
   };
 
-  // ── 차트 데이터: 실제 사고건수 + 매장·근로자·평수의 인덱스 (첫 시점=100) ──
+  // ── 차트 데이터: 실제 사고건수 + 매장·근로자·평수의 인덱스 (★ 기준 시점=100) ──
   // 사고는 좌측 Y축(실수치), 매장·근로자·평수는 우측 Y축(인덱스)로 분리
   const chartData = useMemo(() => {
-    // 인덱스 기준점: 정렬상 첫 시점에서 데이터가 있는 row
-    const baseStoreRow = sortedPoints
-      .map(ym => storeSnapshots?.find(s => s.ym === ym))
-      .find(r => r && r.count != null);
-    const baseWorkerRow = sortedPoints
-      .map(ym => workerSnapshots?.find(w => w.ym === ym))
-      .find(r => r && r.workers != null);
+    // 인덱스 기준점: ★ 기준 시점(effectiveRef)을 100으로 고정 — 범례·ReferenceLine과 정합
+    const baseStoreRow = storeSnapshots?.find(s => s.ym === effectiveRef) ?? null;
+    const baseWorkerRow = workerSnapshots?.find(w => w.ym === effectiveRef) ?? null;
 
     return sortedPoints.map(ym => {
       const m = monthlyByYm.get(ym);

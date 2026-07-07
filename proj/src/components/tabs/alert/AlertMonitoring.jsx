@@ -578,18 +578,19 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
               <div>
                 <div className="text-[11px] font-bold text-stone-400 mb-2">발송 현황 (매장 수)</div>
                 <ResponsiveContainer width="100%" height={160}>
-                  <ComposedChart data={trendData} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
+                  <ComposedChart data={trendData} margin={{ top: 4, right: 40, left: -24, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" vertical={false} />
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <YAxis yAxisId="left" tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <YAxis yAxisId="right" orientation="right" domain={[0, 100]} tickCount={3} unit="%" tick={{ fontSize: 10, fill: '#34d399' }} axisLine={false} tickLine={false} />
                     <Tooltip
                       contentStyle={{ borderRadius: 10, border: '1px solid #e7e5e4', fontSize: 11 }}
-                      formatter={(value, name) => [value, name === 'total' ? '총 발송' : name === 'high' ? '고위험' : '실패']}
+                      formatter={(value, name) => name === '성공률(%)' ? [value + '%', name] : [value, name === 'total' ? '총 발송' : name === 'high' ? '고위험' : '실패']}
                       labelFormatter={label => `${label} 날짜`}
                     />
-                    <Bar dataKey="total" name="total" fill="#d6d3d1" radius={[4, 4, 0, 0]} maxBarSize={32} />
-                    <Bar dataKey="high" name="high" fill="#fca5a5" radius={[4, 4, 0, 0]} maxBarSize={32} />
-                    <Line type="monotone" dataKey="successRate" name="성공률(%)" stroke="#34d399" strokeWidth={2} dot={{ r: 3, fill: '#34d399' }} yAxisId={0} />
+                    <Bar dataKey="total" name="total" yAxisId="left" fill="#d6d3d1" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                    <Bar dataKey="high" name="high" yAxisId="left" fill="#fca5a5" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                    <Line type="monotone" dataKey="successRate" name="성공률(%)" stroke="#34d399" strokeWidth={2} dot={{ r: 3, fill: '#34d399' }} yAxisId="right" />
                   </ComposedChart>
                 </ResponsiveContainer>
                 <div className="flex gap-4 justify-center mt-1">

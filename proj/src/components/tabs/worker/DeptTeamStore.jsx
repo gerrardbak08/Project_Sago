@@ -190,7 +190,7 @@ function DeptTeamStore({ D, yearFilter }) {
         const yr = yearFilter !== "all" ? D.yearly?.find(y => String(y.year) === yearFilter) : null;
         const sudoBumun = D.worker_ir_summary.by_bumun.find(b => b.bum === "수도권");
         const jibangBumun = D.worker_ir_summary.by_bumun.find(b => b.bum === "지방");
-        const totalIncidents = yr ? (yr.s + yr.j) : D.worker_ir_summary.total.incidents;
+        const totalIncidents = yr ? ((yr.s || 0) + (yr.j || 0) + (yr.e || 0)) : D.worker_ir_summary.total.incidents;
         const sudoIncidents = yr ? yr.s : (sudoBumun?.incidents ?? 0);
         const jibangIncidents = yr ? yr.j : (jibangBumun?.incidents ?? 0);
         const totalWorkers = D.worker_ir_summary.total.workers;
@@ -312,6 +312,12 @@ function DeptTeamStore({ D, yearFilter }) {
             />
           </div>
         )}
+        {isYearFilter && (
+          <div className="mb-3 flex items-start gap-2 px-2.5 py-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800 break-keep">
+            <Info size={13} className="flex-shrink-0 text-amber-600 mt-0.5" />
+            <span><b>전체 기간 기준</b> — 팀별 IR(사고건수 ÷ 재직자수)은 연도별 인원(분모) 데이터가 없어 {yearFilter}년 필터에 반응하지 않습니다. 전사 누적 스냅샷 값입니다.</span>
+          </div>
+        )}
         <ResponsiveContainer key={metric} width="100%" height={Math.max(420, teamIrChartData.length * 24)} debounce={50}>
           <BarChart data={teamIrChartData} layout="vertical" margin={{ left: 40, right: 28, top: 4, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false} />
@@ -372,6 +378,12 @@ function DeptTeamStore({ D, yearFilter }) {
       {/* === 안전 지표 카드 3: 부서별 안전 지표 테이블 === */}
       {D.dept_ir && (
         <Card title="부서별 안전 지표" titleIcon={Building2} sub={hasWorker ? "매장당 사고율 · 100명당 IR · 인원수 — 부서 단위 (등급=전사 평균 대비)" : "부서별 매장당 사고율 — 전사 평균 대비 등급"} right={<ExportBtn rows={D.dept_ir} filename="부서별_안전지표.csv" />}>
+          {isYearFilter && (
+            <div className="mb-3 flex items-start gap-2 px-2.5 py-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800 break-keep">
+              <Info size={13} className="flex-shrink-0 text-amber-600 mt-0.5" />
+              <span><b>전체 기간 기준</b> — 부서별 IR 수치는 연도별 인원(분모) 데이터가 없어 {yearFilter}년 필터에 반응하지 않습니다. 전사 누적 스냅샷 값입니다.</span>
+            </div>
+          )}
           <div className="overflow-x-auto -mx-5 px-5 pb-2">
             <table className="w-full min-w-[680px] text-sm">
               <thead>
