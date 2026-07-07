@@ -43,6 +43,7 @@ import { Card }              from './components/shared/Card.jsx';
 import AdminUpload           from './components/admin/AdminUpload.jsx';
 import AdminLoginPanel       from './components/admin/AdminLoginPanel.jsx';
 import KpiTargetPanel        from './components/admin/KpiTargetPanel.jsx';
+import { SHOW_KPI_TARGETS }   from './constants/flags.js';
 import CustomerDashboard     from './components/layout/CustomerDashboard.jsx';
 import ModeSidebar from './components/layout/ModeSidebar.jsx';
 import { SegmentedToggle } from './components/shared/MotionBits.jsx';
@@ -610,7 +611,7 @@ function App() {
             )}
             {dashMode === "worker" && !inAlert && <XlsxBtn D={dataFiltered} filename={`사고현황_${basis === 'approval' ? '산재승인' : '사고경위'}_요약.xlsx`} />}
             {dashMode === "worker" && !inAlert && <button onClick={() => setShowSearch(true)} className="h-7 px-1.5 sm:px-2.5 rounded-md border border-stone-300 text-[10px] sm:text-xs font-medium text-stone-700 bg-white hover:bg-stone-50 cursor-pointer flex items-center gap-1 transition active:opacity-75"><Search size={12} strokeWidth={2} /> 조회</button>}
-            {dashMode === "worker" && !inAlert && <button onClick={() => setShowKpi(true)} className="h-7 px-1.5 sm:px-2.5 rounded-md border border-stone-300 text-[10px] sm:text-xs font-medium text-stone-700 bg-white hover:bg-stone-50 cursor-pointer flex items-center gap-1 transition active:opacity-75" title="사고절감 KPI 목표 설정 (관리자)"><Target size={12} strokeWidth={2} /> KPI 목표</button>}
+            {SHOW_KPI_TARGETS && dashMode === "worker" && !inAlert && <button onClick={() => setShowKpi(true)} className="h-7 px-1.5 sm:px-2.5 rounded-md border border-stone-300 text-[10px] sm:text-xs font-medium text-stone-700 bg-white hover:bg-stone-50 cursor-pointer flex items-center gap-1 transition active:opacity-75" title="사고절감 KPI 목표 설정 (관리자)"><Target size={12} strokeWidth={2} /> KPI 목표</button>}
             {dashMode === "worker" && !inAlert && <button onClick={() => setShowReport(true)} className="h-7 px-1.5 sm:px-2.5 rounded-md text-white text-[10px] sm:text-xs font-semibold cursor-pointer flex items-center gap-1 transition active:opacity-75" style={{background:"#002B6D"}}><FileText size={12} strokeWidth={2} /> 보고서</button>}
           </div>
         </div>

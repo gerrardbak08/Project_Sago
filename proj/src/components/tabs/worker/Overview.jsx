@@ -21,6 +21,7 @@ import { STORE_SNAPSHOTS, WORKER_SNAPSHOTS } from '../../../data/snapshots.js';
 import { getKpiProgress, getMonthsElapsed, useKpiVersion } from '../../../utils/kpiStore.js';
 import { STATUS_COLOR, STATUS_LABEL } from '../../../utils/kpiProgress.js';
 import { normalizeStoreName } from '../../../utils/processStores.js';
+import { SHOW_KPI_TARGETS } from '../../../constants/flags.js';
 
 const WORKER_COUNT_ESTIMATE = 1337 * 5;
 const yoy = (cur, prev) => prev ? ((cur - prev) / prev * 100) : null;
@@ -305,8 +306,8 @@ function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
                     </div>
                   )}
                 </div>
-                {/* KPI 배지 — 2026 YTD vs 프로레이션 목표 */}
-                {c.kpiProgress && c.kpiProgress.status !== 'unknown' && (() => {
+                {/* KPI 배지 — 2026 YTD vs 프로레이션 목표 (목표 확정 전까지 flags.SHOW_KPI_TARGETS로 숨김) */}
+                {SHOW_KPI_TARGETS && c.kpiProgress && c.kpiProgress.status !== 'unknown' && (() => {
                   const p = c.kpiProgress;
                   const color = STATUS_COLOR[p.status];
                   const dOver = p.delta != null && Math.abs(p.delta) >= 0.5

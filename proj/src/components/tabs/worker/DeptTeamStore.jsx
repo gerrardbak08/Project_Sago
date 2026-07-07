@@ -12,9 +12,11 @@ import { RISK_COLORS } from '../../../constants/riskColors.js';
 import { Odometer, Sparkline, SegmentedToggle } from '../../../components/shared/MotionBits.jsx';
 import { getKpiProgress, getMonthsElapsed, useKpiVersion } from '../../../utils/kpiStore.js';
 import { STATUS_COLOR, STATUS_LABEL } from '../../../utils/kpiProgress.js';
+import { SHOW_KPI_TARGETS } from '../../../constants/flags.js';
 
 // KPI 배지 — 부서/팀 테이블에서 사고건수 옆에 표시
 function KpiBadge({ level, orgKey }) {
+  if (!SHOW_KPI_TARGETS) return null;   // 목표 확정 전까지 표기 보류
   const p = getKpiProgress(level, orgKey);
   if (!p || p.status === 'unknown') return null;
   const color = STATUS_COLOR[p.status];
