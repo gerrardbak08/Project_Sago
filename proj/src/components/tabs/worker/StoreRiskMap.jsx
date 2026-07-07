@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from 'react';
 import { BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList, ComposedChart, ScatterChart, Scatter, ZAxis, ReferenceLine } from 'recharts';
 import { Activity, AlertCircle, MapPin, AlertTriangle, Banknote, BarChart3, Bell, Bone, Briefcase, Building, Building2, Calendar, CheckCircle2, ChevronDown, Circle, ClipboardList, FileText, Flame, Folder, FolderOpen, GitBranch, Info, Lightbulb, Lock, Map as MapIcon, Package, Pin, RefreshCw, Rocket, Ruler, Scale, Search, ShieldCheck, Siren, Smartphone, Store, Tag, Target, TrendingUp, Trophy, Unlock, UserCircle, Users, X, LayoutDashboard, Stethoscope, Download, ChevronRight, Sparkles } from 'lucide-react';
-import { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, BL, OR, NV, GR, RD, GN, PR, AM, PAL, CANVAS } from '../../../constants/colors.js';
+import { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, BL, OR, NV, GR, RD, GN, PR, AM, PAL, CANVAS, CHART_CATEGORICAL_MAP } from '../../../constants/colors.js';
 import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN } from '../../../constants/metrics.js';
 import { pct, fmt, fmtKrw, TT, EmptyState } from '../../../utils/uiHelpers.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
@@ -14,18 +14,18 @@ import { track, AI_GUIDE_REQUESTED, AI_GUIDE_RESULT } from '../../../utils/analy
 import { useCountUp, useInView } from '../../../utils/motion.js';
 import { normalizeStoreName } from '../../../utils/processStores.js';
 
-// ── 영업부별 경계선 색상 ──────────────────────────────────
+// ── 영업부별 경계선 색상 (CHART_CATEGORICAL_MAP 인덱스 순환 — 빨강·주황 배제·색각안전) ──
 const DEPT_COLORS_MAP = {
-  '강남/구리영업부':    '#3B82F6',
-  '강북영업부':         '#10B981',
-  '강원영업부':         '#0369A1',
-  '경남영업부':         '#F59E0B',
-  '경북영업부':         '#EF4444',
-  '관악/평택/안산영업부': '#06B6D4',
-  '수원/용인영업부':    '#EC4899',
-  '인천영업부':         '#84CC16',
-  '충청영업부':         '#F97316',
-  '호남영업부':         '#1E40AF',
+  '강남/구리영업부':    CHART_CATEGORICAL_MAP[0],  // i=0
+  '강북영업부':         CHART_CATEGORICAL_MAP[1],  // i=1
+  '관악/평택/안산영업부': CHART_CATEGORICAL_MAP[2], // i=2
+  '수원/용인영업부':    CHART_CATEGORICAL_MAP[3],  // i=3
+  '인천영업부':         CHART_CATEGORICAL_MAP[4],  // i=4
+  '강원영업부':         CHART_CATEGORICAL_MAP[5],  // i=5
+  '경남영업부':         CHART_CATEGORICAL_MAP[6],  // i=6
+  '경북영업부':         CHART_CATEGORICAL_MAP[7],  // i=7
+  '충청영업부':         CHART_CATEGORICAL_MAP[0],  // i=8 % 8
+  '호남영업부':         CHART_CATEGORICAL_MAP[1],  // i=9 % 8
 };
 
 // Andrew's Monotone Chain — O(n log n) convex hull
@@ -551,7 +551,7 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
     new kakao.maps.CustomOverlay({
       map: skyMap,
       position: pos,
-      content: `<div style="width:14px;height:14px;border-radius:50%;background:#D70011;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,.4)"></div>`,
+      content: `<div style="width:14px;height:14px;border-radius:50%;background:${DAISO_RED};border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,.4)"></div>`,
       yAnchor: 0.5,
     });
     drawerSkyMapRef.current = skyMap;
@@ -810,14 +810,14 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
 
   // ── 계층 데이터 ───────────────────────────────────────────
   const TREE = [
-    { bum: "수도권", color: "#2563EB", depts: [
+    { bum: "수도권", color: BL, depts: [
       { name: "강남/구리영업부", teams: ["강남팀","강동팀","구리팀"] },
       { name: "강북영업부",     teams: ["강북팀","신촌팀","종로팀"] },
       { name: "관악/평택/안산영업부", teams: ["관악팀","평택팀","안산팀"] },
       { name: "수원/용인영업부", teams: ["수원팀","용인팀"] },
       { name: "인천영업부",     teams: ["남인천팀","북인천팀","일산팀"] },
     ]},
-    { bum: "지방", color: "#EA580C", depts: [
+    { bum: "지방", color: OR, depts: [
       { name: "강원영업부", teams: ["강릉속초팀","춘천원주팀"] },
       { name: "경남영업부", teams: ["동부산팀","서부산팀","창원팀"] },
       { name: "경북영업부", teams: ["경북팀","대구팀","울산팀"] },
@@ -1511,7 +1511,7 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                           <div key={i} className="flex items-start gap-2 p-2.5 rounded-lg bg-stone-50 border border-stone-100">
                             <div className="flex-shrink-0 mt-1">
                               <div className="w-2 h-2 rounded-full"
-                                style={{background: (a.lossDay||0) >= 14 ? DAISO_RED : (a.lossDay||0) >= 4 ? "#F97316" : "#F59E0B"}} />
+                                style={{background: (a.lossDay||0) >= 14 ? DAISO_RED : (a.lossDay||0) >= 4 ? RISK_COLORS.mid : RISK_COLORS.low}} />
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5 flex-wrap">
@@ -1606,7 +1606,7 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
                       onClick={() => fetchGuide(selectedStore)}
                       disabled={guideLoading}
                       className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-lg text-xs font-semibold text-white transition-all cursor-pointer disabled:opacity-50"
-                      style={{background: guideLoading ? "#9CA3AF" : "linear-gradient(135deg,#071E4A,#1D4ED8)"}}>
+                      style={{background: guideLoading ? "#9CA3AF" : `linear-gradient(135deg,${NV},${BL})`}}>
                       <span className="text-sm leading-none">{guideLoading ? "⏳" : "✨"}</span>
                       {guideLoading ? "AI 분석 중..." : guideText ? "가이드 재생성" : "AI 안전가이드 생성"}
                     </button>

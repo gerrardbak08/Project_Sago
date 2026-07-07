@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from 'rea
 import { createPortal } from 'react-dom';
 import { BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList, ComposedChart, ScatterChart, Scatter, ZAxis, ReferenceLine } from 'recharts';
 import { Activity, AlertCircle, MapPin, AlertTriangle, Banknote, BarChart3, Bell, Bone, Briefcase, Building, Building2, Calendar, CheckCircle2, Circle, ClipboardList, FileText, Flame, Folder, GitBranch, Info, Lightbulb, Lock, Map as MapIcon, Package, Pin, RefreshCw, Rocket, Ruler, Scale, Search, ShieldCheck, Siren, Smartphone, Store, Tag, Target, TrendingDown, TrendingUp, Trophy, Unlock, UserCircle, Users, X, LayoutDashboard, Stethoscope, Download, ChevronRight, Sparkles } from 'lucide-react';
-import { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, BL, OR, NV, GR, RD, GN, PR, AM, PAL, CANVAS, rankColor } from '../../../constants/colors.js';
+import { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, BL, OR, NV, GR, RD, GN, PR, AM, PAL, CANVAS, rankColor, CHART_BLUE } from '../../../constants/colors.js';
 import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN } from '../../../constants/metrics.js';
 import { pct, fmt, fmtKrw, TT, EmptyState } from '../../../utils/uiHelpers.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
@@ -204,8 +204,8 @@ function DeptTeamStore({ D, yearFilter }) {
         const jibangIr = jibangWorkers ? (jibangIncidents / jibangWorkers * 100) : null;
         const cards = [
           { label: "영업부문 100명당 IR", labelColor: ALERT_RED, ir: totalIr, incidents: totalIncidents, workers: totalWorkers, stores: totalStores, valueColor: "#1C1917", icon: true, spkData: D.yearly?.map(y => (y.s||0)+(y.j||0)+(y.e||0)) ?? [] },
-          { label: "수도권", labelColor: "#1D4ED8", ir: sudoIr, incidents: sudoIncidents, workers: sudoWorkers, stores: sudoStores, valueColor: "#1D4ED8", spkData: D.yearly?.map(y => y.s||0) ?? [] },
-          { label: "지방", labelColor: "#C2410C", ir: jibangIr, incidents: jibangIncidents, workers: jibangWorkers, stores: jibangStores, valueColor: "#C2410C", spkData: D.yearly?.map(y => y.j||0) ?? [] },
+          { label: "수도권", labelColor: BL, ir: sudoIr, incidents: sudoIncidents, workers: sudoWorkers, stores: sudoStores, valueColor: BL, spkData: D.yearly?.map(y => y.s||0) ?? [] },
+          { label: "지방", labelColor: CHART_BLUE, ir: jibangIr, incidents: jibangIncidents, workers: jibangWorkers, stores: jibangStores, valueColor: CHART_BLUE, spkData: D.yearly?.map(y => y.j||0) ?? [] },
         ];
         return (
           <>
@@ -235,7 +235,7 @@ function DeptTeamStore({ D, yearFilter }) {
                       <span className="text-sm text-stone-500 font-medium">%</span>
                       {cardYoy != null && (
                         <span title="전년 대비('24→'25)" className="text-[11px] font-bold px-1.5 py-0.5 rounded-full tabular-nums"
-                          style={{ background: cardYoy < 0 ? '#ECFDF5' : '#FEF2F2', color: cardYoy < 0 ? '#047857' : '#B91C1C' }}>
+                          style={{ background: cardYoy < 0 ? '#ECFDF5' : '#FEF2F2', color: cardYoy < 0 ? SAFE_GREEN : ALERT_RED }}>
                           {cardYoy < 0 ? '▼' : '▲'}{Math.abs(cardYoy).toFixed(0)}%
                         </span>
                       )}
@@ -266,7 +266,7 @@ function DeptTeamStore({ D, yearFilter }) {
         return (
           <div className="rounded-lg p-3 min-h-[52px] flex items-start gap-3" style={{ background: "#FFF7ED", border: "1px solid #FED7AA" }}>
             <span className="flex-shrink-0 mt-0.5">
-              <AlertTriangle size={15} style={{ color: "#C2410C", flexShrink: 0 }} />
+              <AlertTriangle size={15} style={{ color: AM, flexShrink: 0 }} />
             </span>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-bold" style={{ color: "#92400E" }}>팀 IR 임계값 초과 — {overTeams.length}개 팀</div>
@@ -283,7 +283,7 @@ function DeptTeamStore({ D, yearFilter }) {
         <Card title="두 가지 안전 지표 — 무엇이 다른가" titleIcon={Info} sub="매장당 사고율(매장 단위) vs 100명당 IR(인원 단위)">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
-              <div className="text-xs font-bold text-[#1D4ED8] mb-1">📦 매장당 사고율</div>
+              <div className="text-xs font-bold mb-1" style={{color: BL}}>📦 매장당 사고율</div>
               <div className="text-xs text-stone-700 leading-relaxed">매장 1곳당 평균 사고 건수. <b>"매장 하나당 사고가 몇 건이나 나는가"</b> — 매장 운영 단위의 사고 부담을 봄.</div>
               <div className="font-mono text-[11px] text-stone-600 mt-2 p-1.5 bg-white rounded">사고 건수 ÷ 매장 수</div>
             </div>
@@ -333,7 +333,7 @@ function DeptTeamStore({ D, yearFilter }) {
                   <div>매장 {p.stores}개 · 사고 {p.incidents}건{p.workers != null ? ` · 인원 ${p.workers.toLocaleString()}명` : ""}</div>
                   <div className="font-bold mt-1 flex items-center gap-1.5" style={{color: g.color}}>📦 매장당 사고율: {p.per_store.toFixed(2)}건 <span className="px-1.5 py-0.5 rounded-full text-[10px]" style={{background:g.bg}}>{g.label}</span></div>
                   {p.ir_per100 != null && (
-                    <div className="font-bold mt-0.5" style={{color: "#E11D48"}}>👥 100명당 IR: {p.ir_per100.toFixed(2)}%
+                    <div className="font-bold mt-0.5" style={{color: DAISO_RED}}>👥 100명당 IR: {p.ir_per100.toFixed(2)}%
                       {p.ir_reliability && <span className="ml-1.5 text-[10px] font-semibold" style={{color: p.ir_reliability==="high"?GN:p.ir_reliability==="low"?AM:"#78716C"}}>[{p.ir_reliability}]</span>}
                     </div>
                   )}
@@ -406,7 +406,7 @@ function DeptTeamStore({ D, yearFilter }) {
                 <tr key={d.dept} className="border-b border-stone-100 hover:bg-stone-50/60 transition-colors">
                   <td className="py-2 px-3 text-xs font-bold text-stone-400 whitespace-nowrap">{i + 1}</td>
                   <td className="py-2 px-3 font-semibold whitespace-nowrap">{d.dept}</td>
-                  <td className="py-2 px-3 whitespace-nowrap"><span className={`text-xs px-2 py-0.5 rounded-full ${d.bum === "수도권" ? "bg-blue-50 text-[#1D4ED8] border border-blue-200" : "bg-stone-100 text-stone-700"}`}>{d.bum}</span></td>
+                  <td className="py-2 px-3 whitespace-nowrap"><span className={`text-xs px-2 py-0.5 rounded-full ${d.bum === "수도권" ? "bg-blue-50 border border-blue-200" : "bg-stone-100 text-stone-700"}`} style={d.bum === "수도권" ? {color: BL} : undefined}>{d.bum}</span></td>
                   <td className="py-2 px-3 text-right tabular-nums text-stone-600 whitespace-nowrap">{d.stores}</td>
                   <td className="py-2 px-3 whitespace-nowrap">
                     <div className="flex items-center justify-end gap-1.5">
@@ -452,7 +452,7 @@ function DeptTeamStore({ D, yearFilter }) {
                 <>
                   <Bar dataKey="y24" fill="#D6D3D1" radius={[4, 4, 0, 0]} name="2024" animationDuration={700} />
                   <Bar dataKey="y25" fill={BL} radius={[4, 4, 0, 0]} name="2025" animationDuration={700} animationBegin={120} />
-                  <Bar dataKey="y26" fill={bum === "지방" ? "#FED7AA" : "#93C5FD"} radius={[4, 4, 0, 0]} name="2026" animationDuration={700} animationBegin={240} />
+                  <Bar dataKey="y26" fill={OR} radius={[4, 4, 0, 0]} name="2026" animationDuration={700} animationBegin={240} />
                 </>
               )}
             </BarChart>
@@ -537,14 +537,14 @@ function DeptTeamStore({ D, yearFilter }) {
                   <td className="py-2 px-3 font-semibold text-stone-900 whitespace-nowrap">
                     <span className="inline-flex items-center gap-1 group">{s.store}<ChevronRight size={13} className="text-stone-300 group-hover:text-[#1D4ED8] transition-colors" /></span>
                   </td>
-                  <td className="py-2 px-3 whitespace-nowrap"><span className={`text-xs px-2 py-0.5 rounded-full ${s.bum === "수도권" ? "bg-blue-50 text-[#003B8F] border border-stone-200" : "bg-stone-100 text-stone-700 border border-stone-200"}`}>{s.bum}</span></td>
+                  <td className="py-2 px-3 whitespace-nowrap"><span className={`text-xs px-2 py-0.5 rounded-full ${s.bum === "수도권" ? "bg-blue-50 border border-stone-200" : "bg-stone-100 text-stone-700 border border-stone-200"}`} style={s.bum === "수도권" ? {color: CHART_BLUE} : undefined}>{s.bum}</span></td>
                   <td className="py-2 px-3 text-xs text-stone-600 whitespace-nowrap">{s.dept}</td>
                   <td className="py-2 px-3 text-xs text-stone-600 whitespace-nowrap">{s.team}</td>
                   <td className="py-2 px-3 text-right whitespace-nowrap">
                     <div className="flex items-center justify-end gap-1.5">
                       <span className="tabular-nums font-bold">{s.total}</span>
                       <div className="w-12 h-1 bg-stone-100 rounded-full overflow-hidden flex-shrink-0">
-                        <div className="h-full bg-[#1D4ED8] rounded-full" style={{ width: `${barWidth}%` }} />
+                        <div className="h-full rounded-full" style={{ width: `${barWidth}%`, background: BL }} />
                       </div>
                     </div>
                   </td>
@@ -577,11 +577,11 @@ function DeptTeamStore({ D, yearFilter }) {
               <div className="flex items-start justify-between p-5 border-b border-stone-100 flex-shrink-0">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <Store size={16} className="text-[#003B8F] flex-shrink-0" />
-                    <span className="text-base font-bold text-[#071E4A] truncate">{worstDetail}</span>
+                    <Store size={16} style={{ color: CHART_BLUE }} className="flex-shrink-0" />
+                    <span className="text-base font-bold truncate" style={{color: NV}}>{worstDetail}</span>
                   </div>
                   <div className="text-xs text-stone-500 mt-1">
-                    {meta?.dept}{meta?.team ? ` · ${meta.team}` : ""}{meta?.bum ? ` · ${meta.bum}` : ""} — 사고 <b className="text-[#1D4ED8]">{recs.length}건</b>
+                    {meta?.dept}{meta?.team ? ` · ${meta.team}` : ""}{meta?.bum ? ` · ${meta.bum}` : ""} — 사고 <b style={{color: BL}}>{recs.length}건</b>
                     {isYearFilter ? ` (${yearFilter}년)` : " (전체 기간)"}
                   </div>
                 </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from 'react';
 import { BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList, ComposedChart, ScatterChart, Scatter, ZAxis, ReferenceLine } from 'recharts';
 import { Activity, AlertCircle, MapPin, AlertTriangle, Banknote, BarChart3, Bell, Bone, Briefcase, Building, Building2, Calendar, CheckCircle2, Circle, ClipboardList, FileText, Flame, Folder, GitBranch, Info, Lightbulb, Lock, Map as MapIcon, Package, Pin, RefreshCw, Rocket, Ruler, Scale, Search, ShieldCheck, Siren, Smartphone, Store, Tag, Target, TrendingUp, Trophy, Unlock, UserCircle, Users, X, LayoutDashboard, Stethoscope, Download, ChevronRight, Sparkles } from 'lucide-react';
-import { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, BL, OR, NV, GR, RD, GN, PR, AM, PAL, CANVAS } from '../../../constants/colors.js';
+import { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, BL, OR, NV, GR, RD, GN, PR, AM, PAL, CANVAS, OK, CHART_BLUE, CHART_CATEGORICAL, HEAT_NEUTRAL, HEAT_RISK, REGION_COLORS } from '../../../constants/colors.js';
 import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN } from '../../../constants/metrics.js';
 import { pct, fmt, fmtKrw, TT, EmptyState } from '../../../utils/uiHelpers.jsx';
 import { useCountUp, useInView } from '../../../utils/motion.js';
@@ -273,7 +273,7 @@ function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
                     <span className="text-[10px] text-stone-400">{c.deltaLabel}</span>
                     <span
                       className="inline-flex px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums"
-                      style={{ background: c.delta < 0 ? "#ECFDF5" : "#FEF2F2", color: c.delta < 0 ? "#047857" : "#B91C1C" }}>
+                      style={{ background: c.delta < 0 ? "#ECFDF5" : "#FEF2F2", color: c.delta < 0 ? OK : ALERT_RED }}>
                       {c.delta < 0 ? "▼" : "▲"}{Math.abs(c.delta).toFixed(1)}%
                     </span>
                   </div>
@@ -299,7 +299,7 @@ function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <span
                         className="inline-flex px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums whitespace-nowrap"
-                        style={{ background: c.delta < 0 ? "#ECFDF5" : "#FEF2F2", color: c.delta < 0 ? "#047857" : "#B91C1C" }}>
+                        style={{ background: c.delta < 0 ? "#ECFDF5" : "#FEF2F2", color: c.delta < 0 ? OK : ALERT_RED }}>
                         {c.delta < 0 ? "▼" : "▲"}{Math.abs(c.delta).toFixed(1)}%
                       </span>
                       {c.deltaLabel && <span className="text-stone-400 text-[10px] whitespace-nowrap">{c.deltaLabel}</span>}
@@ -378,7 +378,7 @@ function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
             }}
             disabled={aiSummary.loading}
             className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-lg text-xs font-semibold text-white transition-all cursor-pointer disabled:opacity-50"
-            style={{background: aiSummary.loading ? "#9CA3AF" : "linear-gradient(135deg,#071E4A,#1D4ED8)"}}>
+            style={{background: aiSummary.loading ? "#9CA3AF" : `linear-gradient(135deg,${NV},${BL})`}}>
             <span className="text-sm leading-none">{aiSummary.loading ? "⏳" : "✨"}</span>
             {aiSummary.loading ? "AI 분석 중..." : aiSummary.text ? "재분석" : "AI 전체 현황 요약"}
           </button>

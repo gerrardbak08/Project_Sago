@@ -3,6 +3,7 @@ import { Bell, Calendar, AlertCircle, ChevronRight, ChevronLeft, RefreshCw, X, A
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Line } from 'recharts';
 import { Card } from '../../shared/Card.jsx';
 import { Odometer } from '../../shared/MotionBits.jsx';
+import { CHART_CATEGORICAL, HEAT_RISK, RISK_COLORS, BL, RD, OK, AM, GR, DAISO_RED } from '../../../constants/colors.js';
 
 // 이미지 URL 변환
 const FRONTEND_BASE = import.meta.env.VITE_FRONTEND_URL
@@ -582,22 +583,22 @@ function AlertMonitoring({ initialDate, onSendRequest }) {
                     <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" vertical={false} />
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} />
                     <YAxis yAxisId="left" tick={{ fontSize: 10, fill: '#78716c' }} axisLine={false} tickLine={false} allowDecimals={false} />
-                    <YAxis yAxisId="right" orientation="right" domain={[0, 100]} tickCount={3} unit="%" tick={{ fontSize: 10, fill: '#34d399' }} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="right" orientation="right" domain={[0, 100]} tickCount={3} unit="%" tick={{ fontSize: 10, fill: OK }} axisLine={false} tickLine={false} />
                     <Tooltip
                       contentStyle={{ borderRadius: 10, border: '1px solid #e7e5e4', fontSize: 11 }}
                       formatter={(value, name) => name === '성공률(%)' ? [value + '%', name] : [value, name === 'total' ? '총 발송' : name === 'high' ? '고위험' : '실패']}
                       labelFormatter={label => `${label} 날짜`}
                     />
-                    <Bar dataKey="total" name="total" yAxisId="left" fill="#d6d3d1" radius={[4, 4, 0, 0]} maxBarSize={32} />
-                    <Bar dataKey="high" name="high" yAxisId="left" fill="#fca5a5" radius={[4, 4, 0, 0]} maxBarSize={32} />
-                    <Line type="monotone" dataKey="successRate" name="성공률(%)" stroke="#34d399" strokeWidth={2} dot={{ r: 3, fill: '#34d399' }} yAxisId="right" />
+                    <Bar dataKey="total" name="total" yAxisId="left" fill={GR} radius={[4, 4, 0, 0]} maxBarSize={32} />
+                    <Bar dataKey="high" name="high" yAxisId="left" fill={DAISO_RED} radius={[4, 4, 0, 0]} maxBarSize={32} />
+                    <Line type="monotone" dataKey="successRate" name="성공률(%)" stroke={OK} strokeWidth={2} dot={{ r: 3, fill: OK }} yAxisId="right" />
                   </ComposedChart>
                 </ResponsiveContainer>
                 <div className="flex gap-4 justify-center mt-1">
                   {[
-                    { color: '#d6d3d1', label: '총 발송' },
-                    { color: '#fca5a5', label: '고위험' },
-                    { color: '#34d399', label: '성공률(%)' },
+                    { color: GR, label: '총 발송' },
+                    { color: DAISO_RED, label: '고위험' },
+                    { color: OK, label: '성공률(%)' },
                   ].map(({ color, label }) => (
                     <div key={label} className="flex items-center gap-1">
                       <div className="w-2.5 h-2.5 rounded-sm" style={{ background: color }} />
