@@ -200,7 +200,7 @@ function SevereStores({ D, yearFilter }) {
                                         key={j}
                                         className={`text-[11px] sm:text-xs rounded-md px-2 py-1.5 ${
                                           severe
-                                            ? 'border border-red-100 border-l-2 border-l-red-400 bg-red-50/30'
+                                            ? 'border border-red-100 bg-red-50/30'
                                             : 'bg-white border border-stone-100'
                                         }`}
                                       >

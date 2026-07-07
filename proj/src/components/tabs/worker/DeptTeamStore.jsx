@@ -128,9 +128,9 @@ function DeptTeamStore({ D, yearFilter }) {
 
   // top-3 행 왼쪽 강조 테두리 + 배경
   const rowAccent = (i) => {
-    if (i === 0) return { border: 'border-l-[3px] border-l-red-500', bg: 'bg-red-50/40' };
-    if (i === 1) return { border: 'border-l-[3px] border-l-[#1D4ED8]', bg: 'bg-blue-50/30' };
-    if (i === 2) return { border: 'border-l-[3px] border-l-amber-500', bg: 'bg-amber-50/30' };
+    if (i === 0) return { border: '', bg: 'bg-red-50/40' };
+    if (i === 1) return { border: '', bg: 'bg-blue-50/30' };
+    if (i === 2) return { border: '', bg: 'bg-amber-50/30' };
     return { border: '', bg: '' };
   };
   // 순위 셀 배지 컬러

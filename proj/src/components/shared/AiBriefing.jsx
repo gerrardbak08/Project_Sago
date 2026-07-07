@@ -62,8 +62,8 @@ function AiBriefing({ data, loading }) {
 
       {/* ─── 헤드라인 카드 ─── */}
       <div
-        className="rounded-lg px-4 py-3 border-l-4"
-        style={{ background: '#EFF6FF', borderColor: NV }}
+        className="rounded-lg px-4 py-3"
+        style={{ background: '#EFF6FF' }}
       >
         <p className="text-sm font-bold text-stone-900 break-keep leading-snug">
           {data?.headline}

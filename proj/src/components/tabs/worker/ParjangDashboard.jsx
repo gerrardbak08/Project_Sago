@@ -47,8 +47,7 @@ function ParjangDashboard({ D, yearFilter }) {
   }, {});
   const typeData = Object.entries(typeDist).sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ name, value }));
 
-  // 랭킹 상위 3위 강조색
-  const rankBorderColors = ['border-red-400',  'border-blue-400',  'border-amber-400'];
+  // 랭킹 상위 3위 강조 배경
   const rankBgColors     = ['bg-red-50/50',    'bg-blue-50/30',    'bg-amber-50/30'];
 
   return (
@@ -231,7 +230,7 @@ function ParjangDashboard({ D, yearFilter }) {
                     {topList.map((pj, i) => {
                       const perStore = pj.incidents / Math.max(pj.stores, 1);
                       const hotColor = perStore >= 2 ? "bg-red-500" : perStore >= 1.5 ? "bg-orange-500" : perStore >= 1 ? "bg-amber-500" : "bg-green-500";
-                      const rankCls  = i < 3 ? `border-l-[3px] ${rankBorderColors[i]} ${rankBgColors[i]}` : '';
+                      const rankCls  = i < 3 ? rankBgColors[i] : '';
                       return (
                         <tr key={pj.parjang + i} className={`border-b border-stone-100 hover:bg-stone-50/60 transition-colors ${rankCls}`}>
                           <td className="py-2 px-3 text-xs font-extrabold text-stone-400 whitespace-nowrap">{i + 1}</td>

@@ -307,15 +307,15 @@ function SeverityAnalysis({ D, yearFilter }) {
       {/* 관찰 사항 — border-l-4 컬러 강조 + hover shadow */}
       <Card title="관찰 사항" titleIcon={Lightbulb} sub={isEstimated ? `${yearFilter}년 기준` : "전체 누적 기준"}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="rounded-lg border border-stone-200 border-l-4 border-l-red-500 bg-white p-4 hover:shadow-md transition-shadow">
+          <div className="rounded-lg border border-stone-200 bg-white p-4 hover:shadow-md transition-shadow">
             <div className="text-xs font-bold text-red-700 mb-1">골절 진단 최다</div>
             <div className="text-sm">단일 상병명 중 <b>골절 {s.top_dx?.골절 || 0}건</b>. <span className="text-stone-500">골절 발생 재해유형은 넘어짐·떨어짐·끼임 등 복합. 재해유형별 break-down 후 우선순위 결정 권장.</span></div>
           </div>
-          <div className="rounded-lg border border-stone-200 border-l-4 border-l-amber-500 bg-white p-4 hover:shadow-md transition-shadow">
+          <div className="rounded-lg border border-stone-200 bg-white p-4 hover:shadow-md transition-shadow">
             <div className="text-xs font-bold text-amber-700 mb-1">중상 비율 {pct(s.dist.중상, sTotal)}%</div>
             <div className="text-sm">전체 사고의 약 1/3이 중상급. <span className="text-stone-500">중상 1건당 평균 90일+ 업무 손실 추정.</span></div>
           </div>
-          <div className="rounded-lg border border-stone-200 border-l-4 border-l-blue-600 bg-stone-50 p-4 hover:shadow-md transition-shadow">
+          <div className="rounded-lg border border-stone-200 bg-stone-50 p-4 hover:shadow-md transition-shadow">
             <div className="text-xs font-bold text-blue-700 mb-1">활용 방안</div>
             <div className="text-sm">진단명별 평균 회복기간 매핑 시 재무손실 정확도 향상 가능. <span className="text-stone-500">실제 산재 승인 여부는 별도 DB 연동 필요.</span></div>
           </div>
