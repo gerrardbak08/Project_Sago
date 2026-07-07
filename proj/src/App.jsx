@@ -264,6 +264,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [dataSource, setDataSource] = useState('static'); // 'static' | 'live' | 'fallback'
+  const [liveLoading, setLiveLoading] = useState(true);   // 라이브(시트) fetch 진행 중 — 초기 스냅샷 위에 "최신 불러오는 중" 표시
   const [basis, setBasis] = useState('incident');         // 'incident'(사고경위) | 'approval'(산재승인)
   const [showReport, setShowReport] = useState(false);    // 요약 보고서 모달
   const [showSearch, setShowSearch] = useState(false);    // 데이터 조회 모달
@@ -298,7 +299,8 @@ function App() {
           setData(mergeLiveOntoStatic(liveInc, DEFAULT_DATA));
         }
       })
-      .catch((e) => { console.warn('[live] 로드 실패, 스냅샷 데이터 유지:', e?.message); });
+      .catch((e) => { console.warn('[live] 로드 실패, 스냅샷 데이터 유지:', e?.message); })
+      .finally(() => { if (alive) setLiveLoading(false); });
     return () => { alive = false; };
   }, []);
 
@@ -583,11 +585,16 @@ function App() {
                 {isDefault && (() => {
                   const live = dataSource === 'live';
                   const bd = LIVE_SNAPSHOT?.bakedAt ? LIVE_SNAPSHOT.bakedAt.slice(5, 10).replace('-', '/').replace(/^0/, '') : '';
+                  const cls = liveLoading ? 'bg-amber-50 text-amber-700' : live ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-500';
+                  const dot = liveLoading ? 'bg-amber-500 animate-pulse' : live ? 'bg-emerald-500' : 'bg-stone-400';
+                  const txt = liveLoading ? '최신 불러오는 중…' : live ? '실시간' : `스냅샷 ${bd}`;
+                  const ttl = liveLoading ? '구글시트에서 최신 데이터를 불러오는 중입니다 (약 20초 소요). 완료되면 실시간으로 전환됩니다.'
+                    : live ? '라이브 실시간 연동됨' : `데이터 스냅샷 (${LIVE_SNAPSHOT?.bakedAt?.slice(0, 10) || ''} 기준). 라이브 로드 실패로 스냅샷 표시 중.`;
                   return (
-                    <span className={`hidden sm:inline-flex items-center gap-1 flex-shrink-0 ml-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${live ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-500'}`}
-                      title={live ? '라이브 실시간 연동됨' : `데이터 스냅샷 (${LIVE_SNAPSHOT?.bakedAt?.slice(0, 10) || ''} 기준)`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${live ? 'bg-emerald-500' : 'bg-stone-400'}`} />
-                      {live ? '실시간' : `스냅샷 ${bd}`}
+                    <span className={`hidden sm:inline-flex items-center gap-1 flex-shrink-0 ml-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${cls}`}
+                      title={ttl}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+                      {txt}
                     </span>
                   );
                 })()}
