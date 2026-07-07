@@ -60,30 +60,28 @@ function ParjangDashboard({ D, yearFilter }) {
           <span className="px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold">필터 적용 중</span>
         )}
       </div>
-
       <EstimateBadge D={D} />
 
       {/* KPI 카드 그리드 — dash-fade-in stagger + useCountUp */}
       <div ref={kpiRef} className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           {
-            label: '성씨 기준 파트장 그룹',
+            label: '전체 파트장',
             value: (
               <>
                 <span className="text-2xl sm:text-4xl font-bold text-stone-900 tracking-tight tabular-nums">{totalCount}</span>
-                <span className="text-base font-medium text-stone-400 ml-1.5">그룹</span>
+                <span className="text-base font-medium text-stone-400 ml-1.5">명</span>
               </>
             ),
-            sub: '동성 합산 포함 — 실제 인원 ≥ 이 수치',
             border: 'border-blue-100',
             delay: 0,
           },
           {
-            label: '3건+ 고위험 파트장 그룹',
+            label: '3건+ 고위험 파트장',
             value: (
               <>
                 <span className="text-2xl sm:text-4xl font-bold text-stone-900 tracking-tight tabular-nums">{activeCount}</span>
-                <span className="text-base font-medium text-stone-400 ml-1.5">그룹</span>
+                <span className="text-base font-medium text-stone-400 ml-1.5">명</span>
               </>
             ),
             sub: `${pct(p.active, p.total)}% · 중점관리`,
@@ -103,13 +101,13 @@ function ParjangDashboard({ D, yearFilter }) {
             delay: 160,
           },
           {
-            label: '사고발생 매장당 평균',
+            label: '매장당 사고율 (평균)',
             value: (
               <span className="text-3xl sm:text-4xl font-bold text-stone-900 tracking-tight tabular-nums">
                 {(avgCount / 100).toFixed(2)}
               </span>
             ),
-            sub: '사고발생 매장 기준 · 관할 전체 아님',
+            sub: '파트장/매장당',
             border: 'border-stone-200',
             delay: 240,
           },
@@ -147,8 +145,8 @@ function ParjangDashboard({ D, yearFilter }) {
                         <div className="bg-white border border-stone-200 rounded-lg shadow px-3 py-2 text-xs">
                           <div className="font-bold">{d.parjang}</div>
                           <div className="text-stone-500">{d.dept} · {d.bum}</div>
-                          <div>사고 <b>{d.incidents}건</b> · 사고발생 <b>{d.stores}매장</b></div>
-                          <div>발생매장당 <b style={{ color: RD }}>{(d.incidents / Math.max(d.stores, 1)).toFixed(2)}건</b> · 주유형 {d.top_type}</div>
+                          <div>사고 <b>{d.incidents}건</b> · 관할 <b>{d.stores}매장</b></div>
+                          <div>매장당 <b style={{ color: RD }}>{(d.incidents / Math.max(d.stores, 1)).toFixed(2)}건</b> · 주유형 {d.top_type}</div>
                         </div>
                       );
                     }} />
@@ -213,7 +211,7 @@ function ParjangDashboard({ D, yearFilter }) {
           </div>
 
           {/* 랭킹 테이블 */}
-          <Card title="사고 다발 파트장 랭킹 (3건 이상)" titleIcon={ShieldCheck} sub="사고발생 매장 수 대비 사고빈도 — 관할 전체 매장 기준 아님, 참고 지표" right={<ExportBtn rows={topList} filename="파트장별_사고.csv" />}>
+          <Card title="사고 다발 파트장 랭킹 (3건 이상)" titleIcon={ShieldCheck} sub="관할 매장 수 대비 사고빈도 — 개별 관리 역량 평가 지표" right={<ExportBtn rows={topList} filename="파트장별_사고.csv" />}>
             <div className="relative">
               <div className="overflow-x-auto -mx-5 px-5 pb-2">
                 <table className="w-full min-w-[560px] text-sm">
@@ -224,8 +222,8 @@ function ParjangDashboard({ D, yearFilter }) {
                       <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">부서</th>
                       <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">부문</th>
                       <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">사고</th>
-                      <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">사고발생 매장</th>
-                      <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">발생매장당</th>
+                      <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">관할 매장</th>
+                      <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">매장당</th>
                       <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">주 재해유형</th>
                     </tr>
                   </thead>
