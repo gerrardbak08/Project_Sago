@@ -47,6 +47,9 @@ function SeverityAnalysis({ D, yearFilter }) {
       경상: Math.round(r.경상 * ratio),
       기타: Math.round(r.기타 * ratio),
     })),
+    by_bumun: (sRaw.by_bumun || []).map(r => ({ name: r.name, 중상: Math.round(r.중상*ratio), 경상: Math.round(r.경상*ratio), 기타: Math.round(r.기타*ratio), 미상: Math.round((r.미상||0)*ratio), total: Math.round((r.total||0)*ratio) })),
+    by_dept:  (sRaw.by_dept  || []).map(r => ({ name: r.name, 중상: Math.round(r.중상*ratio), 경상: Math.round(r.경상*ratio), 기타: Math.round(r.기타*ratio), 미상: Math.round((r.미상||0)*ratio), total: Math.round((r.total||0)*ratio) })),
+    by_team:  (sRaw.by_team  || []).map(r => ({ name: r.name, 중상: Math.round(r.중상*ratio), 경상: Math.round(r.경상*ratio), 기타: Math.round(r.기타*ratio), 미상: Math.round((r.미상||0)*ratio), total: Math.round((r.total||0)*ratio) })),
     top_dx: Object.fromEntries(
       Object.entries(sRaw.top_dx || {}).map(([k, v]) => [k, Math.round(v * ratio)])
     ),
@@ -55,6 +58,9 @@ function SeverityAnalysis({ D, yearFilter }) {
   const sTotal = s.dist.중상 + s.dist.경상 + s.dist.기타 + (s.dist.미상 || 0);
   const topDxArr = Object.entries(s.top_dx || {}).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value).slice(0, 10);
   const siteData = Object.entries(D.site || {}).map(([name, value]) => ({ name, value: isEstimated ? Math.round(value * ratio) : value })).sort((a,b) => b.value - a.value);
+
+  // 심각도 × 조직 세그먼트 (부문/부서/팀)
+  const [orgLevel, setOrgLevel] = useState('부문');
 
   // === 인뷰 + 카운트업 훅 ===
   const kpiRef = useRef(null);
@@ -254,6 +260,49 @@ function SeverityAnalysis({ D, yearFilter }) {
           )}
         </Card>
       </div>
+
+      {/* 차트 그리드 3 — 심각도 × 조직(부문/부서/팀) */}
+      {(() => {
+        const orgData = orgLevel === '부문' ? (s.by_bumun || []) : orgLevel === '부서' ? (s.by_dept || []) : (s.by_team || []);
+        return (
+          <Card
+            title="심각도 × 조직"
+            titleIcon={Building2}
+            sub={`${orgLevel}별 중상·경상 분포 — 상병명 기반(사고경위 기준)${isEstimated ? " · 추정" : ""}`}
+            right={
+              <div className="flex gap-1">
+                {['부문', '부서', '팀'].map(lv => (
+                  <button
+                    key={lv}
+                    onClick={() => setOrgLevel(lv)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition ${orgLevel === lv ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}
+                  >
+                    {lv}
+                  </button>
+                ))}
+              </div>
+            }
+          >
+            {orgData.length === 0 ? (
+              <EmptyState message={`${orgLevel} 데이터 없음`} icon={Building2} />
+            ) : (
+              <ResponsiveContainer width="100%" height={Math.max(280, orgData.length * 30)} debounce={50}>
+                <BarChart key={`org-${orgLevel}-${yearFilter}`} data={orgData} layout="vertical" margin={{ left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E7E5E4" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 10, fill: "#78716C" }} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: isMobile ? 9 : 10, fill: "#44403C" }} axisLine={false} tickLine={false} width={isMobile ? 76 : 116} />
+                  <Tooltip content={<TT />} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" />
+                  <Bar dataKey="중상" stackId="a" fill={RD} animationDuration={700} />
+                  <Bar dataKey="경상" stackId="a" fill={AM} animationDuration={700} />
+                  <Bar dataKey="기타" stackId="a" fill={GR} animationDuration={700} />
+                  <Bar dataKey="미상" stackId="a" fill="#CBD5E1" radius={[0, 5, 5, 0]} animationDuration={700} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </Card>
+        );
+      })()}
 
       {/* 관찰 사항 — border-l-4 컬러 강조 + hover shadow */}
       <Card title="관찰 사항" titleIcon={Lightbulb} sub={isEstimated ? `${yearFilter}년 기준` : "전체 누적 기준"}>

@@ -131,8 +131,28 @@ function computeV5Extras(ds, df, stores) {
     };
   });
   const topDx = topN(countBy(ds.filter(x => x.dx && x.dx !== "-"), x => x.dx), 15);
+  // 심각도 × 조직(부문/부서/팀) — by_type/by_age와 동일 패턴. 사고별 bum/dept/team 매핑.
+  const sevOf = x => severityClass(x.site_name || x.dx);
+  const sevGroup = (keyFn, keys) => keys.filter(Boolean).map(k => {
+    const sub = ds.filter(x => keyFn(x) === k);
+    return {
+      name: k,
+     "중상": sub.filter(x => sevOf(x) === "중상").length,
+     "경상": sub.filter(x => sevOf(x) === "경상").length,
+     "기타": sub.filter(x => sevOf(x) === "기타").length,
+     "미상": sub.filter(x => sevOf(x) === "미상").length,
+      total: sub.length,
+    };
+  });
+  const sevBumunKeys = [...new Set(ds.map(x => x.bum).filter(Boolean))];
+  const sevDeptKeys  = topN(countBy(ds, x => x.dept), 10).map(x => x[0]);
+  const sevTeamKeys  = topN(countBy(ds, x => x.team), 12).map(x => x[0]);
+  const sevByBumun = sevGroup(x => x.bum,  sevBumunKeys).filter(r => r.total > 0).sort((a, b) => b.total - a.total);
+  const sevByDept  = sevGroup(x => x.dept, sevDeptKeys).filter(r => r.total > 0);
+  const sevByTeam  = sevGroup(x => x.team, sevTeamKeys).filter(r => r.total > 0);
   extras.severity = {
     dist: sevDist, by_type: sevByType, by_age: sevByAge,
+    by_bumun: sevByBumun, by_dept: sevByDept, by_team: sevByTeam,
     top_dx: Object.fromEntries(topDx),
   };
   
