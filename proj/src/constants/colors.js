@@ -32,11 +32,25 @@ const GR = "#A8A29E";
 const RD = DANGER;
 const GN = OK;
 const PR = "#6366F1";           // 특수 강조용 (매우 제한적)
-const AM = WARN;
-const PAL = ["#1D4ED8", "#93C5FD", "#CBD5E1", DAISO_RED, OK, WARN]; // 수도권·지방·기타 블루명도차 + 추가카테고리
+const AM = "#EA580C";           // 차트 주의/경상 (orange-600 — RISK.mid와 통일, 기존 amber #D97706 흡수)
+const PAL = ["#1D4ED8", "#93C5FD", "#CBD5E1", DAISO_RED, OK, AM]; // 수도권·지방·기타 블루명도차 + 추가카테고리
 
 // 순위 강조 팔레트 — 1위 레드 · 2위 블루 · 나머지 그레이 (newjuna rankColors)
 const RANK_COLORS = [DAISO_RED, CHART_BLUE, "#A8A29E", "#A8A29E", "#A8A29E", "#A8A29E"];
 const rankColor = (i) => RANK_COLORS[i] || "#A8A29E";
 
-export { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, DAISO_GRAY, CANVAS, SURFACE, SUBTLE, BORDER, BORDER_HOVER, INK, INK2, INK3, INK4, DANGER, WARN, OK, BL, OR, NV, GR, RD, GN, PR, AM, PAL, CHART_BLUE, RANK_COLORS, rankColor };
+// === 통일 차트 팔레트 (옵션 B: 블루 시퀀셜 + 의미색 최소 · 2026-07 정본화) ===
+// 색 정본은 이 파일 하나. riskColors.js 는 하위호환 re-export shim.
+// 카테고리 계열 — 대부분 차트(계열 ≤5). 명도·hue 분산으로 흑백 인쇄도 구분.
+const CHART_CATEGORICAL = ["#003B8F", "#1D4ED8", "#93C5FD", "#6366F1", "#A8A29E"];
+// 지도 등 진짜 다항목(6+) 전용 — 빨강·주황 배제(위험마커 의미충돌 방지), 색각안전 큐레이션.
+const CHART_CATEGORICAL_MAP = ["#003B8F", "#0F766E", "#6366F1", "#0891B2", "#7C3AED", "#64748B", "#A16207", "#BE185D"];
+// 순차(heat) 2종 — 개념별 분리. NEUTRAL=밀도/볼륨, RISK=위험/심각 강도.
+const HEAT_NEUTRAL = ["#EFF6FF", "#BFDBFE", "#60A5FA", "#1D4ED8", "#003B8F"];
+const HEAT_RISK    = ["#FEF2F2", "#FECACA", "#F97316", "#EA580C", "#D70011"];
+// 의미색 — 브랜드 레드=위험 독점.
+const SEVERITY_COLORS = { "중상": "#D70011", "경상": "#EA580C", "기타": "#A8A29E", "미상": "#CBD5E1" };
+const REGION_COLORS   = { "수도권": "#1D4ED8", "지방": "#93C5FD", "기타": "#CBD5E1" };
+const RISK_COLORS     = { high: "#D70011", mid: "#EA580C", low: "#F59E0B", safe: "#78716C" };
+
+export { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, DAISO_GRAY, CANVAS, SURFACE, SUBTLE, BORDER, BORDER_HOVER, INK, INK2, INK3, INK4, DANGER, WARN, OK, BL, OR, NV, GR, RD, GN, PR, AM, PAL, CHART_BLUE, RANK_COLORS, rankColor, CHART_CATEGORICAL, CHART_CATEGORICAL_MAP, HEAT_NEUTRAL, HEAT_RISK, SEVERITY_COLORS, REGION_COLORS, RISK_COLORS };
