@@ -1,0 +1,95 @@
+name: Bake live snapshot + Deploy
+
+# 목적: 라이브 Apps Script API 최신화를 서버(GitHub Actions)에서 주기적으로 대신 실행한다.
+#   - bake-live-snapshot.mjs 는 DB/*.xlsx 불필요(네트워크 fetch)라 CI 러너에서 그대로 동작.
+#   - 사용자가 로컬에서 16~20초 기다릴 필요 없이, 앱은 항상 최신 baked liveSnapshot.js 를 즉시 로드.
+#   - 실데이터 변경 시에만 커밋 + 빌드 + S3 배포(bakedAt 타임스탬프만 바뀐 경우 스킵).
+#
+# 시크릿(기존 regenerate-and-deploy.yml 과 동일 재사용): AWS_DEPLOY_ROLE_ARN, S3_BUCKET, (선택) CLOUDFRONT_DISTRIBUTION_ID
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # 6시간마다 (UTC). KST 기준 00·06·12·18시. 빈도는 여기서 조정.
+  workflow_dispatch:         # GitHub UI에서 '지금 최신화' 수동 실행
+
+concurrency:
+  group: bake-live-snapshot
+  cancel-in-progress: false
+
+jobs:
+  bake-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write     # liveSnapshot.js 커밋/푸시
+      id-token: write      # AWS OIDC
+    env:
+      CF_DIST: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: proj/package-lock.json
+
+      - name: Install dependencies
+        working-directory: proj
+        env:
+          NODE_ENV: development
+        run: npm ci --include=dev
+
+      - name: Bake live snapshot (fetch → PII 마스킹 → liveSnapshot.js)
+        working-directory: proj
+        run: |
+          cp src/data/liveSnapshot.js /tmp/prev-snapshot.js 2>/dev/null || true
+          npm run data:livesnapshot
+
+      - name: Detect real data change (bakedAt 제외)
+        id: detect
+        working-directory: proj
+        run: |
+          CHANGED=$(node scripts/detect-snapshot-change.mjs /tmp/prev-snapshot.js src/data/liveSnapshot.js)
+          echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
+          echo "data changed: $CHANGED"
+
+      - name: Commit updated snapshot
+        if: steps.detect.outputs.changed == '1'
+        run: |
+          git config user.name  "sago-bake-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add proj/src/data/liveSnapshot.js
+          git commit -m "chore(data): 라이브 스냅샷 자동 최신화 [skip ci]"
+          git push
+
+      - name: Build
+        if: steps.detect.outputs.changed == '1'
+        working-directory: proj
+        env:
+          NODE_ENV: development
+        run: npm run build
+
+      - name: Configure AWS credentials (OIDC)
+        if: steps.detect.outputs.changed == '1'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-northeast-2
+
+      - name: Sync to S3
+        if: steps.detect.outputs.changed == '1'
+        run: |
+          aws s3 sync proj/dist/ s3://${{ secrets.S3_BUCKET }}/ \
+            --delete \
+            --cache-control "public, max-age=300" \
+            --exclude "*.html" --exclude "og-image.png" --exclude "favicon*.png"
+          aws s3 cp proj/dist/index.html s3://${{ secrets.S3_BUCKET }}/index.html \
+            --cache-control "no-cache, max-age=0"
+
+      - name: Invalidate CloudFront (optional)
+        if: ${{ steps.detect.outputs.changed == '1' && env.CF_DIST != '' }}
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "$CF_DIST" \
+            --paths "/index.html"
