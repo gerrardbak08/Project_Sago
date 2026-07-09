@@ -143,19 +143,21 @@ function CTypePlace({ D }) {
         </Card>
       )}
 
-      {/* 교차 매트릭스 — 사고유형×원인1, 원인1×원인3(행동) */}
-      {D.typeCause?.rows && (
+      {/* 교차 매트릭스 — 사고유형×원인1, 원인1×원인3(행동). crossByYear 산출 shape={cols,all,y24,y25,y26} — 연도별 슬라이스 선택 */}
+      {(() => { const mk = yearKey(D._yr) ?? 'all'; return (<>
+      {D.typeCause?.[mk]?.length > 0 && (
         <Card title="사고유형 × 원인1 매트릭스" titleIcon={GitBranch} sub={`${yrLabel} 어떤 원인이 어떤 사고유형으로 이어지나`}
-          right={<ExportBtn rows={D.typeCause.rows} filename={`고객사고_유형×원인1_${yrLabel}.csv`}/>}>
-          <Matrix data={D.typeCause.rows} rowKey="row" cols={D.typeCause.cols}/>
+          right={<ExportBtn rows={D.typeCause[mk]} filename={`고객사고_유형×원인1_${yrLabel}.csv`}/>}>
+          <Matrix data={D.typeCause[mk]} rowKey="row" cols={D.typeCause.cols}/>
         </Card>
       )}
-      {D.causeAction?.rows && (
+      {D.causeAction?.[mk]?.length > 0 && (
         <Card title="원인1 × 원인3(행동·결과) 매트릭스" titleIcon={GitBranch} sub={`${yrLabel} 원인이 어떤 행동·결과로 귀결되나`}
-          right={<ExportBtn rows={D.causeAction.rows} filename={`고객사고_원인1×원인3_${yrLabel}.csv`}/>}>
-          <Matrix data={D.causeAction.rows} rowKey="row" cols={D.causeAction.cols}/>
+          right={<ExportBtn rows={D.causeAction[mk]} filename={`고객사고_원인1×원인3_${yrLabel}.csv`}/>}>
+          <Matrix data={D.causeAction[mk]} rowKey="row" cols={D.causeAction.cols}/>
         </Card>
       )}
+      </>); })()}
     </div>
   );
 }

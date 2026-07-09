@@ -190,7 +190,8 @@ function DeptTeamStore({ D, yearFilter }) {
         const yr = yearFilter !== "all" ? D.yearly?.find(y => String(y.year) === yearFilter) : null;
         const sudoBumun = D.worker_ir_summary.by_bumun.find(b => b.bum === "수도권");
         const jibangBumun = D.worker_ir_summary.by_bumun.find(b => b.bum === "지방");
-        const totalIncidents = yr ? ((yr.s || 0) + (yr.j || 0) + (yr.e || 0)) : D.worker_ir_summary.total.incidents;
+        // 총카드 = 영업부문(수도권+지방)만 — 분모(totalWorkers)·자식카드(수도권/지방)·전체기간 경로 모두 sales-only이므로 기타(yr.e) 제외해 정합 유지(총=수도권+지방)
+        const totalIncidents = yr ? ((yr.s || 0) + (yr.j || 0)) : D.worker_ir_summary.total.incidents;
         const sudoIncidents = yr ? yr.s : (sudoBumun?.incidents ?? 0);
         const jibangIncidents = yr ? yr.j : (jibangBumun?.incidents ?? 0);
         const totalWorkers = D.worker_ir_summary.total.workers;
@@ -203,7 +204,7 @@ function DeptTeamStore({ D, yearFilter }) {
         const sudoIr = sudoWorkers ? (sudoIncidents / sudoWorkers * 100) : null;
         const jibangIr = jibangWorkers ? (jibangIncidents / jibangWorkers * 100) : null;
         const cards = [
-          { label: "영업부문 100명당 IR", labelColor: ALERT_RED, ir: totalIr, incidents: totalIncidents, workers: totalWorkers, stores: totalStores, valueColor: "#1C1917", icon: true, spkData: D.yearly?.map(y => (y.s||0)+(y.j||0)+(y.e||0)) ?? [] },
+          { label: "영업부문 100명당 IR", labelColor: ALERT_RED, ir: totalIr, incidents: totalIncidents, workers: totalWorkers, stores: totalStores, valueColor: "#1C1917", icon: true, spkData: D.yearly?.map(y => (y.s||0)+(y.j||0)) ?? [] },
           { label: "수도권", labelColor: BL, ir: sudoIr, incidents: sudoIncidents, workers: sudoWorkers, stores: sudoStores, valueColor: BL, spkData: D.yearly?.map(y => y.s||0) ?? [] },
           { label: "지방", labelColor: CHART_BLUE, ir: jibangIr, incidents: jibangIncidents, workers: jibangWorkers, stores: jibangStores, valueColor: CHART_BLUE, spkData: D.yearly?.map(y => y.j||0) ?? [] },
         ];
