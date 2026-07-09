@@ -59,10 +59,13 @@ jobs:
 
       - name: Sync to S3
         run: |
+          # ⚠️ images/* 제외 — 알림 이미지(images/scenes·categories)는 gitignore된 out-of-band 자산이라
+          #    dist/ 에 없음. --delete 가 이를 지우지 않도록 반드시 제외 유지.
           aws s3 sync proj/dist/ s3://${{ secrets.S3_BUCKET }}/ \
             --delete \
             --cache-control "public, max-age=300" \
-            --exclude "*.html" --exclude "og-image.png" --exclude "favicon*.png"
+            --exclude "*.html" --exclude "og-image.png" --exclude "favicon*.png" \
+            --exclude "images/*"
           # HTML/OG/favicon은 짧은 cache (변경 자주 됨)
           aws s3 cp proj/dist/index.html s3://${{ secrets.S3_BUCKET }}/index.html \
             --cache-control "no-cache, max-age=0"
