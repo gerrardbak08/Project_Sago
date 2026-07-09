@@ -53,4 +53,26 @@ const SEVERITY_COLORS = { "중상": "#D70011", "경상": "#EA580C", "기타": "#
 const REGION_COLORS   = { "수도권": "#1D4ED8", "지방": "#93C5FD", "기타": "#CBD5E1" };
 const RISK_COLORS     = { high: "#D70011", mid: "#EA580C", low: "#F59E0B", safe: "#78716C" };
 
-export { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, DAISO_GRAY, CANVAS, SURFACE, SUBTLE, BORDER, BORDER_HOVER, INK, INK2, INK3, INK4, DANGER, WARN, OK, BL, OR, NV, GR, RD, GN, PR, AM, PAL, CHART_BLUE, RANK_COLORS, rankColor, CHART_CATEGORICAL, CHART_CATEGORICAL_MAP, HEAT_NEUTRAL, HEAT_RISK, SEVERITY_COLORS, REGION_COLORS, RISK_COLORS };
+// === 소프트 틴트 (배경용) — 의미색 50단계 ===
+const DANGER_SOFT = "#FEF2F2";   // red-50   (= HEAT_RISK[0])
+const WARN_SOFT   = "#FFFBEB";   // amber-50
+const OK_SOFT     = "#ECFDF5";   // emerald-50
+
+// === Tailwind 유틸 토큰 (className 생성용) — tailwind.config.js 가 소비 ===
+// 색 정본은 이 파일의 위 상수들. 여기서 '의미 이름'으로 재노출 → text-ink-3, bg-canvas,
+// border-line, text-danger, text-brand-navy, bg-danger-soft 처럼 유틸 클래스로 쓸 수 있다.
+// ⚠️ 키 이름은 Tailwind 기본 팔레트(red/blue/gray/amber…)와 절대 겹치지 않게(기존 클래스 보호).
+const TW_COLORS = {
+  brand:   { red: DANGER, navy: NV, blue: CHART_BLUE, gray: DAISO_GRAY },
+  ink:     { DEFAULT: INK, 2: INK2, 3: INK3, 4: INK4 },
+  canvas:  CANVAS,
+  surface: SURFACE,
+  subtle:  SUBTLE,
+  line:    { DEFAULT: BORDER, hover: BORDER_HOVER },
+  danger:  { DEFAULT: DANGER, soft: DANGER_SOFT },
+  warn:    { DEFAULT: WARN,   soft: WARN_SOFT },
+  ok:      { DEFAULT: OK,     soft: OK_SOFT },
+  chart:   { deep: CHART_BLUE, blue: BL, sky: OR, indigo: PR, slate: GR, amber: AM },
+};
+
+export { DAISO_RED, ALERT_RED, SAFE_GREEN, CUSTOMER_BLUE, DEEP_BLUE, DAISO_GRAY, CANVAS, SURFACE, SUBTLE, BORDER, BORDER_HOVER, INK, INK2, INK3, INK4, DANGER, WARN, OK, DANGER_SOFT, WARN_SOFT, OK_SOFT, BL, OR, NV, GR, RD, GN, PR, AM, PAL, CHART_BLUE, RANK_COLORS, rankColor, CHART_CATEGORICAL, CHART_CATEGORICAL_MAP, HEAT_NEUTRAL, HEAT_RISK, SEVERITY_COLORS, REGION_COLORS, RISK_COLORS, TW_COLORS };

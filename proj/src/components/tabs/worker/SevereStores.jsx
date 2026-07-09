@@ -5,6 +5,7 @@ import { Card, EmptyState } from '../../shared/Card.jsx';
 import { fmt } from '../../../utils/uiHelpers.jsx';
 import { useCountUp, useInView } from '../../../utils/motion.js';
 import { AlertTriangle, Stethoscope, ChevronRight } from 'lucide-react';
+import { DANGER, WARN, NV, INK3 } from '../../../constants/colors.js';
 
 // 모듈 최상위에 정의 — SevereStores 내부 정의 시 매 렌더마다 컴포넌트 타입이 재생성돼 hook 상태 소실됨.
 const Kpi = ({ label, value, unit, sub, accent, delay, inView }) => {
@@ -21,7 +22,7 @@ const Kpi = ({ label, value, unit, sub, accent, delay, inView }) => {
       style={{ boxShadow: '0 6px 16px rgba(7,30,74,0.05)', animationDelay: `${delay || 0}ms` }}
     >
       <div className="text-xs text-stone-500">{label}</div>
-      <div className="text-2xl font-extrabold tabular-nums mt-1" style={{ color: accent || '#071E4A' }}>
+      <div className="text-2xl font-extrabold tabular-nums mt-1" style={{ color: accent || NV }}>
         {count.toLocaleString()}<span className="text-xs font-normal text-stone-400 ml-1">{unit}</span>
       </div>
       {sub && <div className="text-[11px] text-stone-400 mt-1">{sub}</div>}
@@ -68,16 +69,16 @@ function SevereStores({ D, yearFilter }) {
   const kpiInView = useInView(kpiRef);
 
   const kpiItems = [
-    { label: '91일↑ 재해',      value: total,       unit: '건', sub: '산재 승인 기준 실측',   accent: '#E60033' },
+    { label: '91일↑ 재해',      value: total,       unit: '건', sub: '산재 승인 기준 실측',   accent: DANGER },
     { label: '발생 매장',        value: storeCount,  unit: '개', sub: null,                    accent: null },
-    { label: '2건 이상 매장',    value: repeat2,     unit: '개', sub: '집중 모니터링 대상',    accent: repeat2 > 0 ? '#D97706' : '#071E4A' },
+    { label: '2건 이상 매장',    value: repeat2,     unit: '개', sub: '집중 모니터링 대상',    accent: repeat2 > 0 ? WARN : NV },
     { label: '중상해 근로손실',  value: lossSum,     unit: '일', sub: '91일↑ 건 합계',         accent: null },
   ];
 
   return (
     <div className="space-y-3 sm:space-y-4">
       <div className="flex items-center gap-2 text-sm font-extrabold text-[#071E4A]">
-        <AlertTriangle size={16} className="text-[#E60033]" /> 중상해 매장 — 근로손실 91일 이상
+        <AlertTriangle size={16} className="text-brand-red" /> 중상해 매장 — 근로손실 91일 이상
         <span className="text-[11px] font-normal text-stone-400">중대재해처벌법 §2(2호) 사전 모니터링</span>
       </div>
 
@@ -162,7 +163,7 @@ function SevereStores({ D, yearFilter }) {
                         <td className="py-3 px-3 sm:py-2 sm:px-2 text-right">
                           <span
                             className="font-bold tabular-nums"
-                            style={{ color: effMaxDays >= 180 ? '#E60033' : '#071E4A' }}
+                            style={{ color: effMaxDays >= 180 ? DANGER : NV }}
                           >
                             {fmt(effMaxDays)}일
                           </span>
@@ -209,7 +210,7 @@ function SevereStores({ D, yearFilter }) {
                                           <span className="font-semibold text-[#071E4A] w-[90px] flex-shrink-0 truncate">{a.type || '기타'}</span>
                                           <span
                                             className="truncate flex-1"
-                                            style={{ color: severe ? '#E60033' : '#78716C', fontWeight: severe ? 700 : 400 }}
+                                            style={{ color: severe ? DANGER : INK3, fontWeight: severe ? 700 : 400 }}
                                           >
                                             {a.loss_days ? `근로손실 ${a.loss_days}일` : (a.site || a.kind || '')}
                                           </span>

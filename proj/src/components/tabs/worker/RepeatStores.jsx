@@ -4,6 +4,7 @@ import { useState, Fragment, useRef } from 'react';
 import { Card, EmptyState } from '../../shared/Card.jsx';
 import { useCountUp, useInView } from '../../../utils/motion.js';
 import { Siren, MapPin, ChevronRight } from 'lucide-react';
+import { DANGER, WARN, NV, DANGER_SOFT, WARN_SOFT } from '../../../constants/colors.js';
 
 function RepeatStores({ D, yearFilter }) {
   const rs = D?.repeat_stores || (() => {
@@ -61,7 +62,7 @@ function RepeatStores({ D, yearFilter }) {
       [0]?.date || '').slice(0, 10) || '-')
     : (s.recentDate || '-');
 
-  const lvl = (n) => n >= 3 ? { l: '주의', c: '#E60033', bg: '#FEF2F2' } : { l: '관찰', c: '#D97706', bg: '#FFFBEB' };
+  const lvl = (n) => n >= 3 ? { l: '주의', c: DANGER, bg: DANGER_SOFT } : { l: '관찰', c: WARN, bg: WARN_SOFT };
 
   // yr 활성 시 해당 연도 건만 집계해 주요 유형 반환, 아니면 전기간값 그대로
   const topTypeOf = (store, topType) => yr
@@ -75,8 +76,8 @@ function RepeatStores({ D, yearFilter }) {
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      <div className="flex items-center gap-2 text-sm font-extrabold text-[#071E4A]">
-        <Siren size={16} className="text-[#E60033]" /> 반복사고 매장 — 동일 매장 2건 이상
+      <div className="flex items-center gap-2 text-sm font-extrabold text-brand-navy">
+        <Siren size={16} className="text-brand-red" /> 반복사고 매장 — 동일 매장 2건 이상
         <span className="text-[11px] font-normal text-stone-400">{yr ? yr + '년' : '전체 기간'} 기준</span>
       </div>
 
@@ -84,16 +85,16 @@ function RepeatStores({ D, yearFilter }) {
       <div ref={kpiRef} className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
         <div className="dash-slide-up rounded-[16px] bg-white border border-stone-200/70 p-4" style={{ boxShadow: '0 6px 16px rgba(7,30,74,0.05)', animationDelay: '0ms' }}>
           <div className="text-xs text-stone-500">반복사고 매장</div>
-          <div className="text-2xl font-extrabold tabular-nums mt-1 text-[#071E4A]">{cTotal}<span className="text-xs font-normal text-stone-400 ml-1">개</span></div>
+          <div className="text-2xl font-extrabold tabular-nums mt-1 text-brand-navy">{cTotal}<span className="text-xs font-normal text-stone-400 ml-1">개</span></div>
         </div>
         <div className="dash-slide-up rounded-[16px] bg-white border border-stone-200/70 p-4" style={{ boxShadow: '0 6px 16px rgba(7,30,74,0.05)', animationDelay: '80ms' }}>
           <div className="text-xs text-stone-500">3건 이상 매장</div>
-          <div className="text-2xl font-extrabold tabular-nums mt-1" style={{ color: cnt3 > 0 ? '#E60033' : '#071E4A' }}>{cCnt3}<span className="text-xs font-normal text-stone-400 ml-1">개</span></div>
+          <div className="text-2xl font-extrabold tabular-nums mt-1" style={{ color: cnt3 > 0 ? DANGER : NV }}>{cCnt3}<span className="text-xs font-normal text-stone-400 ml-1">개</span></div>
           <div className="text-[11px] text-stone-400 mt-1">집중 관리 대상</div>
         </div>
         <div className="dash-slide-up rounded-[16px] bg-white border border-stone-200/70 p-4 col-span-2 sm:col-span-1" style={{ boxShadow: '0 6px 16px rgba(7,30,74,0.05)', animationDelay: '160ms' }}>
           <div className="text-xs text-stone-500">최다 영업부</div>
-          <div className="text-lg font-extrabold mt-1 text-[#071E4A]">{maxDept ? maxDept[0] : '-'}</div>
+          <div className="text-lg font-extrabold mt-1 text-brand-navy">{maxDept ? maxDept[0] : '-'}</div>
           <div className="text-[11px] text-stone-400 mt-0.5">{maxDept ? `반복매장 ${cMaxDeptN}개` : ''}</div>
         </div>
       </div>
@@ -154,7 +155,7 @@ function RepeatStores({ D, yearFilter }) {
                         {/* 순위 */}
                         <td className="py-3 sm:py-2 px-2 text-stone-400 tabular-nums w-[36px] sm:w-auto">{i + 1}</td>
                         {/* 매장명 — 모바일에서 dept/team/recentDate 인라인 보완 */}
-                        <td className="py-3 sm:py-2 px-2 font-bold text-[#071E4A]">
+                        <td className="py-3 sm:py-2 px-2 font-bold text-brand-navy">
                           <span className="inline-flex items-center gap-1">
                             <ChevronRight
                               size={13}
@@ -170,7 +171,7 @@ function RepeatStores({ D, yearFilter }) {
                         <td className="py-3 sm:py-2 px-2 text-stone-500 tabular-nums hidden sm:table-cell">{displayDate(s)}</td>
                         <td className="py-3 sm:py-2 px-2 text-stone-700">{topTypeOf(s.store, s.topType)}</td>
                         {/* 건수 */}
-                        <td className="py-3 sm:py-2 px-2 text-right font-bold tabular-nums w-[36px] sm:w-auto" style={{ color: displayCount(s) >= 3 ? '#E60033' : '#071E4A' }}>{displayCount(s)}건</td>
+                        <td className="py-3 sm:py-2 px-2 text-right font-bold tabular-nums w-[36px] sm:w-auto" style={{ color: displayCount(s) >= 3 ? DANGER : NV }}>{displayCount(s)}건</td>
                       </tr>
 
                       {/* 사고 이력 펼침 — dash-slide-down 진입 애니메이션 */}
@@ -189,11 +190,11 @@ function RepeatStores({ D, yearFilter }) {
                                         {/* 날짜 — italic */}
                                         <span className="text-[10px] italic text-stone-400 tabular-nums flex-shrink-0">{dateStr(a.date)}</span>
                                         {/* 사고 유형 배지 */}
-                                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#EFF6FF] text-[#1D4ED8] flex-shrink-0">{a.type || '기타'}</span>
+                                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 flex-shrink-0">{a.type || '기타'}</span>
                                         {/* 근로손실일 배지 — 14일↑ 레드 / 미만 앰버 */}
                                         {a.loss_days ? (
                                           <span
-                                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${Number(a.loss_days) >= 14 ? 'bg-red-50 text-[#E60033]' : 'bg-amber-50 text-[#D97706]'}`}
+                                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${Number(a.loss_days) >= 14 ? 'bg-red-50 text-brand-red' : 'bg-amber-50 text-warn'}`}
                                           >
                                             {a.loss_days}일
                                           </span>

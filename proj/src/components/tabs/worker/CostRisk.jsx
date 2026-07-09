@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, LabelList, ComposedChart, Line } from 'recharts';
 import { Banknote, Calendar, TrendingUp, Info, ChevronDown } from 'lucide-react';
-import { DAISO_RED, ALERT_RED, SAFE_GREEN, NV, rankColor } from '../../../constants/colors.js';
+import { DAISO_RED, ALERT_RED, SAFE_GREEN, NV, CHART_BLUE, rankColor } from '../../../constants/colors.js';
 import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN, DAILY_VALUE_PER_WORKER } from '../../../constants/metrics.js';
 import { fmt } from '../../../utils/uiHelpers.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
@@ -94,7 +94,7 @@ function CostRisk({ D, allYearly, yearFilter, basis }) {
         <Calendar size={11} />
         <span>분석 기간: <b className="text-stone-700">{yrLabel}</b></span>
         <span className="text-stone-300">·</span>
-        <span>기준: <b className="text-[#002B6D]">{basisLabel}</b> <span className="text-stone-400">(상단 토글로 전환)</span></span>
+        <span>기준: <b className="text-brand-navy">{basisLabel}</b> <span className="text-stone-400">(상단 토글로 전환)</span></span>
         {yearFilter && yearFilter !== "all" && (
           <span className="px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold">필터 적용 중</span>
         )}
@@ -105,7 +105,7 @@ function CostRisk({ D, allYearly, yearFilter, basis }) {
         <div className="rounded-lg bg-blue-50/60 border border-blue-100 px-3.5 py-2.5 flex items-start gap-2 text-xs text-stone-600 leading-relaxed break-keep">
           <Info size={13} className="text-[#1D4ED8] flex-shrink-0" style={{ marginTop: 2 }} />
           <span>
-            <b className="text-[#002B6D]">추정 재무손실은 실측 근로손실일수(산재 처리 시 확정)</b> 기반입니다. 근로손실일수는 산재 처리된 건에만 기록되므로,
+            <b className="text-brand-navy">추정 재무손실은 실측 근로손실일수(산재 처리 시 확정)</b> 기반입니다. 근로손실일수는 산재 처리된 건에만 기록되므로,
             <b> 특정 연도(예: 2026년)에는 사고경위·산재승인 손실이 동일하게</b> 나올 수 있습니다.
             <span className="text-stone-500"> 전체기간·2024·2025 등 다른 기간은 기준 전환에 따라 다르게 반영됩니다. (사고건수는 기준별로 항상 다르게 집계됩니다.)</span>
           </span>
@@ -118,7 +118,7 @@ function CostRisk({ D, allYearly, yearFilter, basis }) {
         {/* Primary — 총 추정 재무손실: col-span-2 on mobile, 1 on lg */}
         <div
           className="col-span-2 lg:col-span-1 rounded-lg p-5 text-white dash-slide-up transition-all hover:-translate-y-0.5 hover:shadow-lg"
-          style={{ background: "#002B6D", animationDelay: "0ms" }}
+          style={{ background: CHART_BLUE, animationDelay: "0ms" }}
         >
           <div className="text-xs text-white/70 font-medium uppercase tracking-wide">총 추정 재무손실</div>
           <div className="flex items-baseline gap-1.5 mt-1">
@@ -230,10 +230,10 @@ function CostRisk({ D, allYearly, yearFilter, basis }) {
         >
           <div className="px-3 pb-3 text-xs text-stone-700 break-keep leading-relaxed">
             {USE_PRODUCTIVITY ? (<>
-              <b className="text-[#002B6D]">추정 재무손실</b> = 실측 근로손실일수 × <b>인당 1일 생산성({fmt(DAILY_VALUE_PER_WORKER)}원)</b>.
+              <b className="text-brand-navy">추정 재무손실</b> = 실측 근로손실일수 × <b>인당 1일 생산성({fmt(DAILY_VALUE_PER_WORKER)}원)</b>.
               <span className="text-stone-500"> 매장 근로자 1인의 1일 생산성 비용(사용자 산정)에 산재 판정 실측 근로손실일수를 곱해 산출. 기준(사고경위/산재승인)·연도·월 전환 시 동적 재계산.</span>
             </>) : (<>
-              <b className="text-[#002B6D]">직접비</b> = 실측 근로손실일수 × 일급(최저시급×8시간) <span className="text-stone-400">[요양·장해·유족 등 보상금 제외 — 휴업손실 근사]</span> · <b className="text-[#002B6D]">간접비</b> = 직접비 × {INDIRECT_COST_MULTIPLIER} · <b className="text-[#002B6D]">총손실</b> = 직접비 + 간접비.
+              <b className="text-brand-navy">직접비</b> = 실측 근로손실일수 × 일급(최저시급×8시간) <span className="text-stone-400">[요양·장해·유족 등 보상금 제외 — 휴업손실 근사]</span> · <b className="text-brand-navy">간접비</b> = 직접비 × {INDIRECT_COST_MULTIPLIER} · <b className="text-brand-navy">총손실</b> = 직접비 + 간접비.
               <span className="text-stone-500"> ※ <b className="text-amber-700">임시 기준</b> — 인당 1일 생산성 비용 입력 시 그 값으로 자동 전환됩니다. 간접비 {INDIRECT_COST_MULTIPLIER}배는 하인리히(1931) 1:{INDIRECT_COST_MULTIPLIER}를 전 업종 일괄 채택한 값(업종별 실측 평균 아님), 한국 실측은 사망 1:6.2·중경상 1:7.1. 근로손실일수는 산재 판정 실측치.</span>
             </>)}
           </div>

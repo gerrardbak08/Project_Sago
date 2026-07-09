@@ -8,7 +8,7 @@ import { BarChart, Bar, ComposedChart, Line, XAxis, YAxis, Cell, PieChart, Pie, 
 import { exportElementPng } from '../../utils/exportUtils.jsx';
 import DAISO_LOGO from '../../data/logo.js';
 
-const NAVY = '#0E2A6E', NAVY2 = '#1B3B7A', RED = '#E2231A', GRAY = '#C7CDD6', INK = '#1C2A45';
+const NAVY = '#071E4A', NAVY2 = '#1B3B7A', RED = '#E2231A', GRAY = '#C7CDD6', INK = '#1C2A45';
 const DONUT_PAL = [NAVY2, RED, '#5B7BC0', '#A9BCE0', GRAY];
 const RANK = [NAVY2, RED, GRAY];
 
@@ -99,7 +99,7 @@ function ReportModal({ D, onClose }) {
       <div className="flex rounded-lg bg-white/15 p-0.5">
         {BUMS.map(b => (
           <button key={b.key} onClick={() => setBumKey(b.key)}
-            className={`px-3 h-8 rounded-md text-xs font-semibold transition cursor-pointer ${bumKey === b.key ? 'bg-white text-[#0E2A6E]' : 'text-white/80 hover:text-white'}`}>
+            className={`px-3 h-8 rounded-md text-xs font-semibold transition cursor-pointer ${bumKey === b.key ? 'bg-white text-brand-navy' : 'text-white/80 hover:text-white'}`}>
             {b.label}
           </button>
         ))}
@@ -114,7 +114,7 @@ function ReportModal({ D, onClose }) {
         <ImageIcon size={13} /> {busy ? '생성중…' : '이미지'}
       </button>
       <button onClick={() => window.print()}
-        className="h-8 px-3 rounded-md bg-white text-[#0E2A6E] text-xs font-bold flex items-center gap-1.5 cursor-pointer hover:bg-stone-100">
+        className="h-8 px-3 rounded-md bg-white text-brand-navy text-xs font-bold flex items-center gap-1.5 cursor-pointer hover:bg-stone-100">
         <Printer size={13} /> 인쇄
       </button>
       <button onClick={onClose}

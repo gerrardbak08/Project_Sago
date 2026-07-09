@@ -36,7 +36,7 @@ function DataSearchModal({ D, onClose }) {
   return (
     <div className="fixed inset-0 z-[60] bg-black/40 flex items-start justify-center overflow-auto p-3 sm:p-6" onClick={onClose}>
       <div onClick={e => e.stopPropagation()} className="bg-white w-full max-w-[920px] rounded-[20px] shadow-xl my-2 overflow-hidden">
-        <div className="flex items-center justify-between px-5 sm:px-7 py-4 border-b-2 border-[#071E4A]" style={{ background: 'linear-gradient(135deg,#071E4A,#002B6D)' }}>
+        <div className="flex items-center justify-between px-5 sm:px-7 py-4 border-b-2 border-brand-navy" style={{ background: 'linear-gradient(135deg,#071E4A,#003B8F)' }}>
           <div className="flex items-center gap-2 text-white"><Search size={16} /><span className="font-extrabold">데이터 조회</span><span className="text-[11px] text-white/55">연도·월·영업부·유형·매장으로 검색 (개인정보 마스킹)</span></div>
           <button onClick={onClose} className="h-8 w-8 rounded-md text-white/70 hover:bg-white/10 flex items-center justify-center cursor-pointer"><X size={16} /></button>
         </div>
@@ -49,7 +49,7 @@ function DataSearchModal({ D, onClose }) {
           <input value={store} onChange={e => setStore(e.target.value)} placeholder="매장명 검색" className="h-8 px-2.5 rounded-md border border-stone-200 text-xs w-32" />
           <button onClick={reset} className="h-8 px-3 rounded-md border border-stone-200 text-xs text-stone-600 bg-white hover:bg-stone-100 cursor-pointer">초기화</button>
           <div className="flex-1" />
-          <span className="text-xs text-stone-500">총 <b className="text-[#002B6D] tabular-nums">{result.length.toLocaleString()}</b>건</span>
+          <span className="text-xs text-stone-500">총 <b className="text-brand-navy tabular-nums">{result.length.toLocaleString()}</b>건</span>
         </div>
 
         <div className="max-h-[60vh] overflow-auto px-5 sm:px-7 py-3">

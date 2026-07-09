@@ -21,7 +21,7 @@ html, body {
 /* newjuna 충실도 — 대시보드 섹션 헤딩을 네이비·굵게 (id 특이성으로 Tailwind stone 오버라이드) */
 #dashboard-capture h2,
 #dashboard-capture h3,
-#dashboard-capture h4 { color: #071E4A; font-weight: 800; letter-spacing: -0.01em; }
+#dashboard-capture h4 { color: theme('colors.brand.navy'); font-weight: 800; letter-spacing: -0.01em; }
 
 /* 인쇄: 리포트는 body로 포털(#report-portal)됨 — 그 외 앱 본문은 display:none 으로 완전 제거(빈 페이지 방지) */
 @media print {
