@@ -34,10 +34,13 @@ function workerDigest(data, basisLabel) {
   const rw = data.repeat_workers || {};
   const sev = (data.severity && data.severity.dist) || {};
   const ap = data.apply_type || {};
+  const loc = data.location || {};
+  const lastM = last(data.monthly || []);
+  const y26Label = lastM && lastM.y === 2026 ? `(1~${lastM.m}월)` : '';
   const lines = [
     `### 근로자 산재 (기준: ${basisLabel} · 연도 전체)`,
     `- 총 ${num(k.total)}건 — 수도권 ${num(k.sudo)} · 지방 ${num(k.jibang)} · 기타 ${num(k.etc)}`,
-    `- 연도별: 2024 ${num(k.y2024)} · 2025 ${num(k.y2025)} · 2026 ${num(k.y2026)}(1~5월)`,
+    `- 연도별: 2024 ${num(k.y2024)} · 2025 ${num(k.y2025)} · 2026 ${num(k.y2026)}${y26Label}`,
     `- 재해유형(정본) Top: ${topObj(data.injuryCanon || data.injury, 7)}`,
     `- 기인물 Top: ${topObj(data.cause, 5)}`,
     `- 심각도: 중상 ${num(sev['중상'])} · 경상 ${num(sev['경상'])} · 기타 ${num(sev['기타'])} · 미상 ${num(sev['미상'])}`,
@@ -50,6 +53,8 @@ function workerDigest(data, basisLabel) {
     `- 사고 다발 매장 Top5: ${topArr(stores, 5, s => `${s.store} ${num(s.total)}건${s.top_type ? `(${s.top_type})` : ''}`)}`,
     (rs.list && rs.list.length ? `- 반복사고 매장 Top5: ${topArr(rs.list, 5, s => `${s.store} ${num(s.count)}건`)}` : ''),
     (rw.repeat_count ? `- 재발재해자: ${num(rw.repeat_count)}명 / ${num(rw.repeat_incidents)}건 (사고자 ${num(rw.total_workers)}명 중)` : ''),
+    (loc.totals && loc.totals.length ? `- 발생 장소 Top5(사고경위 서술 추출 · 장소 확인 ${num(loc.matched)}/${num(loc.total)}건): ${topArr(loc.totals.filter(l => l.id !== 'unknown'), 5, l => `${l.label} ${num(l.n)}건${l.loss_days_avg != null ? `(평균휴업 ${l.loss_days_avg}일)` : ''}`)}` : ''),
+    (loc.severity && loc.severity.length ? `- 고위험 유형×장소(평균 휴업일수 순 · 표본 5건+): ${topArr(loc.severity, 3, c => `${c.type}@${c.locLabel} ${c.loss_days_avg}일(${c.n}건)`)}` : ''),
   ];
   return lines.filter(Boolean).join('\n');
 }

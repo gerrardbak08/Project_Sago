@@ -65,6 +65,7 @@ export default function BriefingGenerator({ D }) {
       topStores: topN(cur, (a) => a.store),
       topTypes: topN(cur, (a) => a.type, 4),
       topCauses: topN(cur, (a) => a.cause, 4),
+      topLocs: topN(cur.filter((a) => a.locMatched), (a) => a.locLabel, 4),
       severe, ytd: scoped.filter((a) => a.year === selY).length,
     };
   }, [accidents, role, tgt, monthKey]);
@@ -106,8 +107,10 @@ export default function BriefingGenerator({ D }) {
     const trend = w.delta > 0 ? `전월 대비 ${w.delta}건 증가` : w.delta < 0 ? `전월 대비 ${Math.abs(w.delta)}건 감소` : '전월과 동일';
     const topStore = w.topStores[0] ? `${w.topStores[0][0]}(${w.topStores[0][1]}건)` : '없음';
     const topType = w.topTypes[0] ? w.topTypes[0][0] : '없음';
+    const topLoc = w.topLocs?.[0] ? `${w.topLocs[0][0]}(${w.topLocs[0][1]}건)` : null;
     return `${period} 기준 ${roleDef.label} 관할 ‘${tgt}’의 근로자 산업재해는 ${w.cur.length}건으로 ${trend}했습니다. `
       + (w.cur.length ? `가장 많은 매장은 ${topStore}, 주요 재해유형은 ${topType}입니다. ` : '')
+      + (topLoc ? `발생 장소는 ${topLoc} 중심입니다 — 점검 동선에 반영하세요. ` : '')
       + (w.severe ? `이 중 중상(근로손실 91일+) ${w.severe}건이 포함됩니다. ` : '')
       + `고객 안전사고는 관할 누적 ${customer.total}건, 발송된 안전 알람은 ${alarms.total}건입니다.`;
   }, [worker, customer, alarms, tgt, monthKey]);
@@ -169,10 +172,11 @@ export default function BriefingGenerator({ D }) {
           <Kpi l="중상(91일+)" v={worker.severe} unit="건" color="#D70011" />
           <Kpi l="사고 매장" v={worker.topStores.length} unit="개" color="#B45309" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           <MiniList title="상위 발생 매장" rows={worker.topStores} unit="건" />
           <MiniList title="주요 재해유형" rows={worker.topTypes} unit="건" />
           <MiniList title="주요 원인" rows={worker.topCauses} unit="건" />
+          <MiniList title="주요 발생 장소" rows={worker.topLocs} unit="건" />
         </div>
         {worker.cur.length > 0 && (
           <div className="mt-3 pt-3 border-t border-stone-100">

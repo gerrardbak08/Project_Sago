@@ -33,7 +33,7 @@ import { processWorkers }     from './utils/processData.js';
 import { LayoutDashboard, Building, Building2, MapPin, FileText, Search,
          TrendingUp, GitBranch, UserCircle, Users, Scale, Banknote,
          Stethoscope, Bell, ChevronRight, ShieldCheck, Store,
-         X, AlertCircle, Send, Lock, ExternalLink, Target, LogOut } from 'lucide-react';
+         X, AlertCircle, Send, Lock, ExternalLink, Target, MoreHorizontal } from 'lucide-react';
 import AlertMonitoring from './components/tabs/alert/AlertMonitoring.jsx';
 import AlertSend       from './components/tabs/alert/AlertSend.jsx';
 import AlertReview     from './components/tabs/alert/AlertReview.jsx';
@@ -49,9 +49,7 @@ import ModeSidebar from './components/layout/ModeSidebar.jsx';
 import { SegmentedToggle, ScrollProgress, PulseDot } from './components/shared/MotionBits.jsx';
 import { toast } from './utils/uifx.js';
 import LandingPage           from './components/layout/LandingPage.jsx';
-import LoginGate             from './components/LoginGate.jsx';
 import scopeData             from './utils/scopeData.js';
-import { SCOPE_STORAGE_KEY } from './constants/auth.js';
 
 // ── 근로자 탭 컴포넌트 ─────────────────────────────────
 import Overview          from './components/tabs/worker/Overview.jsx';
@@ -217,13 +215,11 @@ function App() {
       return p.get("skip") === "1" || !!p.get("role");
     } catch { return false; }
   })();
-  // 부문 로그인 스코프 — { all:true } 전사 | { bum } 부문. sessionStorage로 새로고침 유지.
-  const _initScope = (() => {
-    try { const s = typeof sessionStorage !== 'undefined' && sessionStorage.getItem(SCOPE_STORAGE_KEY); return s ? JSON.parse(s) : null; } catch { return null; }
-  })();
-  // 로그인 게이트가 진입점 → 인증 후 랜딩 인트로 → 대시보드 (랜딩 유지)
+  // 접근 스코프 — 로그인 게이트 제거(사용자 결정), 항상 전사. 부문 분리 부활 시 LoginGate 재연결.
+  const _initScope = { all: true, label: '안전보건팀' };
+  // 랜딩 인트로 → 대시보드 (랜딩 유지)
   const [showLanding, setShowLanding] = useState(!_skipLanding);
-  const [scope, setScope] = useState(_initScope);
+  const [scope] = useState(_initScope);
   const [landingFading, setLandingFading] = useState(false);
 
   const [dashMode, setDashMode] = useState("worker"); // "worker" | "customer" (알림은 worker 셸 내 g_alert 그룹으로 통합)
@@ -248,19 +244,6 @@ function App() {
   const handleLandingRoleSelect = (roleId) => {
     setCurrentRole(roleId); // 역할은 데이터 필터용 — 첫 탭은 항상 요약 고정(역할 랜딩 비활성)
   };
-  // 부문 로그인/로그아웃
-  const handleLogin = (sc) => {
-    setScope(sc);
-    try { sessionStorage.setItem(SCOPE_STORAGE_KEY, JSON.stringify(sc)); } catch {}
-    // 로그인 후 랜딩 인트로 → 대시보드 (랜딩 유지, 탭 제한 없음 — 데이터만 부문 스코프)
-  };
-  const handleGateLogout = () => {
-    setScope(null);
-    try { sessionStorage.removeItem(SCOPE_STORAGE_KEY); } catch {}
-    setCurrentRole(null);
-    toast('로그아웃되었습니다', 'ok');
-  };
-
   // URL hash 동기화 — history.replaceState (리로드 없음)
   const setTab = (t) => {
     setTabState(t);
@@ -310,6 +293,7 @@ function App() {
   const [showReport, setShowReport] = useState(false);    // 요약 보고서 모달
   const [showSearch, setShowSearch] = useState(false);    // 데이터 조회 모달
   const [showKpi, setShowKpi] = useState(false);          // KPI 목표설정 패널
+  const [showMoreNav, setShowMoreNav] = useState(false);   // 모바일 하단탭 '더보기' 시트
   const [kpiAdminUnlocked, setKpiAdminUnlocked] = useState(false);
   const liveFetchedRef = useRef(false);                   // StrictMode 이중호출 방지
   const basisRef = useRef('incident');                    // 라이브 fetch 콜백에서 최신 basis 읽기용
@@ -480,14 +464,17 @@ function App() {
     .filter(g => g.items.length > 0);
   const activeGroup = visibleGroups.find(g => g.items.some(t => t.id === tab)) || visibleGroups[0];
   const inAlert = activeGroup?.id === 'g_alert';   // 알림 그룹 활성 여부 (사이드바 유지형 통합)
+  // 모바일 하단탭 — 10개 그룹을 한 줄에 다 늘어놓으면 복잡해 보여서(가로스크롤 필요)
+  // 자주 보는 5개만 상시 노출하고 나머지는 '더보기' 시트로 묶는다.
+  const BOTTOM_NAV_PRIMARY = ['g_summary', 'g_safety', 'g_store', 'g_trend', 'g_human'];
+  const bottomNavPrimary = visibleGroups.filter(g => BOTTOM_NAV_PRIMARY.includes(g.id));
+  const bottomNavMore = visibleGroups.filter(g => !BOTTOM_NAV_PRIMARY.includes(g.id));
+  const moreNavActive = bottomNavMore.some(g => g === activeGroup);
 
   // 파트장 모바일 실시 기록 입력 — 로그인 없이 독립 페이지 (링크로 진입)
   if (_COMPLIANCE_INPUT.on) {
     return <ComplianceInputForm standalone program={_COMPLIANCE_INPUT.program} stores={data.stores} initialStore={_COMPLIANCE_INPUT.store} />;
   }
-
-  // 부문 로그인 게이트 — 미인증 시 대시보드 접근 차단
-  if (!scope) return <LoginGate onLogin={handleLogin} />;
 
   // 랜딩 페이지
   if (showLanding) return (
@@ -587,82 +574,85 @@ function App() {
           </div>
         </div>
 
-        {/* ── 2행: 기간 필터 + 건수 + 역할 ── */}
-        <div className="bg-white border-b border-stone-100">
-          <div className="max-w-[1400px] mx-auto px-3 sm:px-5 h-10 flex items-center gap-1 sm:gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-            {!inAlert && (
-              <>
-                {isDefault && (
-                  <>
-                    <span className="text-xs text-stone-400 font-medium hidden sm:inline flex-shrink-0">기준:</span>
-                    <SegmentedToggle
-                      value={basis}
-                      onChange={setBasis}
-                      accent="#071E4A"
-                      size={isMobile ? "xs" : "sm"}
-                      className="flex-shrink-0"
-                      options={[{ value: 'incident', label: '사고경위' }, { value: 'approval', label: '산재승인' }]}
-                    />
-                    <div className="h-4 w-px bg-stone-200 mx-0.5 sm:mx-1 flex-shrink-0" />
-                  </>
-                )}
-                <span className="text-xs text-stone-400 font-medium hidden sm:inline flex-shrink-0">기간:</span>
-                <SegmentedToggle
-                  value={yearFilter}
-                  onChange={setYearFilter}
-                  accent="#071E4A"
-                  size={isMobile ? "xs" : "sm"}
-                  className="flex-shrink-0"
-                  options={[{ value: 'all', label: '전체' }, { value: '2024', label: '2024' }, { value: '2025', label: '2025' }, { value: '2026', label: '2026' }]}
-                />
-                <div className="h-4 w-px bg-stone-200 mx-1 flex-shrink-0" />
-                <span className="text-xs text-stone-500 flex-shrink-0">
-                  {yearFilter === "all" ? "전체" : `${yearFilter}년`}&nbsp;
-                  <b className="text-stone-900 tabular-nums">{fmt(yearFilter === "all" ? data.kpis.total : yearFilter === "2024" ? data.kpis.y2024 : yearFilter === "2025" ? data.kpis.y2025 : yearFilter === "2026" ? data.kpis.y2026 : data.kpis.total)}건</b>
-                </span>
-                {data.store_kpi && (() => {
-                  // yearFilter에 따라 해당 연도 5월 스냅샷의 매장수 표시 (없으면 현재 store_kpi.total fallback)
-                  let storeCount = data.store_kpi.total;
-                  let label = "영업매장";
-                  if (yearFilter !== "all") {
-                    const snap = STORE_SNAPSHOTS.find(s => s.ym === `${yearFilter}-05`);
-                    if (snap) { storeCount = snap.count; label = `${yearFilter}-05 영업매장`; }
-                  }
-                  return (
-                    <span className="text-xs text-stone-500 hidden sm:inline flex-shrink-0">
-                      · {label} <b className="text-stone-900 tabular-nums">{fmt(storeCount)}개</b>
-                    </span>
-                  );
-                })()}
-                {isDefault && (() => {
-                  const live = dataSource === 'live';
-                  const bd = LIVE_SNAPSHOT?.bakedAt ? LIVE_SNAPSHOT.bakedAt.slice(5, 10).replace('-', '/').replace(/^0/, '') : '';
-                  // 데이터는 마운트 즉시 스냅샷으로 완전히 표시됨. liveLoading 은 백그라운드 최신확인일 뿐 —
-                  // 로딩처럼 보이지 않도록 스냅샷 배지를 곧바로 노출하고, 라이브 완료 시 조용히 '실시간'으로 승격.
-                  const cls = live ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-500';
-                  const dot = live ? 'bg-emerald-500' : liveLoading ? 'bg-stone-400 animate-pulse' : 'bg-stone-400';
-                  const txt = live ? '실시간' : `스냅샷 ${bd}`;
-                  const ttl = live ? '라이브 실시간 연동됨'
-                    : liveLoading ? `표시된 수치는 스냅샷(${LIVE_SNAPSHOT?.bakedAt?.slice(0, 10) || ''} 기준)입니다. 백그라운드에서 최신 데이터를 확인하는 중이며, 완료되면 실시간으로 전환됩니다.`
-                    : `데이터 스냅샷 (${LIVE_SNAPSHOT?.bakedAt?.slice(0, 10) || ''} 기준).`;
-                  return (
-                    <span className={`hidden sm:inline-flex items-center gap-1 flex-shrink-0 ml-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${cls}`}
-                      title={ttl}>
-                      {live ? <PulseDot color="#10B981" size={6} /> : <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />}
-                      {txt}
-                    </span>
-                  );
-                })()}
-              </>
-            )}
-            <div className="flex-1" />
-            {!inAlert && (
+        {/* ── 2행: 기준/기간 필터 + 건수 (모바일: 자체 줄 — 액션버튼과 분리해 잘림 방지) ── */}
+        {!inAlert && (
+          <div className="bg-white border-b border-stone-100">
+            <div className="max-w-[1400px] mx-auto px-3 sm:px-5 h-10 flex items-center gap-1 sm:gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+              {isDefault && (
+                <>
+                  <span className="text-xs text-stone-400 font-medium hidden sm:inline flex-shrink-0">기준:</span>
+                  <SegmentedToggle
+                    value={basis}
+                    onChange={setBasis}
+                    accent="#071E4A"
+                    size={isMobile ? "xs" : "sm"}
+                    className="flex-shrink-0"
+                    options={[{ value: 'incident', label: '사고경위' }, { value: 'approval', label: '산재승인' }]}
+                  />
+                  <div className="h-4 w-px bg-stone-200 mx-0.5 sm:mx-1 flex-shrink-0" />
+                </>
+              )}
+              <span className="text-xs text-stone-400 font-medium hidden sm:inline flex-shrink-0">기간:</span>
+              <SegmentedToggle
+                value={yearFilter}
+                onChange={setYearFilter}
+                accent="#071E4A"
+                size={isMobile ? "xs" : "sm"}
+                className="flex-shrink-0"
+                options={[{ value: 'all', label: '전체' }, { value: '2024', label: '2024' }, { value: '2025', label: '2025' }, { value: '2026', label: '2026' }]}
+              />
+              <div className="h-4 w-px bg-stone-200 mx-1 flex-shrink-0" />
+              <span className="text-xs text-stone-500 flex-shrink-0">
+                {yearFilter === "all" ? "전체" : `${yearFilter}년`}&nbsp;
+                <b className="text-stone-900 tabular-nums">{fmt(yearFilter === "all" ? data.kpis.total : yearFilter === "2024" ? data.kpis.y2024 : yearFilter === "2025" ? data.kpis.y2025 : yearFilter === "2026" ? data.kpis.y2026 : data.kpis.total)}건</b>
+              </span>
+              {data.store_kpi && (() => {
+                // yearFilter에 따라 해당 연도 5월 스냅샷의 매장수 표시 (없으면 현재 store_kpi.total fallback)
+                let storeCount = data.store_kpi.total;
+                let label = "영업매장";
+                if (yearFilter !== "all") {
+                  const snap = STORE_SNAPSHOTS.find(s => s.ym === `${yearFilter}-05`);
+                  if (snap) { storeCount = snap.count; label = `${yearFilter}-05 영업매장`; }
+                }
+                return (
+                  <span className="text-xs text-stone-500 hidden sm:inline flex-shrink-0">
+                    · {label} <b className="text-stone-900 tabular-nums">{fmt(storeCount)}개</b>
+                  </span>
+                );
+              })()}
+              {isDefault && (() => {
+                const live = dataSource === 'live';
+                const bd = LIVE_SNAPSHOT?.bakedAt ? LIVE_SNAPSHOT.bakedAt.slice(5, 10).replace('-', '/').replace(/^0/, '') : '';
+                // 데이터는 마운트 즉시 스냅샷으로 완전히 표시됨. liveLoading 은 백그라운드 최신확인일 뿐 —
+                // 로딩처럼 보이지 않도록 스냅샷 배지를 곧바로 노출하고, 라이브 완료 시 조용히 '실시간'으로 승격.
+                const cls = live ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-500';
+                const dot = live ? 'bg-emerald-500' : liveLoading ? 'bg-stone-400 animate-pulse' : 'bg-stone-400';
+                const txt = live ? '실시간' : `스냅샷 ${bd}`;
+                const ttl = live ? '라이브 실시간 연동됨'
+                  : liveLoading ? `표시된 수치는 스냅샷(${LIVE_SNAPSHOT?.bakedAt?.slice(0, 10) || ''} 기준)입니다. 백그라운드에서 최신 데이터를 확인하는 중이며, 완료되면 실시간으로 전환됩니다.`
+                  : `데이터 스냅샷 (${LIVE_SNAPSHOT?.bakedAt?.slice(0, 10) || ''} 기준).`;
+                return (
+                  <span className={`inline-flex items-center gap-1 flex-shrink-0 ml-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${cls}`}
+                    title={ttl}>
+                    {live ? <PulseDot color="#10B981" size={6} /> : <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />}
+                    {txt}
+                  </span>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+
+        {/* ── 3행: 역할 선택 + 액션(엑셀/조회/KPI/보고서) — 필터바와 분리해 모바일에서 건수가 밀려 잘리지 않게 함 ── */}
+        {!inAlert && (
+          <div className="bg-white border-b border-stone-100">
+            <div className="max-w-[1400px] mx-auto px-3 sm:px-5 h-10 flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
               <select value={currentRole || ""} onChange={(e) => {
                 const r = e.target.value || null;
                 setCurrentRole(r);
                 if (r && ROLE_LANDING[r]) setTab(ROLE_LANDING[r]);
                 else if (!r) setTab("overview");
-              }} className="h-7 px-1.5 sm:px-2 rounded-md border border-stone-200 text-[10px] sm:text-xs font-medium text-stone-700 bg-white cursor-pointer" style={{ fontFamily: "inherit" }}>
+              }} className="h-7 px-1.5 sm:px-2 rounded-md border border-stone-200 text-[10px] sm:text-xs font-medium text-stone-700 bg-white cursor-pointer flex-shrink-0" style={{ fontFamily: "inherit" }}>
                 <option value="">역할 선택</option>
                 <option value="ceo">경영진</option>
                 <option value="manager">영업부문장</option>
@@ -670,23 +660,14 @@ function App() {
                 <option value="part">파트장</option>
                 <option value="safety">안전보건팀</option>
               </select>
-            )}
-            {!inAlert && scope && (
-              <div className="flex items-center gap-1.5">
-                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] sm:text-xs font-bold px-2 py-1 rounded-md" style={{ background: '#EAF1FF', color: '#1D4ED8' }} title="로그인 접근 범위">
-                  {scope.all ? '전사' : scope.label}
-                </span>
-                <button onClick={handleGateLogout} title="로그아웃" className="h-7 px-1.5 sm:px-2 rounded-md border border-stone-200 text-[10px] sm:text-xs font-medium text-stone-600 bg-white hover:bg-stone-50 cursor-pointer flex items-center gap-1 transition active:opacity-75">
-                  <LogOut size={12} strokeWidth={2} /> <span className="hidden sm:inline">로그아웃</span>
-                </button>
-              </div>
-            )}
-            {dashMode === "worker" && !inAlert && <XlsxBtn D={dataFiltered} filename={`사고현황_${basis === 'approval' ? '산재승인' : '사고경위'}_요약.xlsx`} />}
-            {dashMode === "worker" && !inAlert && <button onClick={() => setShowSearch(true)} className="h-7 px-1.5 sm:px-2.5 rounded-md border border-stone-300 text-[10px] sm:text-xs font-medium text-stone-700 bg-white hover:bg-stone-50 cursor-pointer flex items-center gap-1 transition active:opacity-75"><Search size={12} strokeWidth={2} /> 조회</button>}
-            {SHOW_KPI_TARGETS && dashMode === "worker" && !inAlert && <button onClick={() => setShowKpi(true)} className="h-7 px-1.5 sm:px-2.5 rounded-md border border-stone-300 text-[10px] sm:text-xs font-medium text-stone-700 bg-white hover:bg-stone-50 cursor-pointer flex items-center gap-1 transition active:opacity-75" title="사고절감 KPI 목표 설정 (관리자)"><Target size={12} strokeWidth={2} /> KPI 목표</button>}
-            {dashMode === "worker" && !inAlert && <button onClick={() => setShowReport(true)} className="h-7 px-1.5 sm:px-2.5 rounded-md text-white text-[10px] sm:text-xs font-semibold cursor-pointer flex items-center gap-1 transition active:opacity-75" style={{background:"#002B6D"}}><FileText size={12} strokeWidth={2} /> 보고서</button>}
+              <div className="flex-1" />
+              {dashMode === "worker" && <XlsxBtn D={dataFiltered} filename={`사고현황_${basis === 'approval' ? '산재승인' : '사고경위'}_요약.xlsx`} />}
+              {dashMode === "worker" && <button onClick={() => setShowSearch(true)} className="h-7 px-1.5 sm:px-2.5 rounded-md border border-stone-300 text-[10px] sm:text-xs font-medium text-stone-700 bg-white hover:bg-stone-50 cursor-pointer flex items-center gap-1 transition active:opacity-75 flex-shrink-0"><Search size={12} strokeWidth={2} /> 조회</button>}
+              {SHOW_KPI_TARGETS && dashMode === "worker" && <button onClick={() => setShowKpi(true)} className="h-7 px-1.5 sm:px-2.5 rounded-md border border-stone-300 text-[10px] sm:text-xs font-medium text-stone-700 bg-white hover:bg-stone-50 cursor-pointer flex items-center gap-1 transition active:opacity-75 flex-shrink-0" title="사고절감 KPI 목표 설정 (관리자)"><Target size={12} strokeWidth={2} /> KPI 목표</button>}
+              {dashMode === "worker" && <button onClick={() => setShowReport(true)} className="h-7 px-1.5 sm:px-2.5 rounded-md text-white text-[10px] sm:text-xs font-semibold cursor-pointer flex items-center gap-1 transition active:opacity-75 flex-shrink-0" style={{background:"#002B6D"}}><FileText size={12} strokeWidth={2} /> 보고서</button>}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* ── 모바일 서브탭 바 — 활성 그룹의 하위 탭 (데스크톱은 사이드바에서 노출) ── */}
         {activeGroup && activeGroup.items.length > 1 && (
@@ -744,9 +725,9 @@ function App() {
         </div>
       </div>
       
-      {/* ═══ 산업재해 현황 대시보드 히어로 타이틀 ═══ */}
+      {/* ═══ 산업재해 현황 대시보드 히어로 타이틀 — 모바일에선 정보 없이 공간만 차지해 숨김 ═══ */}
       {dashMode === "worker" && !inAlert && (
-        <div className="max-w-[1400px] mx-auto px-3 sm:px-5 pt-3 sm:pt-5">
+        <div className="hidden sm:block max-w-[1400px] mx-auto px-3 sm:px-5 pt-3 sm:pt-5">
           <div className="rounded-[20px] bg-white/75 border border-stone-200/60 px-5 sm:px-8 py-4 relative overflow-hidden" style={{ boxShadow: '0 8px 22px rgba(7,30,74,0.05)' }}>
             <div className="text-[11px] font-extrabold tracking-[0.18em] text-[#E60033] flex items-center gap-1.5"><span className="text-[#003B8F]">✦</span> ASUNG DAISO · SAFETY FIRST</div>
             <h1 className="text-2xl sm:text-[30px] font-black text-[#071E4A] mt-1 tracking-tight dash-sheen">산업재해 현황 분석 대시보드</h1>
@@ -836,17 +817,20 @@ function App() {
         </div>
       </div>
       
-      <div className="max-w-[1400px] mx-auto px-4 pt-4 text-xs text-stone-500 border-t border-stone-100 mt-6 flex justify-between flex-wrap gap-2"
-        style={{ paddingBottom: isMobile ? "calc(72px + env(safe-area-inset-bottom))" : "1rem" }}>
+      <div className="max-w-[1400px] mx-auto px-4 pt-4 text-xs text-stone-500 border-t border-stone-100 mt-6 flex justify-between flex-wrap gap-2 pb-[calc(72px_+_env(safe-area-inset-bottom))] lg:pb-4">
         <div>© ㈜아성다이소 안전보건팀 · v9 · {new Date().getFullYear()}.{String(new Date().getMonth()+1).padStart(2,"0")}</div>
       </div>
       </div>{/* ═══ /메인 컬럼 ═══ */}
 
-      {/* ── 모바일 하단 탭 내비 (640px 미만 = 스마트폰만) ── */}
-      {isMobile && <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-stone-200 shadow-[0_-2px_10px_rgba(0,0,0,0.06)]"
+      {/* ── 하단 탭 내비 (lg=1024px 미만 = 스마트폰+태블릿) ──
+          사이드바가 뜨는 기준(lg)과 동일하게 맞춤 — 이전엔 JS isMobile(<640px) 기준이라
+          640~1023px(태블릿) 구간에서 사이드바도 하단탭도 없어 그룹 전환 자체가 불가능했음(2026-07-26).
+          10개 그룹을 한 줄에 다 늘어놓으면 가로스크롤이 필요해 복잡해 보여서, 자주 쓰는 5개만
+          상시 노출하고 나머지는 '더보기' 시트로 묶는다. */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-stone-200 shadow-[0_-2px_10px_rgba(0,0,0,0.06)]"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-        <div className="flex overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-          {visibleGroups.map(g => {
+        <div className="flex">
+          {bottomNavPrimary.map(g => {
             const isActive = g === activeGroup;
             const hasNonAuto = g.items.some(t => NONAUTO_TABS.has(t.id));
             return (
@@ -861,8 +845,46 @@ function App() {
               </button>
             );
           })}
+          {bottomNavMore.length > 0 && (
+            <button onClick={() => setShowMoreNav(true)}
+              className={`flex-1 min-w-[52px] flex flex-col items-center gap-0.5 pt-1.5 pb-1 border-t-2 transition cursor-pointer ${moreNavActive ? "border-[#D70011] text-stone-900" : "border-transparent text-stone-400"}`}>
+              <span className="relative inline-flex">
+                <MoreHorizontal size={18} strokeWidth={2} className="flex-shrink-0" />
+                {bottomNavMore.some(g => g.items.some(t => NONAUTO_TABS.has(t.id))) && <span className="absolute -top-1 -right-1.5 w-1.5 h-1.5 rounded-full bg-amber-400" />}
+              </span>
+              <span className="text-[9px] font-semibold leading-tight whitespace-nowrap">더보기</span>
+            </button>
+          )}
         </div>
-      </nav>}
+      </nav>
+
+      {/* ── 하단탭 '더보기' 시트 (lg:hidden — 트리거 버튼과 동일 기준, 리사이즈로 데스크톱 전환 시 방어) ── */}
+      {showMoreNav && (
+        <div className="lg:hidden fixed inset-0 z-[60] flex items-end" onClick={() => setShowMoreNav(false)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="relative w-full bg-white rounded-t-2xl pt-2 px-3 dash-slide-up"
+            style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
+            onClick={e => e.stopPropagation()}>
+            <div className="w-9 h-1 rounded-full bg-stone-300 mx-auto mb-3" />
+            <div className="px-1 pb-2 text-sm font-bold text-stone-700">더보기</div>
+            <div className="grid grid-cols-3 gap-2 pb-1">
+              {bottomNavMore.map(g => {
+                const isActive = g === activeGroup;
+                const hasNonAuto = g.items.some(t => NONAUTO_TABS.has(t.id));
+                return (
+                  <button key={g.id}
+                    onClick={() => { const first = g.items[0]; if (first) setTab(first.id); setShowMoreNav(false); }}
+                    className={`relative flex flex-col items-center justify-center gap-1.5 rounded-xl border py-3.5 transition cursor-pointer active:scale-[0.97] ${isActive ? "border-[#D70011] bg-red-50 text-[#D70011]" : "border-stone-200 text-stone-600"}`}>
+                    {hasNonAuto && <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-amber-400" />}
+                    <g.Icon size={20} strokeWidth={2} />
+                    <span className="text-[11px] font-semibold leading-tight">{g.short}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
       {showReport && <ReportModal D={scopedData} basis={basis} onClose={() => setShowReport(false)} />}
       {showSearch && <DataSearchModal D={scopedData} onClose={() => setShowSearch(false)} />}
       {/* 안전 도우미 — 현장 대응 가이드 + 대시보드 데이터 기반 챗봇 (전 탭 상시 노출) */}

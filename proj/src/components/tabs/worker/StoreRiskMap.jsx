@@ -903,23 +903,27 @@ ${topType.map(([t, n]) => `- ${t}: ${n}건 (${Math.round(n/accidents.length*100)
   return (
     <div className="space-y-3">
 
-      {/* ── 상단 바: 표시 모드 (기간은 상단 글로벌 토글 사용) ── */}
-      <div className="bg-white border border-stone-200 rounded-xl p-3 flex flex-wrap gap-2 items-center">
-        <span className="text-xs font-semibold text-stone-500">표시</span>
-        {[["all","전체 매장"],["incident","사고 발생만"]].map(([v,l]) => (
-          <button key={v} onClick={() => setShowMode(v)}
-            className={`px-2.5 py-1 rounded-md text-xs border transition-all duration-200 ${showMode===v ? (v==="incident" ? "bg-[#D70011] text-white border-[#D70011]" : "bg-stone-800 text-white border-stone-800") : "bg-white border-stone-200 text-stone-600 hover:bg-stone-50"}`}>
-            {l}
+      {/* ── 상단 바: 표시 모드 (기간은 상단 글로벌 토글 사용) ──
+          모바일: 표시 토글 줄과 조직 트리 버튼을 명확히 분리된 두 줄로 — ml-auto+flex-wrap 조합이
+          좁은 화면에서 조직 버튼만 뚝 떨어져 겹쳐 보이던 문제 수정 (2026-07-26). */}
+      <div className="bg-white border border-stone-200 rounded-xl p-3 flex flex-col gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-xs font-semibold text-stone-500">표시</span>
+          {[["all","전체 매장"],["incident","사고 발생만"]].map(([v,l]) => (
+            <button key={v} onClick={() => setShowMode(v)}
+              className={`px-2.5 py-1 rounded-md text-xs border transition-all duration-200 ${showMode===v ? (v==="incident" ? "bg-[#D70011] text-white border-[#D70011]" : "bg-stone-800 text-white border-stone-800") : "bg-white border-stone-200 text-stone-600 hover:bg-stone-50"}`}>
+              {l}
+            </button>
+          ))}
+          <div className="w-px h-4 bg-stone-200 mx-1" />
+          <button onClick={() => setShowDeptBounds(v => !v)}
+            className={`px-2.5 py-1 rounded-md text-xs border transition-all duration-200 flex items-center gap-1 ${showDeptBounds ? "bg-[#071E4A] text-white border-[#071E4A]" : "bg-white border-stone-200 text-stone-600 hover:bg-stone-50"}`}>
+            영업부 경계
           </button>
-        ))}
-        <div className="w-px h-4 bg-stone-200 mx-1" />
-        <button onClick={() => setShowDeptBounds(v => !v)}
-          className={`px-2.5 py-1 rounded-md text-xs border transition-all duration-200 flex items-center gap-1 ${showDeptBounds ? "bg-[#071E4A] text-white border-[#071E4A]" : "bg-white border-stone-200 text-stone-600 hover:bg-stone-50"}`}>
-          영업부 경계
-        </button>
-        {/* 모바일: 트리 토글 버튼 */}
+        </div>
+        {/* 모바일: 트리 토글 버튼 — 항상 자체 줄, 전체폭 (데스크톱은 사이드 트리 상시노출이라 숨김) */}
         <button onClick={() => setTreeOpen(o => !o)}
-          className="ml-auto lg:hidden px-2.5 py-1 rounded-md text-xs border border-stone-200 bg-white text-stone-600 flex items-center gap-1 transition-all duration-200">
+          className="lg:hidden w-full px-2.5 py-1.5 rounded-md text-xs border border-stone-200 bg-white text-stone-600 flex items-center justify-center gap-1 transition-all duration-200">
           <GitBranch size={13} /> 조직 {treeOpen ? "접기" : "펼치기"}
         </button>
       </div>
