@@ -31,6 +31,29 @@ const DASH_CSS = `
 .dash-slide-down { animation: dashSlideDown .4s cubic-bezier(.2,.7,.3,1) both; }
 .dash-fade-in    { animation: dashFadeIn   .5s ease both; }
 .dash-blur-in    { animation: dashBlurIn   .5s ease both; }
+
+/* 브랜드 sheen — 네이비→레드 저대비 슬로우(히어로 타이틀 전용) */
+@keyframes dashSheen { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+.dash-sheen {
+  background-image: linear-gradient(100deg,#071E4A 0%,#003B8F 38%,#D70011 55%,#003B8F 72%,#071E4A 100%);
+  background-size: 200% 100%; -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  animation: dashSheen 7s linear infinite;
+}
+/* 실시간/알림 펄스 링 */
+@keyframes dashPing { from { transform: scale(1); opacity: .5; } to { transform: scale(2.6); opacity: 0; } }
+/* 버튼 프레스 — 전역, 차분하게 (기존 active: 유틸이 있으면 그쪽 우선) */
+button { transition: transform .12s cubic-bezier(.2,.7,.3,1); }
+button:active { transform: scale(.97); }
+/* 리플(프라이머리 CTA) */
+@keyframes dashRipple { to { transform: scale(3.4); opacity: 0; } }
+.dash-ripple { position: absolute; border-radius: 999px; background: rgba(255,255,255,.55); transform: scale(0); animation: dashRipple .6s ease-out; pointer-events: none; }
+/* 토스트 */
+#dash-toasts { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 400; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
+.dash-toast { background: #071E4A; color: #fff; font-size: 13px; font-weight: 600; padding: 10px 16px; border-radius: 12px; box-shadow: 0 10px 24px rgba(7,30,74,.24); opacity: 0; transform: translateY(12px); transition: opacity .25s, transform .25s; }
+.dash-toast.in { opacity: 1; transform: none; }
+.dash-toast.ok { background: #047857; } .dash-toast.warn { background: #B45309; } .dash-toast.err { background: #D70011; }
+
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: .001s !important; transition-duration: .001s !important; }
 }

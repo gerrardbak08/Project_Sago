@@ -1,9 +1,10 @@
-import { Activity, AlertCircle, MapPin, AlertTriangle, Banknote, BarChart3, Bell, Bone, Briefcase, Building, Building2, Calendar, CheckCircle2, Circle, ClipboardList, Database, FileText, Flame, Folder, GitBranch, Info, Lightbulb, Lock, Map as MapIcon, Package, Pin, RefreshCw, Rocket, Ruler, Scale, Search, ShieldCheck, Siren, Smartphone, Store, Tag, Target, TrendingUp, Trophy, Unlock, UserCircle, Users, X, LayoutDashboard, Stethoscope, Download, ChevronRight, Eye, Send, ScanSearch } from 'lucide-react';
+import { Activity, AlertCircle, MapPin, AlertTriangle, Banknote, BarChart3, Bell, Bone, Briefcase, Building, Building2, Calendar, CheckCircle2, Circle, ClipboardList, Database, FileText, Flame, Folder, GitBranch, Info, Lightbulb, LifeBuoy, Lock, Map as MapIcon, Package, Pin, RefreshCw, Rocket, Ruler, Scale, Search, ShieldCheck, Siren, Smartphone, Store, Tag, Target, TrendingUp, Trophy, Unlock, UserCircle, Users, X, LayoutDashboard, Stethoscope, Download, ChevronRight, Eye, Send, ScanSearch } from 'lucide-react';
 
 import { DAISO_RED } from './colors.js';
 
 const TABS_VIEWER = [
   { id: "overview", l: "요약", short: "요약", Icon: LayoutDashboard, hub: 1 },
+  { id: "briefing", l: "월간 브리핑", short: "브리핑", Icon: FileText, hub: 1 },
   { id: "dept", l: "부서·팀", short: "부서", Icon: Building2, hub: 2 },
   { id: "store", l: "매장 IR", short: "매장", Icon: Store, hub: 2 },
   { id: "parjang", l: "파트장", short: "파트장", Icon: ShieldCheck, hub: 2 },
@@ -18,6 +19,12 @@ const TABS_VIEWER = [
   { id: "legal", l: "법적 보고", short: "법적", Icon: Scale, hub: 5 },
   { id: "cost", l: "비용 손실", short: "비용", Icon: Banknote, hub: 5 },
   { id: "rawdb", l: "사고원본DB", short: "원본DB", Icon: Database, hub: 6 },
+  { id: "guide", l: "현장 대응 가이드", short: "대응가이드", Icon: LifeBuoy, hub: 7 },
+  // ── 안전보건 활동(예방) 모듈 ──
+  { id: "safety_overview", l: "안전활동 종합", short: "종합", Icon: LayoutDashboard, hub: 7 },
+  { id: "riskassess", l: "위험성평가", short: "위험성평가", Icon: ScanSearch, hub: 7 },
+  { id: "drill", l: "비상대응훈련", short: "비상훈련", Icon: Siren, hub: 7 },
+  { id: "tbm", l: "TBM현황", short: "TBM", Icon: ClipboardList, hub: 7 },
 ];
 
 const HUB_LABELS = {
@@ -27,6 +34,7 @@ const HUB_LABELS = {
   4: { name: "추세·분석", color: "#B45309" },
   5: { name: "리스크 관리", color: DAISO_RED },
   6: { name: "원본데이터", color: "#475569" },
+  7: { name: "현장 대응", color: DAISO_RED },
 };
 
 // ── 관리자 전용 알림 탭 ──
@@ -48,7 +56,8 @@ const CTABS = [
 
 // ── 7개 그룹 통폐합 네비 (13개 탭 id 보존, 논리 그룹으로 묶음) ──
 const TAB_GROUPS = [
-  { id: 'g_summary', l: '요약',        short: '요약', Icon: LayoutDashboard, subs: ['overview'] },
+  { id: 'g_summary', l: '요약',        short: '요약', Icon: LayoutDashboard, subs: ['overview', 'briefing'] },
+  { id: 'g_safety',  l: '안전보건 활동', short: '안전활동', Icon: ShieldCheck, subs: ['safety_overview', 'riskassess', 'drill', 'tbm', 'guide'] },
   { id: 'g_org',     l: '조직',        short: '조직', Icon: Building2,       subs: ['dept', 'parjang'] },
   { id: 'g_store',   l: '매장',        short: '매장', Icon: Store,           subs: ['store', 'riskmap'] },
   { id: 'g_trend',   l: '추세·요인',   short: '추세', Icon: TrendingUp,      subs: ['time', 'cross'] },

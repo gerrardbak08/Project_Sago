@@ -33,7 +33,7 @@ import { processWorkers }     from './utils/processData.js';
 import { LayoutDashboard, Building, Building2, MapPin, FileText, Search,
          TrendingUp, GitBranch, UserCircle, Users, Scale, Banknote,
          Stethoscope, Bell, ChevronRight, ShieldCheck, Store,
-         X, AlertCircle, Send, Lock, ExternalLink, Target } from 'lucide-react';
+         X, AlertCircle, Send, Lock, ExternalLink, Target, LogOut } from 'lucide-react';
 import AlertMonitoring from './components/tabs/alert/AlertMonitoring.jsx';
 import AlertSend       from './components/tabs/alert/AlertSend.jsx';
 import AlertReview     from './components/tabs/alert/AlertReview.jsx';
@@ -46,8 +46,12 @@ import KpiTargetPanel        from './components/admin/KpiTargetPanel.jsx';
 import { SHOW_KPI_TARGETS }   from './constants/flags.js';
 import CustomerDashboard     from './components/layout/CustomerDashboard.jsx';
 import ModeSidebar from './components/layout/ModeSidebar.jsx';
-import { SegmentedToggle } from './components/shared/MotionBits.jsx';
+import { SegmentedToggle, ScrollProgress, PulseDot } from './components/shared/MotionBits.jsx';
+import { toast } from './utils/uifx.js';
 import LandingPage           from './components/layout/LandingPage.jsx';
+import LoginGate             from './components/LoginGate.jsx';
+import scopeData             from './utils/scopeData.js';
+import { SCOPE_STORAGE_KEY } from './constants/auth.js';
 
 // ── 근로자 탭 컴포넌트 ─────────────────────────────────
 import Overview          from './components/tabs/worker/Overview.jsx';
@@ -65,6 +69,12 @@ import SeverityAnalysis  from './components/tabs/worker/SeverityAnalysis.jsx';
 import SevereStores      from './components/tabs/worker/SevereStores.jsx';
 import ParjangDashboard  from './components/tabs/worker/ParjangDashboard.jsx';
 import RawDbViewer       from './components/tabs/worker/RawDbViewer.jsx';
+import FieldResponseGuide from './components/tabs/guide/FieldResponseGuide.jsx';
+import ComplianceMonitor  from './components/tabs/compliance/ComplianceMonitor.jsx';
+import ComplianceInputForm from './components/tabs/compliance/ComplianceInputForm.jsx';
+import ComplianceOverview  from './components/tabs/compliance/ComplianceOverview.jsx';
+import BriefingGenerator   from './components/tabs/worker/BriefingGenerator.jsx';
+import SafetyAssistant    from './components/SafetyAssistant.jsx';
 
 // ── TabErrorBoundary ───────────────────────────────────
 class TabErrorBoundary extends Component {
@@ -125,6 +135,19 @@ const _INIT_HASH_PARAMS = (() => {
     }
     return params;
   } catch { return {}; }
+})();
+
+// 파트장 모바일 실시 기록 입력 링크 — #compliance-input?program=tbm&store=... (로그인 불필요)
+const _COMPLIANCE_INPUT = (() => {
+  try {
+    if (typeof window === "undefined") return { on: false };
+    const h = window.location.hash || "";
+    if (!/compliance-input/.test(h)) return { on: false };
+    const q = new URLSearchParams(h.includes("?") ? h.slice(h.indexOf("?") + 1) : "");
+    let store = q.get("store") || "";
+    if (store && /%[0-9A-Fa-f]{2}/.test(store)) { try { store = decodeURIComponent(store); } catch {} }
+    return { on: true, program: q.get("program") || "tbm", store };
+  } catch { return { on: false }; }
 })();
 
 // 라이브 시트(Apps Script)가 채우지 못하는 항목이 있는 탭 — '비자동(수동/추정)' 표기 대상
@@ -194,7 +217,13 @@ function App() {
       return p.get("skip") === "1" || !!p.get("role");
     } catch { return false; }
   })();
+  // 부문 로그인 스코프 — { all:true } 전사 | { bum } 부문. sessionStorage로 새로고침 유지.
+  const _initScope = (() => {
+    try { const s = typeof sessionStorage !== 'undefined' && sessionStorage.getItem(SCOPE_STORAGE_KEY); return s ? JSON.parse(s) : null; } catch { return null; }
+  })();
+  // 로그인 게이트가 진입점 → 인증 후 랜딩 인트로 → 대시보드 (랜딩 유지)
   const [showLanding, setShowLanding] = useState(!_skipLanding);
+  const [scope, setScope] = useState(_initScope);
   const [landingFading, setLandingFading] = useState(false);
 
   const [dashMode, setDashMode] = useState("worker"); // "worker" | "customer" (알림은 worker 셸 내 g_alert 그룹으로 통합)
@@ -218,6 +247,18 @@ function App() {
   };
   const handleLandingRoleSelect = (roleId) => {
     setCurrentRole(roleId); // 역할은 데이터 필터용 — 첫 탭은 항상 요약 고정(역할 랜딩 비활성)
+  };
+  // 부문 로그인/로그아웃
+  const handleLogin = (sc) => {
+    setScope(sc);
+    try { sessionStorage.setItem(SCOPE_STORAGE_KEY, JSON.stringify(sc)); } catch {}
+    // 로그인 후 랜딩 인트로 → 대시보드 (랜딩 유지, 탭 제한 없음 — 데이터만 부문 스코프)
+  };
+  const handleGateLogout = () => {
+    setScope(null);
+    try { sessionStorage.removeItem(SCOPE_STORAGE_KEY); } catch {}
+    setCurrentRole(null);
+    toast('로그아웃되었습니다', 'ok');
   };
 
   // URL hash 동기화 — history.replaceState (리로드 없음)
@@ -408,20 +449,22 @@ function App() {
   
   // === 역할별 탭 필터링 (RBAC Phase 2) ===
   const ROLE_TAB_VISIBILITY = {
-    // 경영진: 요약·트렌드·재무·심각도 집중
-    ceo:     ["overview", "time", "legal", "severity", "cost"],
+    // 경영진: 요약·트렌드·재무·심각도 집중 (+ 현장 대응 가이드 상시)
+    ceo:     ["overview", "guide", "time", "legal", "severity", "cost"],
     // 영업부문장: 부서/팀/매장 + 요인분석 + 위험지도 (운영·안전팀 전용 탭 제외)
-    manager: ["overview", "cross", "dept", "store", "parjang", "riskmap", "c_typeplace", "c_dept", "c_watch"],
+    manager: ["overview", "guide", "cross", "dept", "store", "parjang", "riskmap", "c_typeplace", "c_dept", "c_watch"],
     // 팀장: 매장IR + 파트장 + 인적요인 + 재발 + 위험지도 + 시계열 + 부서
-    team:    ["overview", "dept", "store", "riskmap", "parjang", "repeat", "human", "severity", "time"],
+    team:    ["overview", "guide", "dept", "store", "riskmap", "parjang", "repeat", "human", "severity", "time"],
     // 파트장: 자기 담당 매장 + 위험지도 + 파트장 대시보드
-    part:    ["overview", "store", "riskmap", "repeat", "parjang"],
+    part:    ["overview", "guide", "store", "riskmap", "repeat", "parjang"],
     // 안전보건팀: 전체 접근
     safety:  null,
   };
   
   // 연도 필터 적용된 데이터 (모든 탭 일괄 처리)
-  const dataFiltered = useMemo(() => getFilteredData(data, yearFilter), [data, yearFilter]);
+  // 부문 스코프 적용(연도필터 이전). scopedData = 전 기간·부문 한정, dataFiltered = 거기에 연도필터.
+  const scopedData = useMemo(() => scopeData(data, scope), [data, scope]);
+  const dataFiltered = useMemo(() => getFilteredData(scopedData, yearFilter), [scopedData, yearFilter]);
   
   const visibleTabs = currentRole && ROLE_TAB_VISIBILITY[currentRole]
     ? TABS_VIEWER.filter(t => ROLE_TAB_VISIBILITY[currentRole].includes(t.id))
@@ -437,6 +480,14 @@ function App() {
     .filter(g => g.items.length > 0);
   const activeGroup = visibleGroups.find(g => g.items.some(t => t.id === tab)) || visibleGroups[0];
   const inAlert = activeGroup?.id === 'g_alert';   // 알림 그룹 활성 여부 (사이드바 유지형 통합)
+
+  // 파트장 모바일 실시 기록 입력 — 로그인 없이 독립 페이지 (링크로 진입)
+  if (_COMPLIANCE_INPUT.on) {
+    return <ComplianceInputForm standalone program={_COMPLIANCE_INPUT.program} stores={data.stores} initialStore={_COMPLIANCE_INPUT.store} />;
+  }
+
+  // 부문 로그인 게이트 — 미인증 시 대시보드 접근 차단
+  if (!scope) return <LoginGate onLogin={handleLogin} />;
 
   // 랜딩 페이지
   if (showLanding) return (
@@ -460,6 +511,7 @@ function App() {
 
   return (
     <div className="min-h-screen pb-14 lg:pb-0 lg:flex" style={{background:"#FFFFFF"}}>
+      <ScrollProgress />
 
       {/* ═══ 좌측 사이드바 (데스크톱) — 모드 공용 ═══ */}
       <ModeSidebar dashMode={inAlert ? "alert" : dashMode} onSwitchMode={switchMode} title="안전사고 현황" subtitle="㈜아성다이소 · 안전보건팀">
@@ -585,15 +637,18 @@ function App() {
                 {isDefault && (() => {
                   const live = dataSource === 'live';
                   const bd = LIVE_SNAPSHOT?.bakedAt ? LIVE_SNAPSHOT.bakedAt.slice(5, 10).replace('-', '/').replace(/^0/, '') : '';
-                  const cls = liveLoading ? 'bg-amber-50 text-amber-700' : live ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-500';
-                  const dot = liveLoading ? 'bg-amber-500 animate-pulse' : live ? 'bg-emerald-500' : 'bg-stone-400';
-                  const txt = liveLoading ? '최신 불러오는 중…' : live ? '실시간' : `스냅샷 ${bd}`;
-                  const ttl = liveLoading ? '구글시트에서 최신 데이터를 불러오는 중입니다 (약 20초 소요). 완료되면 실시간으로 전환됩니다.'
-                    : live ? '라이브 실시간 연동됨' : `데이터 스냅샷 (${LIVE_SNAPSHOT?.bakedAt?.slice(0, 10) || ''} 기준). 라이브 로드 실패로 스냅샷 표시 중.`;
+                  // 데이터는 마운트 즉시 스냅샷으로 완전히 표시됨. liveLoading 은 백그라운드 최신확인일 뿐 —
+                  // 로딩처럼 보이지 않도록 스냅샷 배지를 곧바로 노출하고, 라이브 완료 시 조용히 '실시간'으로 승격.
+                  const cls = live ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-500';
+                  const dot = live ? 'bg-emerald-500' : liveLoading ? 'bg-stone-400 animate-pulse' : 'bg-stone-400';
+                  const txt = live ? '실시간' : `스냅샷 ${bd}`;
+                  const ttl = live ? '라이브 실시간 연동됨'
+                    : liveLoading ? `표시된 수치는 스냅샷(${LIVE_SNAPSHOT?.bakedAt?.slice(0, 10) || ''} 기준)입니다. 백그라운드에서 최신 데이터를 확인하는 중이며, 완료되면 실시간으로 전환됩니다.`
+                    : `데이터 스냅샷 (${LIVE_SNAPSHOT?.bakedAt?.slice(0, 10) || ''} 기준).`;
                   return (
                     <span className={`hidden sm:inline-flex items-center gap-1 flex-shrink-0 ml-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${cls}`}
                       title={ttl}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+                      {live ? <PulseDot color="#10B981" size={6} /> : <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />}
                       {txt}
                     </span>
                   );
@@ -615,6 +670,16 @@ function App() {
                 <option value="part">파트장</option>
                 <option value="safety">안전보건팀</option>
               </select>
+            )}
+            {!inAlert && scope && (
+              <div className="flex items-center gap-1.5">
+                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] sm:text-xs font-bold px-2 py-1 rounded-md" style={{ background: '#EAF1FF', color: '#1D4ED8' }} title="로그인 접근 범위">
+                  {scope.all ? '전사' : scope.label}
+                </span>
+                <button onClick={handleGateLogout} title="로그아웃" className="h-7 px-1.5 sm:px-2 rounded-md border border-stone-200 text-[10px] sm:text-xs font-medium text-stone-600 bg-white hover:bg-stone-50 cursor-pointer flex items-center gap-1 transition active:opacity-75">
+                  <LogOut size={12} strokeWidth={2} /> <span className="hidden sm:inline">로그아웃</span>
+                </button>
+              </div>
             )}
             {dashMode === "worker" && !inAlert && <XlsxBtn D={dataFiltered} filename={`사고현황_${basis === 'approval' ? '산재승인' : '사고경위'}_요약.xlsx`} />}
             {dashMode === "worker" && !inAlert && <button onClick={() => setShowSearch(true)} className="h-7 px-1.5 sm:px-2.5 rounded-md border border-stone-300 text-[10px] sm:text-xs font-medium text-stone-700 bg-white hover:bg-stone-50 cursor-pointer flex items-center gap-1 transition active:opacity-75"><Search size={12} strokeWidth={2} /> 조회</button>}
@@ -684,7 +749,7 @@ function App() {
         <div className="max-w-[1400px] mx-auto px-3 sm:px-5 pt-3 sm:pt-5">
           <div className="rounded-[20px] bg-white/75 border border-stone-200/60 px-5 sm:px-8 py-4 relative overflow-hidden" style={{ boxShadow: '0 8px 22px rgba(7,30,74,0.05)' }}>
             <div className="text-[11px] font-extrabold tracking-[0.18em] text-[#E60033] flex items-center gap-1.5"><span className="text-[#003B8F]">✦</span> ASUNG DAISO · SAFETY FIRST</div>
-            <h1 className="text-2xl sm:text-[30px] font-black text-[#071E4A] mt-1 tracking-tight">산업재해 현황 분석 대시보드</h1>
+            <h1 className="text-2xl sm:text-[30px] font-black text-[#071E4A] mt-1 tracking-tight dash-sheen">산업재해 현황 분석 대시보드</h1>
             <p className="text-stone-500 text-xs sm:text-sm mt-1.5">매장 사고 흐름을 한눈에 보고, 오늘의 안전 행동을 바로 정합니다.</p>
           </div>
         </div>
@@ -727,20 +792,26 @@ function App() {
         <div key={tab} className="dash-slide-up">
           <TabErrorBoundary key={tab}>
             {tab === "overview" && <Overview D={dataFiltered} yearFilter={yearFilter} role={currentRole} setTab={setTab} onStoreSelect={(storeCode) => { if (storeCode) setPreFillStore(storeCode); setTab("riskmap"); }} />}
-            {tab === "dept" && <DeptTeamStore D={data} yearFilter={yearFilter} />}
+            {tab === "dept" && <DeptTeamStore D={scopedData} yearFilter={yearFilter} />}
             {tab === "store" && <StoreAnalysis D={dataFiltered} yearFilter={yearFilter} setYearFilter={setYearFilter} />}
-            {tab === "riskmap" && <StoreRiskMap D={data} yearFilter={yearFilter} setYearFilter={setYearFilter} syncStoreToUrl={syncStoreToUrl} initStore={preFillStore ?? _INIT_HASH_PARAMS.store} onPreFillConsumed={() => setPreFillStore(null)} />}
-            {tab === "time" && <TimeSeries D={data} yearFilter={yearFilter} />}
+            {tab === "riskmap" && <StoreRiskMap D={scopedData} yearFilter={yearFilter} setYearFilter={setYearFilter} syncStoreToUrl={syncStoreToUrl} initStore={preFillStore ?? _INIT_HASH_PARAMS.store} onPreFillConsumed={() => setPreFillStore(null)} />}
+            {tab === "time" && <TimeSeries D={scopedData} yearFilter={yearFilter} />}
             {tab === "cross" && <CrossAnalysis D={dataFiltered} yearFilter={yearFilter} />}
             {tab === "human" && <HumanFactors D={dataFiltered} yearFilter={yearFilter} />}
             {tab === "repeat" && <RepeatWorkers D={dataFiltered} yearFilter={yearFilter} />}
             {tab === "repeatstore" && <RepeatStores D={dataFiltered} yearFilter={yearFilter} />}
-            {tab === "severity" && <SeverityAnalysis D={data} yearFilter={yearFilter} />}
+            {tab === "severity" && <SeverityAnalysis D={scopedData} yearFilter={yearFilter} />}
             {tab === "severestore" && <SevereStores D={dataFiltered} yearFilter={yearFilter} />}
             {tab === "parjang" && <ParjangDashboard D={dataFiltered} yearFilter={yearFilter} />}
-            {tab === "cost" && <CostRisk D={dataFiltered} allYearly={data.yearly} yearFilter={yearFilter} basis={basis} />}
-            {tab === "legal" && <LegalReporting D={dataFiltered} yearFilter={yearFilter} allYearly={data.yearly} rawKind={data.kind} basis={basis} />}
+            {tab === "cost" && <CostRisk D={dataFiltered} allYearly={scopedData.yearly} yearFilter={yearFilter} basis={basis} />}
+            {tab === "legal" && <LegalReporting D={dataFiltered} yearFilter={yearFilter} allYearly={scopedData.yearly} rawKind={scopedData.kind} basis={basis} />}
             {tab === "rawdb" && <RawDbViewer rows={LIVE_SNAPSHOT.rows} approvalRows={LIVE_SNAPSHOT.approvalRows} sheetUrl="https://docs.google.com/spreadsheets/d/1pWfoDWXSowQRHBbIiVDgEd_0oK2XcFxtG4R5Kryvfus/edit" />}
+            {tab === "guide" && <FieldResponseGuide />}
+            {tab === "briefing" && <BriefingGenerator D={data} />}
+            {tab === "safety_overview" && <ComplianceOverview stores={data.stores} setTab={setTab} />}
+            {tab === "riskassess" && <ComplianceMonitor program="risk" stores={data.stores} />}
+            {tab === "drill" && <ComplianceMonitor program="drill" stores={data.stores} />}
+            {tab === "tbm" && <ComplianceMonitor program="tbm" stores={data.stores} />}
             {/* 알림 관리 — 사이드바 유지형 통합 (근로자 셸 안에서 렌더) */}
             {inAlert && !alertUnlocked && <AlertPasswordGate onUnlock={() => setAlertUnlocked(true)} />}
             {inAlert && alertUnlocked && (
@@ -792,8 +863,10 @@ function App() {
           })}
         </div>
       </nav>}
-      {showReport && <ReportModal D={data} basis={basis} onClose={() => setShowReport(false)} />}
-      {showSearch && <DataSearchModal D={data} onClose={() => setShowSearch(false)} />}
+      {showReport && <ReportModal D={scopedData} basis={basis} onClose={() => setShowReport(false)} />}
+      {showSearch && <DataSearchModal D={scopedData} onClose={() => setShowSearch(false)} />}
+      {/* 안전 도우미 — 현장 대응 가이드 + 대시보드 데이터 기반 챗봇 (전 탭 상시 노출) */}
+      <SafetyAssistant data={scopedData} basis={basis} />
       {/* KPI 목표설정 — AdminLoginPanel 게이트(PIN: dasoo2026) → KpiTargetPanel */}
       {showKpi && !kpiAdminUnlocked && (
         <AdminLoginPanel

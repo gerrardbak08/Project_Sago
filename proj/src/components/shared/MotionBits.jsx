@@ -1,7 +1,7 @@
 // 치트시트 TIER 1 — 재사용 모션 컴포넌트 (CSS/Tailwind + 자체 motion.js, Framer 미사용)
 // 타이밍·이징은 ui-motion-cheatsheet 기준: 슬라이딩 pill .3s cubic-bezier(.2,.7,.3,1),
 // 진행 링 stroke-dashoffset 1s, 스파크라인 path-draw 1s, 카운트업(odometer) tabular-nums.
-import { useRef, useState, useLayoutEffect, useId } from 'react';
+import { useRef, useState, useLayoutEffect, useEffect, useId } from 'react';
 import { useInView, useCountUp } from '../../utils/motion.js';
 
 const EASE = 'cubic-bezier(.2,.7,.3,1)';
@@ -128,4 +128,50 @@ export function Odometer({ value = 0, duration = 1100, format = (n) => n.toLocal
   return <span ref={ref} className={`tabular-nums ${className}`}>{format(n)}</span>;
 }
 
-export default { SegmentedToggle, ProgressRing, Sparkline, Odometer };
+/**
+ * 전역 스크롤 진행바 — 페이지 최상단, 스크롤 비율만큼 네이비→레드 그라데이션이 채워짐.
+ * 차분한 프리미엄 시그널(치트시트 #progress를 우리 팔레트로).
+ */
+export function ScrollProgress({ height = 3 }) {
+  const [p, setP] = useState(0);
+  useEffect(() => {
+    const h = document.documentElement;
+    const on = () => {
+      const max = h.scrollHeight - h.clientHeight;
+      setP(max > 4 ? Math.min(100, (h.scrollTop / max) * 100) : 0);
+    };
+    on();
+    window.addEventListener('scroll', on, { passive: true });
+    window.addEventListener('resize', on);
+    return () => { window.removeEventListener('scroll', on); window.removeEventListener('resize', on); };
+  }, []);
+  return (
+    <div aria-hidden style={{
+      position: 'fixed', top: 0, left: 0, height, width: `${p}%`,
+      background: 'linear-gradient(90deg,#071E4A,#003B8F 55%,#D70011)',
+      zIndex: 200, transition: 'width .1s linear', pointerEvents: 'none',
+      opacity: p > 0.5 ? 1 : 0,
+    }} />
+  );
+}
+
+/**
+ * 실시간/알림 펄스 닷 — live면 확장 링 애니메이션.
+ */
+export function PulseDot({ color = '#047857', size = 8, live = true }) {
+  return (
+    <span className="relative inline-flex flex-shrink-0 align-middle" style={{ width: size, height: size }}>
+      {live && <span className="absolute inset-0 rounded-full" style={{ background: color, animation: 'dashPing 1.6s ease-out infinite' }} />}
+      <span className="relative rounded-full" style={{ width: size, height: size, background: color }} />
+    </span>
+  );
+}
+
+/**
+ * 스켈레톤 — 로딩 자리표시(시머). w/h/r 조정.
+ */
+export function Skeleton({ w = '100%', h = 12, r = 8, className = '' }) {
+  return <span className={`block ${className}`} style={{ width: w, height: h, borderRadius: r, background: 'linear-gradient(90deg,#F5F5F4 25%,#E7E5E4 37%,#F5F5F4 63%)', backgroundSize: '400% 100%', animation: 'dashShimmer 1.3s ease infinite' }} />;
+}
+
+export default { SegmentedToggle, ProgressRing, Sparkline, Odometer, ScrollProgress, PulseDot, Skeleton };

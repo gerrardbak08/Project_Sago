@@ -1,6 +1,7 @@
 import { extractSido, parseDate, categorizeBum, parseTenure, tenureBucket, WD_NAMES } from './parseHelpers.js';
 import { computeStoreMerged } from './processStores.js';
 import { classifyWorkerSubCause, canonType, canonCauseObject } from '../constants/causeTaxonomy.js';
+import { classifyLocation } from '../constants/locationTaxonomy.js';
 
 
 function groupBy(arr, keyFn) {
@@ -307,6 +308,7 @@ function processAccidents(rows, storesData, workersData) {
     const rawWorkerName = r["재해자명"];
     // 세부원인 분류 (규칙기반, 순수함수) — 기존 type/cause는 그대로 두고 정본·세부원인을 필드로 추가(비파괴)
     const _cls = classifyWorkerSubCause(r["재해 유형"], r["기인물"], r["사고 내용"]);
+    const _loc = classifyLocation(r["재해 유형"], r["기인물"], r["사고 내용"]);
     ds.push({
       year: y, month: m, dept, team: r["팀명"], store: r["매장명"],
       bum, date: dt, wd: dt ? WD_NAMES[dt.getDay() === 0 ? 6 : dt.getDay() - 1] : null,
@@ -316,6 +318,7 @@ function processAccidents(rows, storesData, workersData) {
       typeCanon: _cls.type, causeCanon: canonCauseObject(r["기인물"]),
       subCause: _cls.subCause, subCauseLabel: _cls.subCauseLabel,
       bodyPart: _cls.bodyPart, action: _cls.action, subMatched: _cls.matched,
+      loc: _loc.id, locLabel: _loc.label, locMatched: _loc.matched,
       site: r["상해부위 (근골격계)"], content: r["사고 내용"],
       cost: parseFloat(r["공상 비용 계"]) || null,
       loss_days: parseFloat(r["근로손실일수"]) || null,
@@ -575,6 +578,49 @@ function processAccidents(rows, storesData, workersData) {
   }
   subCauseTotals.sort((a, b) => b.n - a.n);
 
+  // ── 발생 장소 (규칙기반 추출, locationTaxonomy) ──────────────
+  // 서술문 추출이라 '장소불명'(loc:unknown)이 존재 — 모수는 subCause와 동일(sales).
+  // 평균 휴업일수는 loss_days>0 건만으로 계산(null은 미산입).
+  const locAgg = new Map();
+  for (const x of sales) {
+    if (!locAgg.has(x.loc)) locAgg.set(x.loc, { id: x.loc, label: x.locLabel, n: 0, y24: 0, y25: 0, y26: 0, loss_days_sum: 0, loss_days_n: 0 });
+    const rec = locAgg.get(x.loc);
+    rec.n++;
+    if (x.year === 2024) rec.y24++; else if (x.year === 2025) rec.y25++; else if (x.year === 2026) rec.y26++;
+    if (x.loss_days > 0) { rec.loss_days_sum += x.loss_days; rec.loss_days_n++; }
+  }
+  const locTotals = [...locAgg.values()]
+    .map((r) => ({ ...r, loss_days_avg: r.loss_days_n ? Math.round(r.loss_days_sum / r.loss_days_n) : null }))
+    .sort((a, b) => b.n - a.n);
+  const locMatchedTotal = sales.filter((x) => x.locMatched).length;
+
+  // 유형 × 장소 (정본유형 기준 — Σ장소 == injury[type] 불변식)
+  const locByType = {};
+  for (const x of sales) {
+    const t = x.typeCanon;
+    if (!locByType[t]) locByType[t] = {};
+    if (!locByType[t][x.loc]) locByType[t][x.loc] = { id: x.loc, label: x.locLabel, n: 0 };
+    locByType[t][x.loc].n++;
+  }
+  for (const t of Object.keys(locByType)) {
+    locByType[t] = Object.values(locByType[t]).sort((a, b) => b.n - a.n);
+  }
+
+  // 고위험 조합(유형×장소, 표본 5건 이상) — 평균 휴업일수 내림차순
+  const locComboMap = new Map();
+  for (const x of sales) {
+    if (!(x.loss_days > 0) || !x.locMatched) continue;
+    const k = `${x.typeCanon}|${x.loc}`;
+    if (!locComboMap.has(k)) locComboMap.set(k, { type: x.typeCanon, loc: x.loc, locLabel: x.locLabel, n: 0, sum: 0 });
+    const c = locComboMap.get(k);
+    c.n++; c.sum += x.loss_days;
+  }
+  const locSeverity = [...locComboMap.values()]
+    .filter((c) => c.n >= 5)
+    .map((c) => ({ type: c.type, loc: c.loc, locLabel: c.locLabel, n: c.n, loss_days_avg: Math.round(c.sum / c.n) }))
+    .sort((a, b) => b.loss_days_avg - a.loss_days_avg);
+  const location = { totals: locTotals, byType: locByType, severity: locSeverity, matched: locMatchedTotal, total: sales.length };
+
 
   // 연령 x 근속
   const ages = ["10대","20대","30대","40대","50대","60대"];
@@ -755,6 +801,7 @@ function processAccidents(rows, storesData, workersData) {
     costType, costDept: {}, risk, keywords, projection,
     injury, injury_s, injury_j, injuryCanon, cause, cause_s, cause_j,
     subCauseByType, motionMatrix, subCauseTotals,   // 재해유형별 세부원인 (causeTaxonomy)
+    location,                                        // 발생 장소 (locationTaxonomy)
     age, age_s, age_j, tenure, tenure_s, tenure_j,
     accidents: all,   // 매장 상세 패널 · AI 프롬프트용 원본 레코드
     ...storeExtras,

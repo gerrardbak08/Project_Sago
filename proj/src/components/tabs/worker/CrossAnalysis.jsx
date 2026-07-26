@@ -182,6 +182,95 @@ function CrossAnalysis({ D, yearFilter }) {
         );
       })()}
 
+      {/* 발생 장소 — locationTaxonomy 규칙기반 추출 (사고경위 서술 근거). 세부원인(왜)과 직교하는 '어디서' 축. */}
+      {(() => {
+        const accs = (D.accidents || []).filter(a => a.loc && (a.bum === '수도권' || a.bum === '지방')
+          && (!yearFilter || yearFilter === 'all' || String(a.year) === yearFilter));
+        if (accs.length === 0) return null;
+        const matched = accs.filter(a => a.locMatched);
+        const locMap = {};
+        for (const a of accs) {
+          const rec = locMap[a.locLabel] || (locMap[a.locLabel] = { label: a.locLabel, n: 0, loss: 0, lossN: 0, types: {} });
+          rec.n++;
+          if (a.loss_days > 0) { rec.loss += a.loss_days; rec.lossN++; }
+          rec.types[a.typeCanon] = (rec.types[a.typeCanon] || 0) + 1;
+        }
+        const dist = Object.values(locMap).sort((a, b) => b.n - a.n);
+        const distMax = dist[0]?.n || 1;
+        // 3대 핫스팟 = 매장 안팎의 물리 장소만 (장소불명·출퇴근 도로 제외)
+        const hotspots = dist.filter(d => d.label !== '장소불명' && !d.label.startsWith('도로')).slice(0, 3);
+        // 유형 × 장소 매트릭스 (실집계 — 연도필터 반영)
+        const locCols = dist.filter(d => d.label !== '장소불명').slice(0, 8).map(d => d.label);
+        const typeTotals = {};
+        for (const a of accs) typeTotals[a.typeCanon] = (typeTotals[a.typeCanon] || 0) + 1;
+        const locRows = Object.keys(typeTotals).sort((a, b) => typeTotals[b] - typeTotals[a]).map(t => {
+          const row = { type: t };
+          for (const l of locCols) row[l] = accs.filter(a => a.typeCanon === t && a.locLabel === l).length;
+          return row;
+        }).filter(r => locCols.some(l => r[l] > 0));
+        const avgLoss = (d) => d.lossN ? Math.round(d.loss / d.lossN) : null;
+        const topTypeOf = (d) => Object.entries(d.types).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
+        const isAllPeriod = !yearFilter || yearFilter === 'all';
+        const severity = isAllPeriod ? (D.location?.severity || []) : [];
+        const exportRows = dist.map(d => ({ 장소: d.label, 건수: d.n, 점유율: `${Math.round(d.n / accs.length * 100)}%`, 평균휴업일: avgLoss(d) ?? '', 주유형: topTypeOf(d) }));
+        return (
+          <Card title="발생 장소 분석" titleIcon={MapPin}
+            sub={`사고경위 서술 기반 규칙추출 — '어디서 일어났는가' (장소 확인 ${matched.length}건 기준 · 전체 ${accs.length}건)`}
+            right={<ExportBtn rows={exportRows} filename="발생장소_분석.csv" />}>
+            {/* 3대 물리 핫스팟 */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+              {hotspots.map((h, i) => (
+                <div key={h.label} className="rounded-xl border border-stone-200 bg-stone-50 p-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white" style={{ background: rankColor(i) }}>{i + 1}위</span>
+                    <span className="text-sm font-bold text-stone-800 break-keep">{h.label}</span>
+                  </div>
+                  <div className="mt-1.5 flex items-baseline gap-1.5">
+                    <span className="text-xl font-extrabold tabular-nums text-[#071E4A]">{h.n}</span>
+                    <span className="text-xs text-stone-500">건 · {Math.round(h.n / accs.length * 100)}%</span>
+                  </div>
+                  <div className="text-[11px] text-stone-500 mt-0.5">평균 휴업 <b className="text-stone-700">{avgLoss(h) ?? '—'}</b>일 · 주 유형 <b className="text-stone-700">{topTypeOf(h)}</b></div>
+                </div>
+              ))}
+            </div>
+            {/* 장소 분포 랭크바 */}
+            <div className="space-y-1 mb-4">
+              {dist.map((d, i) => (
+                <div key={d.label} className="flex items-center gap-2 py-0.5">
+                  <span className={`text-[11px] w-24 flex-shrink-0 break-keep leading-tight ${d.label === '장소불명' ? 'text-stone-400' : 'text-stone-600'}`}>{d.label}</span>
+                  <div className="flex-1 h-2 bg-stone-100 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${(d.n / distMax) * 100}%`, background: d.label === '장소불명' ? '#D6D3D1' : rankColor(i) }} />
+                  </div>
+                  <span className="text-[11px] font-bold tabular-nums text-stone-700 w-20 text-right">{d.n}<span className="text-stone-400 font-normal ml-0.5">{Math.round(d.n / accs.length * 100)}%</span><span className="text-stone-400 font-normal ml-1">{avgLoss(d) != null ? `${avgLoss(d)}일` : ''}</span></span>
+                </div>
+              ))}
+            </div>
+            {/* 유형 × 장소 매트릭스 */}
+            <div className="text-sm font-bold text-stone-700 mb-1">재해유형 × 장소</div>
+            <div className="text-xs text-stone-500 mb-2">유형별 집중 장소 확인 — 장소불명 제외 상위 {locCols.length}개 장소</div>
+            {locRows.length > 0 ? <Matrix data={locRows} rowKey="type" cols={locCols} /> : <EmptyState message="매트릭스 데이터 없음" />}
+            {/* 고위험 조합 — 표본 5건 이상, 전체 기간 기준 */}
+            {severity.length > 0 && (
+              <div className="mt-4 pt-3 border-t border-stone-200">
+                <div className="text-sm font-bold text-stone-700 mb-1">고위험 조합 <span className="text-xs font-normal text-stone-400">(유형×장소 · 평균 휴업일수 순 · 표본 5건 이상 · 전체 기간)</span></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 mt-2">
+                  {severity.slice(0, 8).map((c, i) => (
+                    <div key={`${c.type}|${c.loc}`} className="flex items-center gap-2 text-[12px] py-0.5">
+                      <span className={`font-extrabold tabular-nums w-12 text-right ${i < 2 ? 'text-red-600' : 'text-stone-800'}`}>{c.loss_days_avg}일</span>
+                      <span className="text-stone-700 break-keep flex-1">{c.type} <span className="text-stone-400">@</span> {c.locLabel}</span>
+                      <span className="text-stone-400 tabular-nums">{c.n}건</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="mt-3 p-3 rounded-lg bg-stone-50 border border-stone-200 text-xs text-stone-600 break-keep">
+              장소는 사고경위 서술문의 규칙기반 추출입니다(원본DB에 장소 필드 없음). <span className="text-stone-500">서술에 행동만 있고 장소가 없는 건은 '장소불명'으로 남겨둡니다. 계단·후방(상하차·창고)·매대가 3대 물리 핫스팟이며, 사다리 위는 건수는 적지만 평균 휴업일수가 가장 깁니다 — TBM·점검 동선의 우선순위 근거로 활용하세요.</span>
+            </div>
+          </Card>
+        );
+      })()}
+
       <Card title="사고 내용 키워드 빈도분석" titleIcon={Search} sub="사고 서술문에서 추출한 핵심 키워드 — 숨은 위험 패턴 도출">
         {(() => {
           const maxC = Math.max(...(D.keywords || []).map(k => k.count), 1);

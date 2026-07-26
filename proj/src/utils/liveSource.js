@@ -108,7 +108,15 @@ export async function fetchLiveSnapshot({ division = '안전보건팀', year = '
   u.searchParams.set('division', division);
   u.searchParams.set('year', String(year));
   u.searchParams.set('month', String(month));
-  const res = await fetch(u, { redirect: 'follow', cache: 'no-store' });
+  // Apps Script 콜드 스타트가 16~20초 → 무한 대기 방지용 상한(25s). 초과 시 스냅샷으로 조용히 안착.
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), 25_000) : null;
+  let res;
+  try {
+    res = await fetch(u, { redirect: 'follow', cache: 'no-store', signal: ctrl?.signal });
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
   if (!res.ok) throw new Error(`source HTTP ${res.status}`);
   const j = await res.json();
   if (!j || j.ok !== true) throw new Error('source returned not ok');
