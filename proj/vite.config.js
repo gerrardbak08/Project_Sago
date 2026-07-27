@@ -24,7 +24,9 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), htmlEnvPlugin(env)],
     publicDir: 'public',
     server:  { port: 5173, host: true },
-    build:   { outDir: 'dist', sourcemap: true },
+    // 프로덕션 sourcemap은 공개 S3 버킷에 원본 소스 구조가 그대로 노출되므로 끔.
+    // 로컬 dev/디버깅용으로는 dev 모드에서만 유지.
+    build:   { outDir: 'dist', sourcemap: mode !== 'production' },
     esbuild: { loader: 'jsx', include: /\.[jt]sx?$/ },
     optimizeDeps: { esbuildOptions: { loader: { '.js': 'jsx' } } },
   };

@@ -58,6 +58,13 @@ variable "manual_send_token" {
   sensitive   = true
 }
 
+variable "ai_api_token" {
+  description = "ai Lambda Function URL 호출 인증 토큰(x-api-key/Bearer) — 미설정 시 fail-closed로 전체 차단"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 locals {
   resource_prefix = var.deploy_version == "" ? var.project : "${var.project}-${var.deploy_version}"
 }
@@ -300,15 +307,15 @@ resource "aws_lambda_function" "notify" {
 
   environment {
     variables = {
-      MODELS_BUCKET      = aws_s3_bucket.models.id
-      DAILY_BUCKET       = aws_s3_bucket.daily.id
-      FRONTEND_URL       = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
-      NOTIFY_CHANNEL     = "mock"
+      MODELS_BUCKET           = aws_s3_bucket.models.id
+      DAILY_BUCKET            = aws_s3_bucket.daily.id
+      FRONTEND_URL            = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
+      NOTIFY_CHANNEL          = "mock"
       NOTIFY_ALLOWED_CHANNELS = var.enable_kakao_manual_send ? "mock,kakao" : "mock"
-      MANUAL_SEND_TOKEN  = var.manual_send_token
-      KAKAO_ACCESS_TOKEN = var.kakao_access_token
-      BEDROCK_REGION     = "us-east-1"
-      ALLOWED_ORIGINS    = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
+      MANUAL_SEND_TOKEN       = var.manual_send_token
+      KAKAO_ACCESS_TOKEN      = var.kakao_access_token
+      BEDROCK_REGION          = "us-east-1"
+      ALLOWED_ORIGINS         = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
     }
   }
 
@@ -356,8 +363,8 @@ resource "aws_lambda_function" "alerts" {
 
   environment {
     variables = {
-      DAILY_BUCKET     = aws_s3_bucket.daily.id
-      ALLOWED_ORIGINS  = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
+      DAILY_BUCKET    = aws_s3_bucket.daily.id
+      ALLOWED_ORIGINS = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
     }
   }
 
@@ -408,6 +415,7 @@ resource "aws_lambda_function" "ai" {
       BEDROCK_REGION   = "us-east-1"
       BEDROCK_MODEL_ID = "us.anthropic.claude-sonnet-4-6"
       ALLOWED_ORIGINS  = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
+      AI_API_TOKEN     = var.ai_api_token
     }
   }
 

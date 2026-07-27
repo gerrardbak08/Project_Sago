@@ -53,7 +53,7 @@ def _origin_allowed(event: dict) -> bool:
 def _token_allowed(event: dict) -> bool:
     expected = os.environ.get("AI_API_TOKEN", "").strip()
     if not expected:
-        return True
+        return False  # fail-closed: 토큰 미설정이면 요청을 열어두지 않고 차단
     headers = _headers(event)
     auth = headers.get("authorization", "")
     bearer = auth.removeprefix("Bearer ").strip() if auth.startswith("Bearer ") else ""
