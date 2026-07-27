@@ -533,15 +533,15 @@ function App() {
       {/* ═══ 메인 컬럼 ═══ */}
       <div className="flex-1 min-w-0 lg:ml-[232px]">
 
-      {/* ═══ 산업재해 현황 대시보드 히어로 타이틀 — 웹 최상단 고정(비스크롤). 모바일에선 정보 없이
-          공간만 차지해 숨김. 아래 필터바(기준/기간 등)는 sticky라 스크롤 시 이 자리로 올라와 붙음 ═══ */}
+      {/* ═══ 산업재해 현황 대시보드 타이틀 — 웹 최상단, 카드 프레임 없이 텍스트만 한 줄로 배치.
+          모바일에선 정보 없이 공간만 차지해 숨김. 아래 필터바는 sticky라 스크롤 시 이 자리로 올라와 붙음 ═══ */}
       {dashMode === "worker" && !inAlert && (
-        <div className="hidden sm:block max-w-[1400px] mx-auto px-3 sm:px-5 pt-3 sm:pt-5">
-          <div className="rounded-[20px] bg-white/75 border border-stone-200/60 px-5 sm:px-8 py-4 relative overflow-hidden" style={{ boxShadow: '0 8px 22px rgba(7,30,74,0.05)' }}>
-            <div className="text-[11px] font-extrabold tracking-[0.18em] text-[#E60033] flex items-center gap-1.5"><span className="text-[#003B8F]">✦</span> ASUNG DAISO · SAFETY FIRST</div>
-            <h1 className="text-2xl sm:text-[30px] font-black text-[#071E4A] mt-1 tracking-tight dash-sheen">산업재해 현황 분석 대시보드</h1>
-            <p className="text-stone-500 text-xs sm:text-sm mt-1.5">매장 사고 흐름을 한눈에 보고, 오늘의 안전 행동을 바로 정합니다.</p>
-          </div>
+        <div className="hidden sm:flex flex-wrap items-baseline gap-x-3 gap-y-1 max-w-[1400px] mx-auto px-3 sm:px-5 pt-3 sm:pt-4 pb-1">
+          <span className="text-[11px] font-extrabold tracking-[0.18em] text-[#E60033] flex items-center gap-1.5 flex-shrink-0">
+            <span className="text-[#003B8F]">✦</span> ASUNG DAISO · SAFETY FIRST
+          </span>
+          <h1 className="text-lg sm:text-xl font-black text-[#071E4A] tracking-tight">산업재해 현황 분석 대시보드</h1>
+          <p className="text-stone-400 text-xs">매장 사고 흐름을 한눈에 보고, 오늘의 안전 행동을 바로 정합니다.</p>
         </div>
       )}
 
