@@ -1,8 +1,9 @@
 // 연간 기대손실(EAL) 계산 엔진 — 순수 함수 모듈.
 // React·데이터 import 없음. 설계문서: docs/superpowers/specs/2026-07-28-eal-risk-ranking-design.md
 //
-// 핵심: 사고 1건마다 연간 기여분(eal_i)을 배분해두면, 어떤 축으로 묶어도 단순 합산이라
-//       전사 == Σ유형×장소 == Σ조직 가법성이 항상 성립한다.
+// 핵심: 사고 1건마다 연간 기여분(eal_i)을 배분해두면, 모든 비사망 레코드가 groupBy에서 non-null을 반환할 때
+//       어떤 축으로 묶어도 단순 합산이라 전사 == Σ유형×장소 == Σ조직 가법성이 성립한다.
+//       (결측이 있으면 해당 축의 합은 전사 총액과 달라진다.)
 import {
   MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, DAILY_VALUE_PER_WORKER, DEATH_LOSS_DAYS,
 } from '../constants/metrics.js';
