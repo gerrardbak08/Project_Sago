@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   wageFor, dayRate, isFatal, isSales, salesOnly, observationPeriod, withEal,
+  sumEal, fatalitySummary, totalEal,
 } from '../src/utils/eal.js';
 
 // ── 합성 픽스처 ─────────────────────────────────────────────
@@ -148,4 +149,72 @@ test('withEal: 완료월을 넘어선 당월 레코드는 결과에서 제외', 
 
 test('withEal: 관측 기간이 0이면 빈 배열', () => {
   assert.deepEqual(withEal([rec({ year: 2026, month: 7 })], { years: 0, lastCompleteYm: null }), []);
+});
+
+test('sumEal: 그룹별 합산 결과가 eal 내림차순으로 정렬된다', () => {
+  const accidents = [
+    rec({ year: 2024, month: 1, typeCanon: '넘어짐', locLabel: '계단', loss_days: 100 }),
+    rec({ year: 2024, month: 2, typeCanon: '베임', locLabel: '매장·매대', loss_days: 10 }),
+  ];
+  const p = observationPeriod(accidents, NOW);
+  const out = sumEal(withEal(accidents, p), (r) => `${r.typeCanon}|${r.locLabel}`, p);
+  assert.equal(out[0].key, '넘어짐|계단');
+  assert.equal(out[0].n, 1);
+  assert.ok(out[0].eal > out[1].eal);
+});
+
+test('sumEal: 가법성 — 축을 바꿔도 전체 합이 같다', () => {
+  const accidents = [
+    rec({ year: 2024, month: 1, typeCanon: '넘어짐', locLabel: '계단', dept: 'A부', loss_days: 30 }),
+    rec({ year: 2024, month: 2, typeCanon: '베임', locLabel: '매장·매대', dept: 'B부', loss_days: 20 }),
+    rec({ year: 2024, month: 3, typeCanon: '넘어짐', locLabel: '계단', dept: 'B부', loss_days: null }),
+  ];
+  const p = observationPeriod(accidents, NOW);
+  const recs = withEal(accidents, p);
+  const byLoc = sumEal(recs, (r) => `${r.typeCanon}|${r.locLabel}`, p).reduce((s, g) => s + g.eal, 0);
+  const byDept = sumEal(recs, (r) => r.dept, p).reduce((s, g) => s + g.eal, 0);
+  assert.ok(Math.abs(byLoc - byDept) < 1e-6);
+  assert.ok(Math.abs(byLoc - totalEal(recs)) < 1e-6);
+});
+
+test('sumEal: lambda는 연간 건수, avgLossDays는 관측분 평균', () => {
+  const accidents = [
+    rec({ year: 2024, month: 1, loss_days: 20 }),
+    rec({ year: 2024, month: 2, loss_days: 40 }),
+    rec({ year: 2024, month: 12, loss_days: null }),
+  ];
+  const p = observationPeriod(accidents, NOW);              // 2024-01~2024-12 = 1년
+  const out = sumEal(withEal(accidents, p), () => 'all', p);
+  assert.equal(out[0].n, 3);
+  assert.equal(out[0].lambda, 3);
+  assert.equal(out[0].avgLossDays, 30);
+});
+
+test('sumEal: 사망은 어떤 그룹에도 계상되지 않는다', () => {
+  const accidents = [
+    rec({ year: 2024, month: 1, loss_days: 10 }),
+    rec({ year: 2024, month: 2, typeCanon: '사망', kind: '사망', loss_days: null }),
+  ];
+  const p = observationPeriod(accidents, NOW);
+  const out = sumEal(withEal(accidents, p), (r) => r.typeCanon, p);
+  assert.equal(out.length, 1);
+  assert.equal(out.find((g) => g.key === '사망'), undefined);
+});
+
+test('sumEal: groupBy가 null을 반환하면 그 레코드는 건너뛴다', () => {
+  const accidents = [rec({ year: 2024, month: 1, loss_days: 10, store: null })];
+  const p = observationPeriod(accidents, NOW);
+  assert.equal(sumEal(withEal(accidents, p), (r) => r.store, p).length, 0);
+});
+
+test('fatalitySummary: 건수와 법정 요양근로손실일수(7500×건)를 반환', () => {
+  const accidents = [
+    rec({ year: 2024, month: 1, loss_days: 10 }),
+    rec({ year: 2024, month: 2, typeCanon: '사망', kind: '사망', loss_days: null }),
+  ];
+  const p = observationPeriod(accidents, NOW);
+  const f = fatalitySummary(withEal(accidents, p));
+  assert.equal(f.n, 1);
+  assert.equal(f.statutoryLossDays, 7500);
+  assert.equal(f.records[0].store, 'A점');
 });
