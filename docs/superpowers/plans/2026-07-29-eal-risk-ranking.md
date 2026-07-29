@@ -946,13 +946,13 @@ import { dayRate, wageFor, USE_PRODUCTIVITY, salesOnly, observationPeriod, withE
 
 컴포넌트 본문 상단(`const recs = ...` 아래)에 추가:
 
+⚠️ **`D.accidents`가 아니라 `recs`를 쓴다.** `filterData.js`는 `accidents` 배열을 연도 필터하지 않고 그대로 통과시키므로(각 컴포넌트가 자체 필터), `D.accidents`를 직접 쓰면 EAL이 연도 필터에 반응하지 않는다. `recs`는 29행에서 이미 연도 필터가 적용된 배열이다.
+
 ```js
   // ── 연간 기대손실(EAL) — 영업부문 모수, 사망 제외. 설계문서 §3 ──
-  const ealPeriod = useMemo(() => observationPeriod(salesOnly(D.accidents || [])), [D.accidents]);
-  const ealRecords = useMemo(
-    () => withEal(salesOnly(D.accidents || []), ealPeriod),
-    [D.accidents, ealPeriod],
-  );
+  // recs = 연도 필터 적용된 사고 레코드 (29행). D.accidents는 필터 미적용이므로 쓰지 말 것.
+  const ealPeriod = useMemo(() => observationPeriod(salesOnly(recs)), [recs]);
+  const ealRecords = useMemo(() => withEal(salesOnly(recs), ealPeriod), [recs, ealPeriod]);
   const ealTotal = useMemo(() => totalEal(ealRecords), [ealRecords]);
   const fatality = useMemo(() => fatalitySummary(ealRecords), [ealRecords]);
   const ealBasisLabel = ealPeriod.years
@@ -1243,11 +1243,14 @@ import { salesOnly, observationPeriod, withEal, sumEal } from '../../../utils/ea
 
 ```js
   // 조직별 EAL — dept_ir/team_ir은 baked라 사고 레코드가 없으므로 이름으로 조인한다.
-  const ealPeriod = useMemo(() => observationPeriod(salesOnly(D.accidents || [])), [D.accidents]);
-  const ealRecords = useMemo(
-    () => withEal(salesOnly(D.accidents || []), ealPeriod),
-    [D.accidents, ealPeriod],
+  // ⚠️ filterData.js는 accidents를 연도 필터하지 않으므로 여기서 직접 건다
+  //    (이 파일 99행이 이미 쓰는 패턴과 동일). 안 하면 EAL만 연도 필터에 반응하지 않는다.
+  const ealSource = useMemo(
+    () => salesOnly(D.accidents || []).filter((a) => !isYearFilter || String(a.year) === yearFilter),
+    [D.accidents, isYearFilter, yearFilter],
   );
+  const ealPeriod = useMemo(() => observationPeriod(ealSource), [ealSource]);
+  const ealRecords = useMemo(() => withEal(ealSource, ealPeriod), [ealSource, ealPeriod]);
   const ealByDept = useMemo(
     () => new Map(sumEal(ealRecords, (r) => r.dept, ealPeriod).map((g) => [g.key, g.eal])),
     [ealRecords, ealPeriod],
