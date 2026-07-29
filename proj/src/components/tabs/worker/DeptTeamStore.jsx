@@ -164,6 +164,18 @@ function DeptTeamStore({ D, yearFilter }) {
     [ealRecords, ealPeriod],
   );
   const ealCell = (v) => (v == null ? '—' : `${(v / 1e8).toFixed(2)}억`);
+  // team_ir은 매장 수 기준으로 만들어져 물리 매장이 없는 조직(교육팀 등)은 행이 없다.
+  // ealByTeam(사고 레코드 기준)엔 그런 팀도 잡히므로, 팀 테이블 EAL 합계가 전사 총액보다
+  // 작아 보일 수 있다 — 그 차이를 런타임에 계산해 각주로 밝힌다(하드코딩 금지, 무배지).
+  const unmatchedTeamEal = useMemo(() => {
+    const irTeams = new Set((D.team_ir || []).map((t) => t.team));
+    const missing = [...ealByTeam.entries()].filter(([team]) => !irTeams.has(team));
+    return {
+      count: missing.length,
+      total: missing.reduce((s, [, v]) => s + v, 0),
+      names: missing.map(([team]) => team),
+    };
+  }, [ealByTeam, D.team_ir]);
   // 매장당 사고율 = 사고건수 ÷ 매장수 (매장 1곳당 평균 사고 건수)
   const perStore = (r) => (r && r.stores ? (r.incidents || 0) / r.stores : 0);
   // 전사 가중평균(총사고 ÷ 총매장) — 등급의 기준선
@@ -525,6 +537,11 @@ function DeptTeamStore({ D, yearFilter }) {
               })}</tbody>
             </table>
           </div>
+          {unmatchedTeamEal.count > 0 && (
+            <div className="mt-2 text-[10px] text-stone-400">
+              ※ 표에 없는 팀 {unmatchedTeamEal.count}개({unmatchedTeamEal.names.join('·')}) · {(unmatchedTeamEal.total / 1e8).toFixed(2)}억 — 매장이 배정되지 않은 조직이라 팀 목록(매장 수 기준)에 포함되지 않습니다
+            </div>
+          )}
         </Card>
       )}
 
