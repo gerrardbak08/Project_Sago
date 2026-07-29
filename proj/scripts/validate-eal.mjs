@@ -4,7 +4,7 @@
 import DEFAULT_DATA from '../src/data/workerData.js';
 import MAP_STORES from '../src/data/storesData.js';
 import {
-  salesOnly, observationPeriod, withEal, sumEal, totalEal, fatalitySummary, storeEal, isFatal, dayRate,
+  salesOnly, observationPeriod, withEal, sumEal, totalEal, fatalitySummary, storeEal, dayRate,
 } from '../src/utils/eal.js';
 
 const won = (v) => (v / 1e8).toFixed(2) + '억';
@@ -38,10 +38,18 @@ check(Math.abs(byTeam - total) < 1, 'Σ(팀) == 전사', `차 ${Math.abs(byTeam 
 // 2) 보정 정합 — 사망은 관측·보정 어디에도 없어야 한다
 console.log('\n[2] 결측 보정 정합');
 const nonFatal = records.filter((r) => !r.fatal);
-const observed = nonFatal.filter((r) => r.loss_days > 0);
 const imputed = nonFatal.filter((r) => !(r.loss_days > 0));
-check(observed.length + imputed.length === nonFatal.length, '관측 + 보정 == 비사망 전체',
-  `${observed.length} + ${imputed.length} = ${nonFatal.length}`);
+// withEal을 거치지 않고 원본 accidents에서 "영업부문 사고 중 완료월 이내" 건수를 직접 세어
+// records.length와 대조한다 — withEal의 필터링 로직 자체를 검증하기 위함.
+const expectedInRange = accidents.filter((a) => {
+  const isSalesDept = a?.bum === '수도권' || a?.bum === '지방';
+  if (!isSalesDept) return false;
+  const y = Number(a?.year), m = Number(a?.month);
+  if (!Number.isFinite(y) || !Number.isFinite(m)) return false;
+  return `${y}-${String(m).padStart(2, '0')}` <= period.lastCompleteYm;
+}).length;
+check(records.length === expectedInRange, 'records.length == 원본에서 직접 집계한 영업부문·완료월내 건수',
+  `${records.length} vs ${expectedInRange}`);
 check(imputed.every((r) => r.effLossDays > 0), '보정된 레코드는 모두 양의 일수를 가짐');
 console.log(`  ℹ 결측률 ${(imputed.length / nonFatal.length * 100).toFixed(1)}% — EAL의 상당 부분이 보정값`);
 
@@ -64,17 +72,23 @@ console.log('  ℹ 0건 매장에 위험을 배분하므로 불일치가 정상�
 
 // 5) 기간 계산 — 당월이 양쪽에서 빠졌는지
 console.log('\n[5] 관측 기간');
-const now = new Date();
-const curYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+// eal.js의 observationPeriod와 동일하게 KST 고정으로 계산한다 — 로컬(서버) 타임존을 쓰면
+// UTC 환경에서 period.lastCompleteYm(KST 기준)과 어긋나 오탐이 난다.
+const KST_YM_FORMATTER = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit',
+});
+const curYm = KST_YM_FORMATTER.format(new Date());
 check(period.lastCompleteYm < curYm, '마지막 완료월이 당월보다 앞섬', `${period.lastCompleteYm} < ${curYm}`);
 check(records.every((r) => `${r.year}-${String(r.month).padStart(2, '0')}` <= period.lastCompleteYm),
   '완료월 이후 레코드가 집계에 없음');
 
 // 6) 사망 판별 일관성 — 두 필드가 갈리면 화면끼리 사망 건수가 달라진다
 console.log('\n[6] 사망 판별 일관성');
-const byTypeCanon = accidents.filter((a) => a.typeCanon === '사망').length;
-const byKind = accidents.filter((a) => a.kind === '사망').length;
-check(byTypeCanon === byKind, 'count(typeCanon=사망) == count(kind=사망)', `${byTypeCanon} vs ${byKind}`);
+// 개수만 비교하면 반대 방향 불일치가 상쇄되어 통과해버린다(예: {typeCanon:사망,kind:상해} +
+// {typeCanon:상해,kind:사망} → 개수는 2:2로 같음). 레코드 단위로 두 필드가 갈리는 건수를 센다.
+const mismatched = accidents.filter((a) => (a.typeCanon === '사망') !== (a.kind === '사망'));
+check(mismatched.length === 0, 'typeCanon=사망 ⟺ kind=사망 (레코드 단위 일치)',
+  `불일치 ${mismatched.length}건`);
 
 // 7) 사망 미포함 확인
 console.log('\n[7] 사망 EAL 미포함');
