@@ -3,11 +3,12 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Banknote, Calendar, TrendingUp, Info, ChevronDown } from 'lucide-react';
 import { DAISO_RED, ALERT_RED, SAFE_GREEN, NV, CHART_BLUE, rankColor } from '../../../constants/colors.js';
 import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN, DAILY_VALUE_PER_WORKER } from '../../../constants/metrics.js';
-import { dayRate, wageFor, USE_PRODUCTIVITY, salesOnly, observationPeriod, withEal, totalEal, fatalitySummary } from '../../../utils/eal.js';
+import { dayRate, wageFor, USE_PRODUCTIVITY, salesOnly, observationPeriod, withEal, totalEal, fatalitySummary, storeEal } from '../../../utils/eal.js';
 import { fmt } from '../../../utils/uiHelpers.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card, EmptyState } from '../../../components/shared/Card.jsx';
 import { useCountUp, useInView } from '../../../utils/motion.js';
+import MAP_STORES from '../../../data/storesData.js';
 
 // 추정 재무손실 = 실측 근로손실일수 × 일급(최저시급×8시간) × (1 + 간접비 4배, Heinrich)
 // 근로손실일수는 산재 판정(요양·휴업) 시 확정되는 실측치 — 사고경위 건수 × 평균일수(가정) 방식이 아님.
@@ -34,6 +35,18 @@ function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
   const ealBasisLabel = ealPeriod.years
     ? `관측 ${ealPeriod.firstYm}~${ealPeriod.lastCompleteYm} · ${ealPeriod.years}년 · 영업부문 ${ealRecords.length}건 기준`
     : '관측 기간 부족';
+
+  // 매장별 EAL — 신뢰도 가중(Bühlmann). 0건 매장은 동료집단 평균으로 수렴한다.
+  const storeRank = useMemo(() => {
+    if (!ealPeriod.years) return [];
+    const list = MAP_STORES.map((s) => ({ store: s.n, area: s.ar }));
+    return storeEal(ealRecords, list, ealPeriod).slice(0, 20);
+  }, [ealRecords, ealPeriod]);
+  // 사망 보유 매장 — 금액 정렬엔 반영하지 않고 라벨로만 표기
+  const fatalStores = useMemo(
+    () => new Set(fatality.records.map((r) => r.store).filter(Boolean)),
+    [fatality],
+  );
 
   // 선택 기간(현재 필터·기준) 총 추정 재무손실 — 실측 근로손실일수 기반
   const periodDays = k.loss_days_total || 0;
@@ -288,6 +301,32 @@ function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
           </div>
         </div>
       </div>
+
+      {storeRank.length > 0 && (
+        <Card title="연간 기대손실 상위 매장" titleIcon={Banknote}
+          sub={`${ealBasisLabel} · 신뢰도 가중(Bühlmann) 적용 — 사고 0건 매장도 동료집단 평균으로 위험을 배분`}
+          right={<ExportBtn rows={storeRank.map((s, i) => ({ 순위: i + 1, 매장: s.store, 사고건수: s.n, 신뢰도: s.Z, 연간기대손실_원: Math.round(s.eal) }))} filename="매장별_연간기대손실.csv" />}>
+          <div className="space-y-1">
+            {storeRank.map((s, i) => (
+              <div key={s.store} className="flex items-center gap-2 py-1 border-b border-stone-50 text-[12px]">
+                <span className="text-stone-400 tabular-nums w-6 text-right">{i + 1}</span>
+                <span className="font-semibold text-stone-800 truncate flex-1">{s.store}</span>
+                {fatalStores.has(s.store) && (
+                  <span className="text-[10px] text-stone-400 whitespace-nowrap">중대재해 1건</span>
+                )}
+                <span className="text-stone-400 tabular-nums whitespace-nowrap">사고 {s.n}건 · 신뢰도 {Math.round(s.Z * 100)}%</span>
+                <span className="font-bold tabular-nums text-[#071E4A] w-20 text-right whitespace-nowrap">
+                  {(s.eal / 1e4).toFixed(0)}만원
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 p-3 rounded-lg bg-stone-50 border border-stone-200 text-xs text-stone-600 break-keep">
+            매장별 기대손실은 자기 실적과 같은 평수대 매장 평균을 사고 건수에 따라 가중 혼합한 값입니다.
+            <span className="text-stone-500"> 사고가 많은 매장일수록 자기 실적 비중(신뢰도)이 높고, 0건 매장은 동료집단 평균에 수렴합니다. 이 축만 혼합을 거치므로 매장 합계는 전사 총액과 일치하지 않습니다.</span>
+          </div>
+        </Card>
+      )}
 
       {/* 연도별 추정 재무손실 추이 */}
       <Card title="연도별 추정 재무손실 추이" titleIcon={Banknote} sub="사고건수와 추정 재무손실의 연도별 변화 — 기준 전환에 따라 동적 반영" right={<ExportBtn rows={yearlyFinance} filename={`연도별_추정재무손실_${basisLabel}.csv`} />}>
