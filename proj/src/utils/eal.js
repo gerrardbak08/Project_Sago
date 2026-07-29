@@ -163,6 +163,10 @@ export function storeEal(records, stores, period, { k = 3 } = {}) {
   }
   const bucketIncidents = new Map();
   for (const [name, n] of obs) {
+    // 매장 마스터에 없는 이름은 areaOf.get()이 undefined → sizeBucket(undefined)="미상"이 되어
+    // 진짜 "평수 미상" 매장들의 peer 버킷을 오염시킨다. 손실 자체는 totalN·lossPerIncident에
+    // 이미 반영돼 있으므로(위 nonFatal 기준), 여기서는 버킷 귀속만 제외한다.
+    if (!areaOf.has(name)) continue;
     const b = sizeBucket(areaOf.get(name));
     bucketIncidents.set(b, (bucketIncidents.get(b) || 0) + n);
   }
@@ -173,6 +177,10 @@ export function storeEal(records, stores, period, { k = 3 } = {}) {
       const n = obs.get(s.store) || 0;
       const b = sizeBucket(s.area);
       const bs = bucketStores.get(b) || 0;
+      // bucketStores와 이 map(...)이 같은 stores 배열을 순회하므로, 지금 순회 중인 매장 s
+      // 자신이 이미 자기 버킷(b)에 1을 기여했다 — 즉 bs는 이 경로에서 항상 ≥1이고
+      // ": globalLambda" 분기는 현재 도달 불가능하다. 그래도 stores와 bucketStores의
+      // 소스가 분리되는 리팩터링이 생기면 0으로 나누기를 막아주는 방어 코드이므로 남겨둔다.
       const lambdaPeer = bs > 0 ? (bucketIncidents.get(b) || 0) / (bs * T) : globalLambda;
       const Z = n / (n + kk);
       const lambda = Z * (n / T) + (1 - Z) * lambdaPeer;

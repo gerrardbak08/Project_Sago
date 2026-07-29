@@ -280,6 +280,23 @@ test('storeEal: k=0을 넘겨도 기본값 3으로 방어', () => {
   assert.equal(storeEal(withEal(accidents, p), STORES, p, { k: 0 }).find((s) => s.store === 'A점').Z, 0.5);
 });
 
+test('storeEal: 마스터에 없는 매장명의 사고가 "미상" 버킷의 lambda/eal을 오염시키지 않는다', () => {
+  const stores = [
+    { store: 'A점', area: 150 },
+    { store: 'E점', area: null }, // 평수 미상 — peer 버킷 "미상"에 홀로 속함
+  ];
+  const accidents = [
+    rec({ year: 2024, month: 1, store: 'A점', loss_days: 30 }),
+    rec({ year: 2024, month: 6, store: '유령점', loss_days: 30 }), // 매장 마스터에 없는 이름
+  ];
+  const p = observationPeriod(accidents, NOW);
+  const out = storeEal(withEal(accidents, p), stores, p);
+  const e = out.find((s) => s.store === 'E점');
+  assert.equal(e.n, 0);
+  assert.equal(e.lambda, 0, '마스터에 없는 매장의 사고가 "미상" 버킷 lambda를 오염시키면 안 된다');
+  assert.equal(e.eal, 0, '마스터에 없는 매장의 사고가 "미상" 버킷 eal을 오염시키면 안 된다');
+});
+
 test('storeEal: 사망 건은 매장 집계에 포함되지 않는다', () => {
   const accidents = [
     rec({ year: 2024, month: 1, store: 'A점', loss_days: 10 }),
