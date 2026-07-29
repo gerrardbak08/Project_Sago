@@ -13,6 +13,7 @@ import { Odometer, Sparkline, SegmentedToggle } from '../../../components/shared
 import { getKpiProgress, getMonthsElapsed, useKpiVersion } from '../../../utils/kpiStore.js';
 import { STATUS_COLOR, STATUS_LABEL } from '../../../utils/kpiProgress.js';
 import { SHOW_KPI_TARGETS } from '../../../constants/flags.js';
+import { salesOnly, observationPeriod, withEal, sumEal } from '../../../utils/eal.js';
 
 // KPI 배지 — 부서/팀 테이블에서 사고건수 옆에 표시
 function KpiBadge({ level, orgKey }) {
@@ -144,6 +145,25 @@ function DeptTeamStore({ D, yearFilter }) {
   // === 안전 지표 헬퍼 (D.dept_ir/D.team_ir 전체기간 스냅샷 IR) ===
   const isPer100 = metric === "ir_per100";
   const hasWorker = D.team_ir && D.team_ir.some(t => t.workers != null);
+
+  // 조직별 EAL — dept_ir/team_ir은 baked라 사고 레코드가 없으므로 이름으로 조인한다.
+  // ⚠️ filterData.js는 accidents를 연도 필터하지 않으므로 여기서 직접 건다
+  //    (이 파일 99행이 이미 쓰는 패턴과 동일). 안 하면 EAL만 연도 필터에 반응하지 않는다.
+  const ealSource = useMemo(
+    () => salesOnly(D.accidents || []).filter((a) => !isYearFilter || String(a.year) === yearFilter),
+    [D.accidents, isYearFilter, yearFilter],
+  );
+  const ealPeriod = useMemo(() => observationPeriod(ealSource), [ealSource]);
+  const ealRecords = useMemo(() => withEal(ealSource, ealPeriod), [ealSource, ealPeriod]);
+  const ealByDept = useMemo(
+    () => new Map(sumEal(ealRecords, (r) => r.dept, ealPeriod).map((g) => [g.key, g.eal])),
+    [ealRecords, ealPeriod],
+  );
+  const ealByTeam = useMemo(
+    () => new Map(sumEal(ealRecords, (r) => r.team, ealPeriod).map((g) => [g.key, g.eal])),
+    [ealRecords, ealPeriod],
+  );
+  const ealCell = (v) => (v == null ? '—' : `${(v / 1e8).toFixed(2)}억`);
   // 매장당 사고율 = 사고건수 ÷ 매장수 (매장 1곳당 평균 사고 건수)
   const perStore = (r) => (r && r.stores ? (r.incidents || 0) / r.stores : 0);
   // 전사 가중평균(총사고 ÷ 총매장) — 등급의 기준선
@@ -395,6 +415,7 @@ function DeptTeamStore({ D, yearFilter }) {
                   <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">매장 수</th>
                   <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">사고 수</th>
                   <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">매장당 사고율</th>
+                  <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">연간 기대손실</th>
                   {hasWorker && <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">인원수</th>}
                   {hasWorker && <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">100명당 IR</th>}
                   <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">평균 평수</th>
@@ -416,6 +437,7 @@ function DeptTeamStore({ D, yearFilter }) {
                     </div>
                   </td>
                   <td className="py-2 px-3 text-right tabular-nums font-extrabold whitespace-nowrap" style={{color: g.color}}>{g.value.toFixed(2)}<span className="text-[10px] font-normal text-stone-400 ml-0.5">건</span></td>
+                  <td className="py-2 px-3 text-right tabular-nums text-stone-700 whitespace-nowrap">{ealCell(ealByDept.get(d.dept))}</td>
                   {hasWorker && <td className="py-2 px-3 text-right tabular-nums text-stone-600 whitespace-nowrap">{d.workers != null ? d.workers.toLocaleString() : "—"}</td>}
                   {hasWorker && (
                     <td className="py-2 px-3 text-right tabular-nums font-extrabold whitespace-nowrap" style={{color: d.ir_per100 == null ? "#A8A29E" : d.ir_per100 > 20 ? RD : d.ir_per100 > 10 ? AM : GN}}>
@@ -424,6 +446,74 @@ function DeptTeamStore({ D, yearFilter }) {
                     </td>
                   )}
                   <td className="py-2 px-3 text-right tabular-nums text-stone-600 whitespace-nowrap">{d.avg_area}평</td>
+                  <td className="py-2 px-3 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold" style={{background: g.bg, color: g.color}}>
+                      <span className="w-1.5 h-1.5 rounded-full" style={{background: g.color}} />
+                      {g.label}
+                    </span>
+                  </td>
+                </tr>
+                );
+              })}</tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* === 안전 지표 카드 4: 팀별 안전 지표 테이블 === */}
+      {/* ⚠️ 편집자 노트: 브리프/계획은 이 파일에 팀 테이블이 이미 있다고 전제했지만
+          (grep team_ir\|<th 로 확인) 실제로는 부서 테이블만 존재해 팀 EAL을 붙일 대상이
+          없었다. 부서 테이블과 동일한 패턴(gradeOf/perStore/KpiBadge/등급뱃지)으로 최소
+          구성한 팀 테이블을 신설해 EAL 컬럼을 넣었다 — team_ir엔 avg_area가 없어 그 컬럼만 제외. */}
+      {D.team_ir && (
+        <Card title="팀별 안전 지표" titleIcon={Building2} sub={hasWorker ? "매장당 사고율 · 100명당 IR · 인원수 — 팀 단위 (등급=전사 평균 대비)" : "팀별 매장당 사고율 — 전사 평균 대비 등급"} right={<ExportBtn rows={D.team_ir} filename="팀별_안전지표.csv" />}>
+          {isYearFilter && (
+            <div className="mb-3 flex items-start gap-2 px-2.5 py-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800 break-keep">
+              <Info size={13} className="flex-shrink-0 text-amber-600 mt-0.5" />
+              <span><b>전체 기간 기준</b> — 팀별 IR 수치는 연도별 인원(분모) 데이터가 없어 {yearFilter}년 필터에 반응하지 않습니다. 전사 누적 스냅샷 값입니다.</span>
+            </div>
+          )}
+          <div className="overflow-x-auto -mx-5 px-5 pb-2">
+            <table className="w-full min-w-[680px] text-sm">
+              <thead>
+                <tr className="border-b-2 border-stone-200 text-xs text-stone-500 uppercase">
+                  <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">#</th>
+                  <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">팀</th>
+                  <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">부서</th>
+                  <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">부문</th>
+                  <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">매장 수</th>
+                  <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">사고 수</th>
+                  <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">매장당 사고율</th>
+                  <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">연간 기대손실</th>
+                  {hasWorker && <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">인원수</th>}
+                  {hasWorker && <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">100명당 IR</th>}
+                  <th className="text-left py-2 px-3 font-semibold whitespace-nowrap" style={{width: 130}}>등급</th>
+                </tr>
+              </thead>
+              <tbody>{[...D.team_ir].filter(t => bum === "전체" || t.bum === bum).sort((a, b) => perStore(b) - perStore(a)).map((t, i) => {
+                const g = gradeOf(t);
+                return (
+                <tr key={t.team} className="border-b border-stone-100 hover:bg-stone-50/60 transition-colors">
+                  <td className="py-2 px-3 text-xs font-bold text-stone-400 whitespace-nowrap">{i + 1}</td>
+                  <td className="py-2 px-3 font-semibold whitespace-nowrap">{t.team}</td>
+                  <td className="py-2 px-3 text-xs text-stone-600 whitespace-nowrap">{t.dept}</td>
+                  <td className="py-2 px-3 whitespace-nowrap"><span className={`text-xs px-2 py-0.5 rounded-full ${t.bum === "수도권" ? "bg-blue-50 border border-blue-200" : "bg-stone-100 text-stone-700"}`} style={t.bum === "수도권" ? {color: BL} : undefined}>{t.bum}</span></td>
+                  <td className="py-2 px-3 text-right tabular-nums text-stone-600 whitespace-nowrap">{t.stores}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <span className="tabular-nums font-bold">{t.incidents}</span>
+                      <KpiBadge level="team" orgKey={t.team} />
+                    </div>
+                  </td>
+                  <td className="py-2 px-3 text-right tabular-nums font-extrabold whitespace-nowrap" style={{color: g.color}}>{g.value.toFixed(2)}<span className="text-[10px] font-normal text-stone-400 ml-0.5">건</span></td>
+                  <td className="py-2 px-3 text-right tabular-nums text-stone-700 whitespace-nowrap">{ealCell(ealByTeam.get(t.team))}</td>
+                  {hasWorker && <td className="py-2 px-3 text-right tabular-nums text-stone-600 whitespace-nowrap">{t.workers != null ? t.workers.toLocaleString() : "—"}</td>}
+                  {hasWorker && (
+                    <td className="py-2 px-3 text-right tabular-nums font-extrabold whitespace-nowrap" style={{color: t.ir_per100 == null ? "#A8A29E" : t.ir_per100 > 20 ? RD : t.ir_per100 > 10 ? AM : GN}}>
+                      {t.ir_per100 != null ? t.ir_per100.toFixed(2) : "—"}
+                      {t.ir_reliability && t.ir_reliability !== "high" && <span className="ml-1 text-[10px] font-semibold align-middle" title={t.ir_reliability}>{t.ir_reliability === "unstable" ? "⚠" : "○"}</span>}
+                    </td>
+                  )}
                   <td className="py-2 px-3 whitespace-nowrap">
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold" style={{background: g.bg, color: g.color}}>
                       <span className="w-1.5 h-1.5 rounded-full" style={{background: g.color}} />
