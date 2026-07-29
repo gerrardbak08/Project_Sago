@@ -90,6 +90,9 @@ function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
   // 산식 배너 collapse
   const [formulaOpen, setFormulaOpen] = useState(false);
 
+  // 중대재해 타일 — onNavigate 있을 때만 <button>(키보드 접근 가능), 없으면 <div>(포커스 불가)
+  const CriticalTile = onNavigate ? 'button' : 'div';
+
   // 월별 X축 각도·높이 동적
   const mLen = monthlyFinance.length;
   const xAngle  = mLen > 18 ? -45 : mLen > 12 ? -30 : 0;
@@ -119,8 +122,8 @@ function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
         </div>
       )}
 
-      {/* KPI 4-카드 — inView stagger + hover lift */}
-      <div ref={kpiRef} className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* KPI 6-카드 — inView stagger + hover lift. lg:grid-cols-3 → 카드 6장이 2행×3열로 정확히 채워짐(4열이면 2행이 절반만 참) */}
+      <div ref={kpiRef} className="grid grid-cols-2 lg:grid-cols-3 gap-3">
 
         {/* Primary — 총 추정 재무손실: col-span-2 on mobile, 1 on lg */}
         <div
@@ -160,8 +163,10 @@ function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
         </div>
 
         {/* 중대재해 — 금액 환산 대상이 아니다. 법정 요양근로손실일수(별표1)로만 표기. 설계문서 §9.2 */}
-        <div onClick={() => onNavigate?.('legal')} role={onNavigate ? 'button' : undefined}
-          className={`rounded-lg p-5 bg-white border border-stone-200 dash-slide-up transition-all hover:-translate-y-0.5 hover:shadow-md ${onNavigate ? 'cursor-pointer' : ''}`}
+        {/* onNavigate 있을 때만 <button>으로 렌더 — 키보드 포커스·Enter/Space 네이티브 지원. 없으면 일반 div(포커스 불가) */}
+        <CriticalTile
+          {...(onNavigate ? { type: 'button', onClick: () => onNavigate('legal') } : {})}
+          className={`rounded-lg p-5 bg-white border border-stone-200 dash-slide-up transition-all hover:-translate-y-0.5 hover:shadow-md text-left w-full ${onNavigate ? 'cursor-pointer' : ''}`}
           style={{ animationDelay: "120ms" }}>
           <div className="text-xs font-medium uppercase tracking-wide" style={{ color: DAISO_RED }}>중대재해</div>
           <div className="flex items-baseline gap-1.5 mt-1">
@@ -176,12 +181,12 @@ function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
           <div className="text-[11px] text-stone-400 mt-0.5 break-keep">
             금액 환산 대상 아님 · 법적 보고 기준 별도 관리
           </div>
-        </div>
+        </CriticalTile>
 
         {USE_PRODUCTIVITY ? (<>
           <div
             className="rounded-lg p-5 bg-white border border-stone-200 dash-slide-up transition-all hover:-translate-y-0.5 hover:shadow-md"
-            style={{ animationDelay: "60ms" }}
+            style={{ animationDelay: "180ms" }}
           >
             <div className="text-xs text-stone-500 font-medium uppercase tracking-wide">인당 1일 생산성</div>
             <div className="flex items-baseline gap-1.5 mt-1">
@@ -194,7 +199,7 @@ function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
           </div>
           <div
             className="rounded-lg p-5 bg-white border border-stone-200 dash-slide-up transition-all hover:-translate-y-0.5 hover:shadow-md"
-            style={{ animationDelay: "120ms" }}
+            style={{ animationDelay: "240ms" }}
           >
             <div className="text-xs text-stone-500 font-medium uppercase tracking-wide">실측 근로손실일수</div>
             <div className="flex items-baseline gap-1.5 mt-1">
@@ -208,7 +213,7 @@ function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
         </>) : (<>
           <div
             className="rounded-lg p-5 bg-white border border-stone-200 dash-slide-up transition-all hover:-translate-y-0.5 hover:shadow-md"
-            style={{ animationDelay: "60ms" }}
+            style={{ animationDelay: "180ms" }}
           >
             <div className="text-xs text-stone-500 font-medium uppercase tracking-wide">직접비 <span className="text-stone-400 normal-case">(휴업손실)</span></div>
             <div className="flex items-baseline gap-1.5 mt-1">
@@ -221,7 +226,7 @@ function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
           </div>
           <div
             className="rounded-lg p-5 bg-white border border-stone-200 dash-slide-up transition-all hover:-translate-y-0.5 hover:shadow-md"
-            style={{ animationDelay: "120ms" }}
+            style={{ animationDelay: "240ms" }}
           >
             <div className="text-xs text-stone-500 font-medium uppercase tracking-wide">간접비 <span className="text-stone-400 normal-case">(×{INDIRECT_COST_MULTIPLIER})</span></div>
             <div className="flex items-baseline gap-1.5 mt-1">
@@ -234,10 +239,10 @@ function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
           </div>
         </>)}
 
-        {/* 매출 환산 — 항상 4번째 */}
+        {/* 매출 환산 — 항상 마지막(6번째) 카드 */}
         <div
           className="col-span-2 lg:col-span-1 rounded-lg p-5 bg-white border border-stone-200 dash-slide-up transition-all hover:-translate-y-0.5 hover:shadow-md"
-          style={{ animationDelay: "180ms" }}
+          style={{ animationDelay: "300ms" }}
         >
           <div className="text-xs text-stone-500 font-medium uppercase tracking-wide">매출 환산 · 건수</div>
           <div className="flex items-baseline gap-1.5 mt-1">
