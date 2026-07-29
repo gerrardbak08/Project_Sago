@@ -167,15 +167,22 @@ function DeptTeamStore({ D, yearFilter }) {
   // team_ir은 매장 수 기준으로 만들어져 물리 매장이 없는 조직(교육팀 등)은 행이 없다.
   // ealByTeam(사고 레코드 기준)엔 그런 팀도 잡히므로, 팀 테이블 EAL 합계가 전사 총액보다
   // 작아 보일 수 있다 — 그 차이를 런타임에 계산해 각주로 밝힌다(하드코딩 금지, 무배지).
+  // ⚠️ 팀 테이블(위 505행)이 bum으로 필터되므로 각주도 같은 범위여야 한다 — 그러지 않으면
+  //    현재 화면 범위(예: 지방)와 무관한 다른 부문(수도권)의 미매칭 금액이 뜨는 오정보가 된다.
+  //    irTeams도 bum으로 스코프해 그 부문에 없는 팀은 애초에 비교 대상에서 제외한다.
+  //    ealPeriod(연율화 분모)는 스코프하지 않는다 — 달력 기간이지 조직 범위가 아니다.
   const unmatchedTeamEal = useMemo(() => {
-    const irTeams = new Set((D.team_ir || []).map((t) => t.team));
-    const missing = [...ealByTeam.entries()].filter(([team]) => !irTeams.has(team));
+    const irTeams = new Set(
+      (D.team_ir || []).filter((t) => bum === "전체" || t.bum === bum).map((t) => t.team),
+    );
+    const scopedEalRecords = bum === "전체" ? ealRecords : ealRecords.filter((r) => r.bum === bum);
+    const missing = sumEal(scopedEalRecords, (r) => r.team, ealPeriod).filter((g) => !irTeams.has(g.key));
     return {
       count: missing.length,
-      total: missing.reduce((s, [, v]) => s + v, 0),
-      names: missing.map(([team]) => team),
+      total: missing.reduce((s, g) => s + g.eal, 0),
+      names: missing.map((g) => g.key),
     };
-  }, [ealByTeam, D.team_ir]);
+  }, [ealRecords, ealPeriod, D.team_ir, bum]);
   // 매장당 사고율 = 사고건수 ÷ 매장수 (매장 1곳당 평균 사고 건수)
   const perStore = (r) => (r && r.stores ? (r.incidents || 0) / r.stores : 0);
   // 전사 가중평균(총사고 ÷ 총매장) — 등급의 기준선
