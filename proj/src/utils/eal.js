@@ -7,6 +7,7 @@
 import {
   MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, DAILY_VALUE_PER_WORKER, DEATH_LOSS_DAYS,
 } from '../constants/metrics.js';
+import { sizeBucket } from './parseHelpers.js';
 
 // ── 손실 단가 ───────────────────────────────────────────────
 // CostRisk.jsx가 이 함수를 import한다. 두 곳에서 정의하면 화면끼리 금액이 어긋난다.
@@ -128,4 +129,54 @@ export function fatalitySummary(records) {
     statutoryLossDays: fatals.length * DEATH_LOSS_DAYS,
     records: fatals,
   };
+}
+
+// ── 매장별 신뢰도 가중 (Bühlmann) ───────────────────────────
+// 매장 대부분이 사고 0건이라 실측 빈도를 그대로 쓰면 "과거에 없었으니 앞으로도 없다"는
+// 잘못된 신호가 된다. 자기 실적과 동료집단(같은 평수 버킷) 평균을 건수에 따라 가중 혼합한다.
+//
+// ⚠️ 이 축만 peer 평균과 섞이므로 매장별 EAL 합계는 전사 총액과 일치하지 않는다.
+//    0건 매장에 위험을 나눠주고 다발 매장에서 덜어내는 것이 목적이므로 의도된 동작이다.
+//
+// 건당 손실액은 전사 평균을 쓴다 — 매장별 평균은 표본이 1~2건이라 더 불안정하기 때문.
+export function storeEal(records, stores, period, { k = 3 } = {}) {
+  const T = period?.years || 0;
+  if (!T || !stores?.length) return [];
+  const kk = k > 0 ? k : 3;
+
+  const nonFatal = (records || []).filter((r) => !r.fatal);
+  const totalN = nonFatal.length;
+  if (!totalN) return [];
+  const lossPerIncident = (nonFatal.reduce((s, r) => s + r.eal, 0) * T) / totalN;
+
+  const obs = new Map();
+  for (const r of nonFatal) {
+    if (!r.store) continue;
+    obs.set(r.store, (obs.get(r.store) || 0) + 1);
+  }
+
+  const areaOf = new Map(stores.map((s) => [s.store, s.area]));
+  const bucketStores = new Map();
+  for (const s of stores) {
+    const b = sizeBucket(s.area);
+    bucketStores.set(b, (bucketStores.get(b) || 0) + 1);
+  }
+  const bucketIncidents = new Map();
+  for (const [name, n] of obs) {
+    const b = sizeBucket(areaOf.get(name));
+    bucketIncidents.set(b, (bucketIncidents.get(b) || 0) + n);
+  }
+  const globalLambda = totalN / (stores.length * T);
+
+  return stores
+    .map((s) => {
+      const n = obs.get(s.store) || 0;
+      const b = sizeBucket(s.area);
+      const bs = bucketStores.get(b) || 0;
+      const lambdaPeer = bs > 0 ? (bucketIncidents.get(b) || 0) / (bs * T) : globalLambda;
+      const Z = n / (n + kk);
+      const lambda = Z * (n / T) + (1 - Z) * lambdaPeer;
+      return { store: s.store, n, Z: Math.round(Z * 1000) / 1000, lambda, eal: lambda * lossPerIncident, bucket: b };
+    })
+    .sort((a, b) => b.eal - a.eal);
 }

@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   wageFor, dayRate, isFatal, isSales, salesOnly, observationPeriod, withEal,
-  sumEal, fatalitySummary, totalEal,
+  sumEal, fatalitySummary, totalEal, storeEal,
 } from '../src/utils/eal.js';
 
 // ── 합성 픽스처 ─────────────────────────────────────────────
@@ -217,4 +217,75 @@ test('fatalitySummary: 건수와 법정 요양근로손실일수(7500×건)를 �
   assert.equal(f.n, 1);
   assert.equal(f.statutoryLossDays, 7500);
   assert.equal(f.records[0].store, 'A점');
+});
+
+const STORES = [
+  { store: 'A점', area: 150 }, { store: 'B점', area: 160 },
+  { store: 'C점', area: 170 }, { store: 'D점', area: 180 },
+];
+
+test('storeEal: 사고 0건 매장도 EAL이 0이 아니다 (동료집단 평균으로 수렴)', () => {
+  const accidents = [
+    rec({ year: 2024, month: 1, store: 'A점', loss_days: 30 }),
+    rec({ year: 2024, month: 6, store: 'A점', loss_days: 30 }),
+    rec({ year: 2024, month: 12, store: 'B점', loss_days: 30 }),
+  ];
+  const p = observationPeriod(accidents, NOW);
+  const out = storeEal(withEal(accidents, p), STORES, p);
+  const c = out.find((s) => s.store === 'C점');
+  assert.equal(c.n, 0);
+  assert.equal(c.Z, 0);
+  assert.ok(c.eal > 0, '0건 매장도 peer 평균 기반 EAL을 가져야 한다');
+});
+
+test('storeEal: Z는 [0,1] 범위이고 건수에 따라 단조증가', () => {
+  const accidents = [
+    rec({ year: 2024, month: 1, store: 'A점', loss_days: 10 }),
+    rec({ year: 2024, month: 2, store: 'A점', loss_days: 10 }),
+    rec({ year: 2024, month: 3, store: 'A점', loss_days: 10 }),
+    rec({ year: 2024, month: 4, store: 'B점', loss_days: 10 }),
+    rec({ year: 2024, month: 12, store: 'C점', loss_days: 10 }),
+  ];
+  const p = observationPeriod(accidents, NOW);
+  const out = storeEal(withEal(accidents, p), STORES, p);
+  for (const s of out) assert.ok(s.Z >= 0 && s.Z <= 1, `Z 범위 위반: ${s.Z}`);
+  const a = out.find((s) => s.store === 'A점');   // n=3
+  const b = out.find((s) => s.store === 'B점');   // n=1
+  const d = out.find((s) => s.store === 'D점');   // n=0
+  assert.ok(a.Z > b.Z && b.Z > d.Z);
+});
+
+test('storeEal: k=3 기본값 — n=3이면 Z=0.5', () => {
+  const accidents = [1, 2, 3].map((m) => rec({ year: 2024, month: m, store: 'A점', loss_days: 10 }))
+    .concat(rec({ year: 2024, month: 12, store: 'B점', loss_days: 10 }));
+  const p = observationPeriod(accidents, NOW);
+  const out = storeEal(withEal(accidents, p), STORES, p);
+  assert.equal(out.find((s) => s.store === 'A점').Z, 0.5);
+});
+
+test('storeEal: k를 키우면 자기 실적 비중(Z)이 줄어든다', () => {
+  const accidents = [1, 2, 3].map((m) => rec({ year: 2024, month: m, store: 'A점', loss_days: 10 }))
+    .concat(rec({ year: 2024, month: 12, store: 'B점', loss_days: 10 }));
+  const p = observationPeriod(accidents, NOW);
+  const recs = withEal(accidents, p);
+  const z3 = storeEal(recs, STORES, p, { k: 3 }).find((s) => s.store === 'A점').Z;
+  const z9 = storeEal(recs, STORES, p, { k: 9 }).find((s) => s.store === 'A점').Z;
+  assert.ok(z9 < z3);
+});
+
+test('storeEal: k=0을 넘겨도 기본값 3으로 방어', () => {
+  const accidents = [1, 2, 3].map((m) => rec({ year: 2024, month: m, store: 'A점', loss_days: 10 }))
+    .concat(rec({ year: 2024, month: 12, store: 'B점', loss_days: 10 }));
+  const p = observationPeriod(accidents, NOW);
+  assert.equal(storeEal(withEal(accidents, p), STORES, p, { k: 0 }).find((s) => s.store === 'A점').Z, 0.5);
+});
+
+test('storeEal: 사망 건은 매장 집계에 포함되지 않는다', () => {
+  const accidents = [
+    rec({ year: 2024, month: 1, store: 'A점', loss_days: 10 }),
+    rec({ year: 2024, month: 2, store: 'A점', typeCanon: '사망', kind: '사망', loss_days: null }),
+    rec({ year: 2024, month: 12, store: 'B점', loss_days: 10 }),
+  ];
+  const p = observationPeriod(accidents, NOW);
+  assert.equal(storeEal(withEal(accidents, p), STORES, p).find((s) => s.store === 'A점').n, 1);
 });
