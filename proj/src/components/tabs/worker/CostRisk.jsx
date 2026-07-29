@@ -1,9 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, LabelList, ComposedChart, Line } from 'recharts';
 import { Banknote, Calendar, TrendingUp, Info, ChevronDown } from 'lucide-react';
 import { DAISO_RED, ALERT_RED, SAFE_GREEN, NV, CHART_BLUE, rankColor } from '../../../constants/colors.js';
 import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN, DAILY_VALUE_PER_WORKER } from '../../../constants/metrics.js';
-import { dayRate, wageFor, USE_PRODUCTIVITY } from '../../../utils/eal.js';
+import { dayRate, wageFor, USE_PRODUCTIVITY, salesOnly, observationPeriod, withEal, totalEal, fatalitySummary } from '../../../utils/eal.js';
 import { fmt } from '../../../utils/uiHelpers.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card, EmptyState } from '../../../components/shared/Card.jsx';
@@ -16,7 +16,7 @@ import { useCountUp, useInView } from '../../../utils/motion.js';
 const lossWon = (days, y) => (days || 0) * dayRate(y);
 const eok = (won) => Math.round(won / 1e8 * 10) / 10;
 
-function CostRisk({ D, allYearly, yearFilter, basis }) {
+function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
   const yrLabel = !yearFilter || yearFilter === "all" ? "전체 기간" : `${yearFilter}년`;
   const basisLabel = basis === 'approval' ? '산재승인' : '사고경위서';
   const k = D.kpis || {};
@@ -24,6 +24,16 @@ function CostRisk({ D, allYearly, yearFilter, basis }) {
   const isAllMode = !yearFilter || yearFilter === "all";
 
   const recs = (yearFilter && yearFilter !== "all" && (D.accidents?.length > 0)) ? D.accidents.filter(r => String(r.year) === yearFilter) : (D.accidents || []);
+
+  // ── 연간 기대손실(EAL) — 영업부문 모수, 사망 제외. 설계문서 §3 ──
+  // recs = 연도 필터 적용된 사고 레코드 (29행). D.accidents는 필터 미적용이므로 쓰지 말 것.
+  const ealPeriod = useMemo(() => observationPeriod(salesOnly(recs)), [recs]);
+  const ealRecords = useMemo(() => withEal(salesOnly(recs), ealPeriod), [recs, ealPeriod]);
+  const ealTotal = useMemo(() => totalEal(ealRecords), [ealRecords]);
+  const fatality = useMemo(() => fatalitySummary(ealRecords), [ealRecords]);
+  const ealBasisLabel = ealPeriod.years
+    ? `관측 ${ealPeriod.firstYm}~${ealPeriod.lastCompleteYm} · ${ealPeriod.years}년 · 영업부문 ${ealRecords.length}건 기준`
+    : '관측 기간 부족';
 
   // 선택 기간(현재 필터·기준) 총 추정 재무손실 — 실측 근로손실일수 기반
   const periodDays = k.loss_days_total || 0;
@@ -126,8 +136,45 @@ function CostRisk({ D, allYearly, yearFilter, basis }) {
           </div>
           <div className="text-[11px] text-white/65 mt-2 break-keep">
             {USE_PRODUCTIVITY
-              ? `근로손실 ${fmt(periodDays)}일 × 인당 ${fmt(DAILY_VALUE_PER_WORKER)}원/일`
-              : `직접비 ${periodDirectEok.toFixed(1)}억 + 간접비 ${periodIndirectEok.toFixed(1)}억`}
+              ? `근로손실 ${fmt(periodDays)}일 × 인당 ${fmt(DAILY_VALUE_PER_WORKER)}원/일 · 실측분만`
+              : `직접비 ${periodDirectEok.toFixed(1)}억 + 간접비 ${periodIndirectEok.toFixed(1)}억 · 실측분만`}
+          </div>
+        </div>
+
+        {/* 연간 기대손실(EAL) — 누적이 아니라 연간 환산. 결측 보정 포함이라 위 카드와 배율이 다르다. */}
+        <div className="rounded-lg p-5 bg-white border border-stone-200 dash-slide-up transition-all hover:-translate-y-0.5 hover:shadow-md"
+          style={{ animationDelay: "60ms" }}>
+          <div className="text-xs text-stone-500 font-medium uppercase tracking-wide">연간 기대손실 (EAL)</div>
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <span className="text-3xl sm:text-4xl font-bold tracking-tight tabular-nums text-[#071E4A]">
+              {ealPeriod.years ? (ealTotal / 1e8).toFixed(1) : '—'}
+            </span>
+            <span className="text-base font-medium text-stone-400">억원/년</span>
+          </div>
+          <div className="text-[11px] text-stone-500 mt-2 break-keep">
+            {ealBasisLabel}
+          </div>
+          <div className="text-[11px] text-stone-400 mt-0.5 break-keep">
+            결측 보정 포함 · 사망 제외
+          </div>
+        </div>
+
+        {/* 중대재해 — 금액 환산 대상이 아니다. 법정 요양근로손실일수(별표1)로만 표기. 설계문서 §9.2 */}
+        <div onClick={() => onNavigate?.('legal')} role={onNavigate ? 'button' : undefined}
+          className={`rounded-lg p-5 bg-white border border-stone-200 dash-slide-up transition-all hover:-translate-y-0.5 hover:shadow-md ${onNavigate ? 'cursor-pointer' : ''}`}
+          style={{ animationDelay: "120ms" }}>
+          <div className="text-xs font-medium uppercase tracking-wide" style={{ color: DAISO_RED }}>중대재해</div>
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <span className="text-3xl sm:text-4xl font-bold tracking-tight tabular-nums" style={{ color: DAISO_RED }}>
+              {fatality.n}
+            </span>
+            <span className="text-base font-medium text-stone-400">건</span>
+          </div>
+          <div className="text-[11px] text-stone-500 mt-2 break-keep">
+            법정 요양근로손실일수 {fmt(fatality.statutoryLossDays)}일
+          </div>
+          <div className="text-[11px] text-stone-400 mt-0.5 break-keep">
+            금액 환산 대상 아님 · 법적 보고 기준 별도 관리
           </div>
         </div>
 
