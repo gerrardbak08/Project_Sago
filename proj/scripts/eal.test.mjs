@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  wageFor, dayRate, isFatal, isSales, salesOnly, observationPeriod,
+  wageFor, dayRate, isFatal, isSales, salesOnly, observationPeriod, withEal,
 } from '../src/utils/eal.js';
 
 // ── 합성 픽스처 ─────────────────────────────────────────────
@@ -89,4 +89,63 @@ test('observationPeriod: year/month가 유효하지 않은 레코드는 무시�
   assert.equal(p.firstYm, '2025-01');
   assert.equal(p.lastCompleteYm, '2025-03');
   assert.equal(p.months, 3);
+});
+
+const NOW = new Date('2026-07-29T00:00:00Z');
+
+test('withEal: 관측된 손실일수는 그대로 쓰고 eal = 일수 × 단가 ÷ T', () => {
+  const accidents = [rec({ year: 2025, month: 3, loss_days: 10 }), rec({ year: 2024, month: 1 })];
+  const p = observationPeriod(accidents, NOW);          // 2024-01~2025-03 = 15개월 = 1.25년
+  const out = withEal(accidents, p);
+  const target = out.find((r) => r.year === 2025);
+  assert.equal(target.effLossDays, 10);
+  assert.equal(target.eal, 10 * dayRate(2025) / p.years);
+});
+
+test('withEal: 손실일수 결측은 같은 유형의 관측 평균으로 보정', () => {
+  const accidents = [
+    rec({ year: 2024, month: 1, typeCanon: '넘어짐', loss_days: 20 }),
+    rec({ year: 2024, month: 2, typeCanon: '넘어짐', loss_days: 40 }),
+    rec({ year: 2024, month: 3, typeCanon: '넘어짐', loss_days: null }), // 보정 대상 → 30
+  ];
+  const p = observationPeriod(accidents, NOW);
+  const out = withEal(accidents, p);
+  assert.equal(out.find((r) => r.month === 3).effLossDays, 30);
+});
+
+test('withEal: 해당 유형에 관측이 하나도 없으면 전사 평균으로 폴백', () => {
+  const accidents = [
+    rec({ year: 2024, month: 1, typeCanon: '넘어짐', loss_days: 60 }),
+    rec({ year: 2024, month: 2, typeCanon: '끼임', loss_days: null }), // 끼임 관측 0 → 전사평균 60
+  ];
+  const p = observationPeriod(accidents, NOW);
+  const out = withEal(accidents, p);
+  assert.equal(out.find((r) => r.typeCanon === '끼임').effLossDays, 60);
+});
+
+test('withEal: 사망은 eal=0이고 typeMean 산출에서도 빠진다', () => {
+  const accidents = [
+    rec({ year: 2024, month: 1, typeCanon: '넘어짐', loss_days: 10 }),
+    rec({ year: 2024, month: 2, typeCanon: '사망', kind: '사망', loss_days: null }),
+    rec({ year: 2024, month: 3, typeCanon: '넘어짐', loss_days: null }),
+  ];
+  const p = observationPeriod(accidents, NOW);
+  const out = withEal(accidents, p);
+  const death = out.find((r) => r.fatal);
+  assert.equal(death.eal, 0);
+  assert.equal(death.effLossDays, null);
+  // 사망이 평균을 오염시키지 않았는지 — 넘어짐 결측은 10일로 보정되어야 함
+  assert.equal(out.find((r) => r.month === 3).effLossDays, 10);
+});
+
+test('withEal: 완료월을 넘어선 당월 레코드는 결과에서 제외', () => {
+  const accidents = [rec({ year: 2024, month: 1 }), rec({ year: 2026, month: 7 })];
+  const p = observationPeriod(accidents, NOW);
+  const out = withEal(accidents, p);
+  assert.equal(out.length, 1);
+  assert.equal(out[0].year, 2024);
+});
+
+test('withEal: 관측 기간이 0이면 빈 배열', () => {
+  assert.deepEqual(withEal([rec({ year: 2026, month: 7 })], { years: 0, lastCompleteYm: null }), []);
 });

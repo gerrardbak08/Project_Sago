@@ -51,3 +51,41 @@ export function observationPeriod(accidents, now = new Date()) {
   const months = (ly - fy) * 12 + (lm - fm) + 1;
   return { firstYm, lastCompleteYm, months, years: months / 12 };
 }
+
+// ── 레코드 단위 EAL 배분 ────────────────────────────────────
+// 그룹별 평균을 곱하는 방식은 축이 바뀌면 합계가 어긋난다. 레코드마다 연간 기여분을
+// 미리 계산해두면 어떤 groupBy로 묶어도 단순 합산이라 가법성이 항상 성립한다.
+//
+// 사망은 1~3단계 전체에서 빠진다(typeMean 산출 시에도). 사유는 설계문서 §9.2.
+export function withEal(accidents, period) {
+  const T = period?.years || 0;
+  const cutoff = period?.lastCompleteYm;
+  if (!T || !cutoff) return [];
+
+  const inRange = (accidents || []).filter((a) => {
+    const y = Number(a?.year), m = Number(a?.month);
+    if (!Number.isFinite(y) || !Number.isFinite(m)) return false;
+    return `${y}-${String(m).padStart(2, '0')}` <= cutoff;
+  });
+
+  // 유형별 평균 (사망 제외, 관측치만)
+  const sum = Object.create(null);
+  const cnt = Object.create(null);
+  let gSum = 0, gCnt = 0;
+  for (const a of inRange) {
+    if (isFatal(a) || !(a.loss_days > 0)) continue;
+    const t = a.typeCanon;
+    sum[t] = (sum[t] || 0) + a.loss_days;
+    cnt[t] = (cnt[t] || 0) + 1;
+    gSum += a.loss_days;
+    gCnt++;
+  }
+  const globalMean = gCnt ? gSum / gCnt : 0;
+  const typeMean = (t) => (cnt[t] ? sum[t] / cnt[t] : globalMean);
+
+  return inRange.map((a) => {
+    if (isFatal(a)) return { ...a, fatal: true, effLossDays: null, eal: 0 };
+    const eff = a.loss_days > 0 ? a.loss_days : typeMean(a.typeCanon);
+    return { ...a, fatal: false, effLossDays: eff, eal: (eff * dayRate(a.year)) / T };
+  });
+}
