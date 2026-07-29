@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Banknote, Calendar, TrendingUp, Info, ChevronDown } from 'lucide-react';
 import { DAISO_RED, ALERT_RED, SAFE_GREEN, NV, CHART_BLUE, rankColor } from '../../../constants/colors.js';
 import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN, DAILY_VALUE_PER_WORKER } from '../../../constants/metrics.js';
+import { dayRate, wageFor, USE_PRODUCTIVITY } from '../../../utils/eal.js';
 import { fmt } from '../../../utils/uiHelpers.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card, EmptyState } from '../../../components/shared/Card.jsx';
@@ -11,11 +12,7 @@ import { useCountUp, useInView } from '../../../utils/motion.js';
 // 추정 재무손실 = 실측 근로손실일수 × 일급(최저시급×8시간) × (1 + 간접비 4배, Heinrich)
 // 근로손실일수는 산재 판정(요양·휴업) 시 확정되는 실측치 — 사고경위 건수 × 평균일수(가정) 방식이 아님.
 // 공상비용(실측)은 기록률이 낮아 제외.
-const HEINRICH = 1 + INDIRECT_COST_MULTIPLIER;
-const wageFor = (y) => MIN_WAGE_DAY[y] || MIN_WAGE_DAY[CURRENT_YEAR]; // 일급 = 최저시급 × 8시간
-// 추정손실 단가(원/일) — 인당 1일 생산성 비용이 설정되면 그 값, 아니면 임시로 일급×(1+간접비4배) 하인리히 모델.
-const USE_PRODUCTIVITY = DAILY_VALUE_PER_WORKER != null;
-const dayRate = (y) => USE_PRODUCTIVITY ? DAILY_VALUE_PER_WORKER : wageFor(y) * HEINRICH;
+// 손실 단가(dayRate/wageFor/USE_PRODUCTIVITY)는 eal.js가 단일 출처 — 여기서 재정의하지 않는다.
 const lossWon = (days, y) => (days || 0) * dayRate(y);
 const eok = (won) => Math.round(won / 1e8 * 10) / 10;
 
