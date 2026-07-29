@@ -21,6 +21,14 @@ export const isFatal = (r) => r?.typeCanon === '사망' || r?.kind === '사망';
 export const isSales = (r) => r?.bum === '수도권' || r?.bum === '지방';
 export const salesOnly = (accidents) => (accidents || []).filter(isSales);
 
+// KST(Asia/Seoul) 고정 포매터. 사고 데이터의 year/month가 KST 기준이므로
+// "당월" 판정도 런타임 로컬 타임존이 아니라 KST로 고정해야 브라우저(KST)와
+// UTC로 도는 CI/Node 스크립트가 같은 데이터에서 같은 관측 기간을 계산한다.
+const KST_YM_FORMATTER = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit',
+});
+const kstYearMonth = (date) => KST_YM_FORMATTER.format(date); // "YYYY-MM"
+
 // ── 관측 기간 ───────────────────────────────────────────────
 // 진행 중인 당월은 분자·분모 양쪽에서 제외한다. 미완료 월을 온전한 1개월로 세면
 // 빈도가 과소 추정되는데, 안전 지표에서 위험을 낮게 잡는 건 위험한 방향의 오차다.
@@ -29,11 +37,11 @@ export function observationPeriod(accidents, now = new Date()) {
   const yms = [];
   for (const a of accidents || []) {
     const y = Number(a?.year), m = Number(a?.month);
-    if (!Number.isFinite(y) || !Number.isFinite(m) || m < 1 || m > 12) continue;
+    if (!Number.isFinite(y) || !Number.isFinite(m) || y <= 0 || m < 1 || m > 12) continue;
     yms.push(`${y}-${String(m).padStart(2, '0')}`);
   }
   if (!yms.length) return EMPTY;
-  const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const currentYm = kstYearMonth(now);
   const complete = yms.filter((ym) => ym < currentYm).sort();
   if (!complete.length) return EMPTY;
   const firstYm = complete[0];

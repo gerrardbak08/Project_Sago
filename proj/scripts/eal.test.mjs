@@ -62,3 +62,31 @@ test('observationPeriod: 빈 배열도 안전하게 0을 반환', () => {
   const p = observationPeriod([], new Date('2026-07-29T00:00:00Z'));
   assert.equal(p.years, 0);
 });
+
+test('observationPeriod: 당월 판정은 KST 고정 — UTC로는 7월이지만 KST로는 8월 1일', () => {
+  // 2026-07-31T20:00:00Z = 2026-08-01T05:00:00+09:00 (KST)
+  // UTC 기준으로 판정하면 당월이 2026-07이 되어 7월 데이터가 부당하게 제외된다.
+  // KST 기준이면 당월은 2026-08이므로 2026-07은 완료월에 포함되어야 한다.
+  const accidents = [rec({ year: 2026, month: 7 })];
+  const now = new Date('2026-07-31T20:00:00Z');
+  const p = observationPeriod(accidents, now);
+  assert.equal(p.lastCompleteYm, '2026-07');
+  assert.equal(p.months, 1);
+  assert.equal(p.years, 1 / 12);
+});
+
+test('observationPeriod: year/month가 유효하지 않은 레코드는 무시하고 나머지로 계산', () => {
+  const accidents = [
+    rec({ year: 2026, month: 0 }), // month 하한 미만
+    rec({ year: 2026, month: 13 }), // month 상한 초과
+    rec({ year: null, month: 5 }), // year 결측
+    rec({ year: 2026, month: 'abc' }), // month 비숫자
+    rec({ year: 2025, month: 1 }), // 유효
+    rec({ year: 2025, month: 3 }), // 유효
+  ];
+  const now = new Date('2026-07-29T00:00:00Z');
+  const p = observationPeriod(accidents, now);
+  assert.equal(p.firstYm, '2025-01');
+  assert.equal(p.lastCompleteYm, '2025-03');
+  assert.equal(p.months, 3);
+});
