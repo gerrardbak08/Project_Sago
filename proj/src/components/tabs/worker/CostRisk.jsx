@@ -3,7 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Banknote, Calendar, TrendingUp, Info, ChevronDown } from 'lucide-react';
 import { DAISO_RED, ALERT_RED, SAFE_GREEN, NV, CHART_BLUE, rankColor } from '../../../constants/colors.js';
 import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN, DAILY_VALUE_PER_WORKER } from '../../../constants/metrics.js';
-import { dayRate, wageFor, USE_PRODUCTIVITY, salesOnly, observationPeriod, withEal, totalEal, fatalitySummary, storeEal } from '../../../utils/eal.js';
+import { dayRate, wageFor, USE_PRODUCTIVITY, salesOnly, observationPeriod, withEal, totalEal, fatalitySummary, storeEal, sumEal } from '../../../utils/eal.js';
 import { fmt } from '../../../utils/uiHelpers.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card, EmptyState } from '../../../components/shared/Card.jsx';
@@ -33,7 +33,7 @@ function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
   const ealTotal = useMemo(() => totalEal(ealRecords), [ealRecords]);
   const fatality = useMemo(() => fatalitySummary(ealRecords), [ealRecords]);
   const ealBasisLabel = ealPeriod.years
-    ? `관측 ${ealPeriod.firstYm}~${ealPeriod.lastCompleteYm} · ${ealPeriod.years}년 · 영업부문 ${ealRecords.length}건 기준`
+    ? `관측 ${ealPeriod.firstYm}~${ealPeriod.lastCompleteYm} · ${ealPeriod.years.toFixed(1)}년 · 영업부문 ${ealRecords.length}건 기준`
     : '관측 기간 부족';
 
   // 매장별 EAL — 신뢰도 가중(Bühlmann). 0건 매장은 동료집단 평균으로 수렴한다.
@@ -47,6 +47,19 @@ function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
     () => new Set(fatality.records.map((r) => r.store).filter(Boolean)),
     [fatality],
   );
+  // 매장 마스터(MAP_STORES)에 없는 매장의 EAL — storeEal은 MAP_STORES 목록을 순회하므로
+  // 이런 매장은 Top 20에 아예 나타나지 않고, 그 손실은 lossPerIncident에 섞여 다른 매장에
+  // 조용히 재분배된다(팀 테이블의 unmatchedTeamEal과 같은 문제 — 하드코딩 금지, 런타임 계산).
+  const unmatchedStoreEal = useMemo(() => {
+    if (!ealPeriod.years) return { count: 0, incidents: 0, total: 0 };
+    const storeSet = new Set(MAP_STORES.map((s) => s.n));
+    const missing = sumEal(ealRecords, (r) => r.store, ealPeriod).filter((g) => g.key && !storeSet.has(g.key));
+    return {
+      count: missing.length,
+      incidents: missing.reduce((s, g) => s + g.n, 0),
+      total: missing.reduce((s, g) => s + g.eal, 0),
+    };
+  }, [ealRecords, ealPeriod]);
 
   // 선택 기간(현재 필터·기준) 총 추정 재무손실 — 실측 근로손실일수 기반
   const periodDays = k.loss_days_total || 0;
@@ -325,6 +338,11 @@ function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
             매장별 기대손실은 자기 실적과 같은 평수대 매장 평균을 사고 건수에 따라 가중 혼합한 값입니다.
             <span className="text-stone-500"> 사고가 많은 매장일수록 자기 실적 비중(신뢰도)이 높고, 0건 매장은 동료집단 평균에 수렴합니다. 이 축만 혼합을 거치므로 매장 합계는 전사 총액과 일치하지 않습니다.</span>
           </div>
+          {unmatchedStoreEal.count > 0 && (
+            <div className="mt-2 text-[10px] text-stone-400">
+              ※ 매장 마스터에 없는 매장 {unmatchedStoreEal.count}곳({unmatchedStoreEal.incidents}건) · {(unmatchedStoreEal.total / 1e8).toFixed(2)}억 — 매장 마스터에 등록되지 않아 위 순위에 나타나지 않고, 손실은 동료집단 평균(lossPerIncident)에 섞여 다른 매장에 재분배됩니다
+            </div>
+          )}
         </Card>
       )}
 
