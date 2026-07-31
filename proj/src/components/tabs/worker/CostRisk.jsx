@@ -3,7 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Banknote, Calendar, TrendingUp, Info, ChevronDown } from 'lucide-react';
 import { DAISO_RED, ALERT_RED, SAFE_GREEN, NV, CHART_BLUE, rankColor } from '../../../constants/colors.js';
 import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN, DAILY_VALUE_PER_WORKER } from '../../../constants/metrics.js';
-import { dayRate, wageFor, USE_PRODUCTIVITY, salesOnly, observationPeriod, withEal, totalEal, fatalitySummary, storeEal, sumEal } from '../../../utils/eal.js';
+import { dayRate, wageFor, USE_PRODUCTIVITY, salesOnly, observationPeriod, withEal, totalEal, storeEal, sumEal } from '../../../utils/eal.js';
 import { fmt } from '../../../utils/uiHelpers.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card, EmptyState } from '../../../components/shared/Card.jsx';
@@ -17,7 +17,7 @@ import MAP_STORES from '../../../data/storesData.js';
 const lossWon = (days, y) => (days || 0) * dayRate(y);
 const eok = (won) => Math.round(won / 1e8 * 10) / 10;
 
-function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
+function CostRisk({ D, allYearly, yearFilter, basis }) {
   const yrLabel = !yearFilter || yearFilter === "all" ? "전체 기간" : `${yearFilter}년`;
   const basisLabel = basis === 'approval' ? '산재승인' : '사고경위서';
   const k = D.kpis || {};
@@ -31,7 +31,6 @@ function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
   const ealPeriod = useMemo(() => observationPeriod(salesOnly(recs)), [recs]);
   const ealRecords = useMemo(() => withEal(salesOnly(recs), ealPeriod), [recs, ealPeriod]);
   const ealTotal = useMemo(() => totalEal(ealRecords), [ealRecords]);
-  const fatality = useMemo(() => fatalitySummary(ealRecords), [ealRecords]);
   const ealBasisLabel = ealPeriod.years
     ? `관측 ${ealPeriod.firstYm}~${ealPeriod.lastCompleteYm} · ${ealPeriod.years.toFixed(1)}년 · 영업부문 ${ealRecords.length}건 기준`
     : '관측 기간 부족';
@@ -42,15 +41,6 @@ function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
     const list = MAP_STORES.map((s) => ({ store: s.n, area: s.ar }));
     return storeEal(ealRecords, list, ealPeriod).slice(0, 20);
   }, [ealRecords, ealPeriod]);
-  // 사망 보유 매장 → 건수 — 금액 정렬엔 반영하지 않고 라벨로만 표기.
-  // Set이 아니라 Map인 이유: 라벨이 "1건"을 상수로 박고 있어 한 매장에 2건이 생기면 조용히 틀린다.
-  const fatalStores = useMemo(() => {
-    const m = new Map();
-    for (const r of fatality.records) {
-      if (r.store) m.set(r.store, (m.get(r.store) || 0) + 1);
-    }
-    return m;
-  }, [fatality]);
   // 매장 마스터(MAP_STORES)에 없는 매장의 EAL — storeEal은 MAP_STORES 목록을 순회하므로
   // 이런 매장은 Top 20에 아예 나타나지 않고, 그 손실은 lossPerIncident에 섞여 다른 매장에
   // 조용히 재분배된다(팀 테이블의 unmatchedTeamEal과 같은 문제 — 하드코딩 금지, 런타임 계산).
@@ -120,8 +110,6 @@ function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
   // 산식 배너 collapse
   const [formulaOpen, setFormulaOpen] = useState(false);
 
-  // 중대재해 타일 — onNavigate 있을 때만 <button>(키보드 접근 가능), 없으면 <div>(포커스 불가)
-  const CriticalTile = onNavigate ? 'button' : 'div';
 
   // 월별 X축 각도·높이 동적
   const mLen = monthlyFinance.length;
@@ -152,7 +140,9 @@ function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
         </div>
       )}
 
-      {/* KPI 6-카드 — inView stagger + hover lift. lg:grid-cols-3 → 카드 6장이 2행×3열로 정확히 채워짐(4열이면 2행이 절반만 참) */}
+      {/* KPI 5-카드 — inView stagger + hover lift. 사망 타일 제거 전엔 6장이라 lg:grid-cols-3에서
+          2행×3열로 딱 맞았다. 5장이 된 지금은 마지막 칸이 비지만, 열을 5로 바꾸면 "총 추정 재무손실
+          87.3억원" 같은 큰 숫자가 눌린다. 카드 폭을 지키고 빈 칸을 받아들인다. */}
       <div ref={kpiRef} className="grid grid-cols-2 lg:grid-cols-3 gap-3">
 
         {/* Primary — 총 추정 재무손실: col-span-2 on mobile, 1 on lg */}
@@ -192,32 +182,10 @@ function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
           </div>
         </div>
 
-        {/* 사망 — 금액 환산 대상이 아니다. 설계문서 §9.2.
-            '중대재해'·법정 요양근로손실일수(7,500일) 표기를 뺀 이유: 보유 1건(홈플러스강서점,
-            2025-11-15)은 원본 '재해 종류'가 사고(479건)에도 질병(50건)에도 들어가지 않은 "사망"
-            단독값이고, 사고 내용은 피부질환 경과만 서술하며 산재 미승인으로 확인됐다. 7,500일은
-            사고사망 전용 정액치라 기전이 확정되지 않은 건에 적용할 근거가 없다. 건수는 최고위험
-            신호이므로 타일은 유지하고, 라벨은 아는 사실까지만 말한다. */}
-        {/* onNavigate 있을 때만 <button>으로 렌더 — 키보드 포커스·Enter/Space 네이티브 지원. 없으면 일반 div(포커스 불가) */}
-        <CriticalTile
-          {...(onNavigate ? { type: 'button', onClick: () => onNavigate('legal') } : {})}
-          className={`rounded-lg p-5 bg-white border border-stone-200 dash-slide-up transition-all hover:-translate-y-0.5 hover:shadow-md text-left w-full ${onNavigate ? 'cursor-pointer' : ''}`}
-          style={{ animationDelay: "120ms" }}>
-          <div className="text-xs font-medium uppercase tracking-wide" style={{ color: DAISO_RED }}>사망</div>
-          <div className="flex items-baseline gap-1.5 mt-1">
-            <span className="text-3xl sm:text-4xl font-bold tracking-tight tabular-nums" style={{ color: DAISO_RED }}>
-              {fatality.n}
-            </span>
-            <span className="text-base font-medium text-stone-400">건</span>
-          </div>
-          <div className="text-[11px] text-stone-500 mt-2 break-keep">
-            재해종류 확인 필요 · 산재 미승인
-          </div>
-          <div className="text-[11px] text-stone-400 mt-0.5 break-keep">
-            금액 환산 대상 아님 · 법적 보고 기준 별도 관리
-          </div>
-        </CriticalTile>
-
+        {/* 사망/중대재해 타일 제거 — 이 탭은 금액 축이고 사망은 EAL에서 빠지므로(설계문서 §9.2)
+            "금액 환산 대상 아님"을 스스로 말하는 타일이 여기 있을 자리가 아니었다. 보유 1건은
+            산재 미승인이라 중대재해로 다룰 근거도 없다. 사망 건수는 재해 종류별 분포에 그대로
+            남아 있다. */}
         {USE_PRODUCTIVITY ? (<>
           <div
             className="rounded-lg p-5 bg-white border border-stone-200 dash-slide-up transition-all hover:-translate-y-0.5 hover:shadow-md"
@@ -333,9 +301,6 @@ function CostRisk({ D, allYearly, yearFilter, basis, onNavigate }) {
               <div key={s.store} className="flex items-center gap-2 py-1 border-b border-stone-50 text-[12px]">
                 <span className="text-stone-400 tabular-nums w-6 text-right">{i + 1}</span>
                 <span className="font-semibold text-stone-800 truncate flex-1">{s.store}</span>
-                {fatalStores.has(s.store) && (
-                  <span className="text-[10px] text-stone-400 whitespace-nowrap">사망 {fatalStores.get(s.store)}건</span>
-                )}
                 <span className="text-stone-400 tabular-nums whitespace-nowrap">사고 {s.n}건 · 신뢰도 {Math.round(s.Z * 100)}%</span>
                 <span className="font-bold tabular-nums text-[#071E4A] w-20 text-right whitespace-nowrap">
                   {(s.eal / 1e4).toFixed(0)}만원

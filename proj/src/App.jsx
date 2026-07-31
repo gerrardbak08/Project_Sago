@@ -784,8 +784,8 @@ function App() {
             {tab === "severity" && <SeverityAnalysis D={scopedData} yearFilter={yearFilter} />}
             {tab === "severestore" && <SevereStores D={dataFiltered} yearFilter={yearFilter} />}
             {tab === "parjang" && <ParjangDashboard D={dataFiltered} yearFilter={yearFilter} />}
-            {tab === "cost" && <CostRisk D={dataFiltered} allYearly={scopedData.yearly} yearFilter={yearFilter} basis={basis} onNavigate={(t) => setTab(t)} />}
-            {tab === "legal" && <LegalReporting D={dataFiltered} yearFilter={yearFilter} allYearly={scopedData.yearly} rawKind={scopedData.kind} basis={basis} />}
+            {tab === "cost" && <CostRisk D={dataFiltered} allYearly={scopedData.yearly} yearFilter={yearFilter} basis={basis} />}
+            {tab === "legal" && <LegalReporting D={dataFiltered} yearFilter={yearFilter} allYearly={scopedData.yearly} basis={basis} />}
             {tab === "rawdb" && <RawDbViewer rows={LIVE_SNAPSHOT.rows} approvalRows={LIVE_SNAPSHOT.approvalRows} sheetUrl="https://docs.google.com/spreadsheets/d/1pWfoDWXSowQRHBbIiVDgEd_0oK2XcFxtG4R5Kryvfus/edit" />}
             {tab === "guide" && <FieldResponseGuide />}
             {tab === "briefing" && <BriefingGenerator D={data} />}
