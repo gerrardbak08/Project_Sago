@@ -95,7 +95,8 @@ console.log('\n[7] 사망 EAL 미포함');
 const f = fatalitySummary(records);
 check(records.filter((r) => r.fatal).every((r) => r.eal === 0), '사망 레코드의 eal이 모두 0');
 check(!sumEal(records, (r) => r.typeCanon, period).some((g) => g.key === '사망'), '집계 결과에 사망 그룹 없음');
-console.log(`  ℹ 중대재해 ${f.n}건 · 법정 요양근로손실일수 ${f.statutoryLossDays.toLocaleString()}일 (별도 표기)`);
+// 화면은 '중대재해'·7,500일을 더 이상 주장하지 않는다(재해 종류 미확정·산재 미승인). 여기선 참고값으로만 출력.
+console.log(`  ℹ 사망 ${f.n}건 (금액 축 제외) · 사고사망 확정 시 법정 요양근로손실일수 ${f.statutoryLossDays.toLocaleString()}일`);
 
 console.log('\n' + (fails.length ? `✗ 실패 ${fails.length}건: ${fails.join(', ')}` : '✓ 전 항목 통과'));
 process.exit(fails.length ? 1 : 0);

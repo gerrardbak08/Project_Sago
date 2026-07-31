@@ -29,7 +29,8 @@ function LegalReporting({ D, yearFilter, allYearly, basis, rawKind }) {
   const _monthlyArr = Array.isArray(D.monthly) ? D.monthly : Object.values(D.monthly || {});
   const monthlyMax = Math.max(0, ..._monthlyArr.map(m => (typeof m === "number" ? m : (m?.t ?? m?.count ?? 0))));
   const alertRules = [
-    { type: "CRITICAL", rule: "사망 사고 발생 (전체 기간 기준)", target: "CEO · 안전보건총괄 · 법무팀", count: rawKind?.["사망"] || 0, triggered: Math.floor(rawKind?.["사망"] || 0) > 0, color: { bg:"#FEF2F2", border:"#FCA5A5", badge:"#DC2626" } },
+    // '사망 사고'가 아니라 '사망' — 보유 1건은 재해 종류가 사고로 확정되지 않았다(상세는 아래 T10 카드 주석).
+    { type: "CRITICAL", rule: "사망 발생 (전체 기간 기준)", target: "CEO · 안전보건총괄 · 법무팀", count: rawKind?.["사망"] || 0, triggered: Math.floor(rawKind?.["사망"] || 0) > 0, color: { bg:"#FEF2F2", border:"#FCA5A5", badge:"#DC2626" } },
     { type: "HIGH",     rule: `월간 최다 발생 ${monthlyMax}건 (임계치 15건 초과)`, target: "해당 팀장 · 부서장", count: monthlyMax, triggered: monthlyMax > 15, color: { bg:"#FFF7ED", border:"#FDBA74", badge:"#EA580C" } },
     { type: "MEDIUM",   rule: `신입(1년 미만) 사고 비중 ${((tenureUnder1/tenureTotal)*100).toFixed(0)}% (임계치 30% 초과)`, target: "교육팀 · HR팀", count: tenureUnder1, triggered: tenureUnder1 / tenureTotal > 0.30, color: { bg:"#FFFBEB", border:"#FDE68A", badge:"#D97706" } },
     { type: "MEDIUM",   rule: `산재 미제출 ${k.not_submitted || 0}건 ${yearFilter && yearFilter !== "all" ? "(해당 연도 추정)" : "누적"}`, target: "안전보건팀", count: k.not_submitted || 0, triggered: (k.not_submitted || 0) > 0, color: { bg:"#FFFBEB", border:"#FDE68A", badge:"#D97706" } },
@@ -89,9 +90,13 @@ function LegalReporting({ D, yearFilter, allYearly, basis, rawKind }) {
           <div className="text-xs text-stone-500 mt-1">{basis === 'approval' ? '근로복지공단 승인 기준' : '사고 발생 기준'}</div>
         </div>
         <div className="rounded-[20px] p-4 sm:p-5 bg-white border border-red-200 dash-fade-in transition-shadow hover:shadow-md" style={{ animationDelay: '80ms' }}>
-          <div className="text-[11px] font-semibold uppercase tracking-widest text-stone-400">사고사망 (T10)</div>
+          {/* '사고사망(T10)'에서 '사망'으로 — 고용노동부 사고사망만인율(T10)은 정의상 질병사망을 제외하는데,
+              보유 1건(홈플러스강서점, 2025-11-15)은 사고로 확정된 건이 아니다. 원본 '재해 종류'가 사고(479건)에도
+              질병(50건)에도 들어가지 않은 "사망" 단독값이고, 사고 내용은 재해 사건 없이 피부질환 경과만 서술하며,
+              산재 미승인으로 확인됐다(승인 기준 토글에서 0건). 사고로도 질병으로도 단정하지 않고 아는 사실만 적는다. */}
+          <div className="text-[11px] font-semibold uppercase tracking-widest text-stone-400">사망</div>
           <div className="text-3xl font-extrabold tabular-nums mt-2" style={{ color: '#D70011' }}>{countDeath.toLocaleString()}<span className="text-sm text-stone-500 font-normal ml-1">건</span></div>
-          <div className="text-xs text-stone-500 mt-1">중대재해 처벌법 대상 · 전체 기간 기준</div>
+          <div className="text-xs text-stone-500 mt-1">재해종류 확인 필요 · 산재 미승인</div>
         </div>
         <div className="rounded-[20px] p-4 sm:p-5 bg-white border border-stone-200 dash-fade-in transition-shadow hover:shadow-md" style={{ animationDelay: '160ms' }}>
           <div className="text-[11px] font-semibold uppercase tracking-widest text-stone-400">출퇴근 재해</div>
