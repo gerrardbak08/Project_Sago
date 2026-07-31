@@ -35,12 +35,6 @@ function LegalReporting({ D, yearFilter, allYearly, basis, rawKind }) {
     { type: "MEDIUM",   rule: `산재 미제출 ${k.not_submitted || 0}건 ${yearFilter && yearFilter !== "all" ? "(해당 연도 추정)" : "누적"}`, target: "안전보건팀", count: k.not_submitted || 0, triggered: (k.not_submitted || 0) > 0, color: { bg:"#FFFBEB", border:"#FDE68A", badge:"#D97706" } },
     { type: "LOW",      rule: "부서별 월별 패턴 이상 감지 (자동)", target: "부서 안전담당자", count: "자동", triggered: false, color: { bg:"#F8FAFC", border:"#E2E8F0", badge:"#64748B" } },
   ];
-  const submitRate = parseFloat(pct(k.submitted, k.submitted + k.not_submitted));
-
-  // filterData가 연도 정확한 loss_days_total/avg 제공 — 직접 사용
-  const lossTotal = k.loss_days_total;
-  const lossAvg = k.loss_days_avg;
-
   const kpiRef = useRef(null);
   const kpiInView = useInView(kpiRef);
   const chartRef = useRef(null);
@@ -88,16 +82,11 @@ function LegalReporting({ D, yearFilter, allYearly, basis, rawKind }) {
         {/* 산재 승인 현황 — 라이브 기준 (상단 필터·기준 전환 연동) */}
         <div className="rounded-[20px] p-4 sm:p-5 bg-white border border-blue-100 relative overflow-hidden dash-fade-in transition-shadow hover:shadow-md" style={{ animationDelay: '0ms' }}>
           <div className="text-[11px] font-semibold uppercase tracking-widest text-stone-400">{basisLabel} 현황</div>
-          <div className="flex items-baseline gap-3 mt-2">
-            <div className="text-3xl font-extrabold tabular-nums text-[#071E4A]">{countTotal.toLocaleString()}<span className="text-sm text-stone-500 font-normal ml-1">건</span></div>
-            <div className="text-xs text-stone-500">{basis === 'approval' ? '근로복지공단 승인 기준' : '사고 발생 기준'}</div>
-          </div>
-          <div className="text-xs text-stone-500 mt-1">
-            근로손실 <b className="tabular-nums">{fmt(lossTotal)}</b>일 · 평균 {lossAvg != null ? Number(lossAvg).toFixed(1) : "-"}일
-            {Number.isFinite(submitRate) && submitRate >= 0 && (
-              <span className="ml-2">· 제출률 <b className="tabular-nums text-stone-700">{submitRate.toFixed(0)}%</b></span>
-            )}
-          </div>
+          {/* 근로손실·평균일·제출률 제거 — 근로손실은 '비용 손실' 탭이 정본이고,
+              제출률은 submitted 필드 미기재를 '미제출'로 세는 값이라 법정 의무 미이행처럼
+              읽히는 오해를 낳았다. 형제 카드(T10·출퇴근)와 같은 라벨/숫자/설명 1줄 구조로 통일. */}
+          <div className="text-3xl font-extrabold tabular-nums mt-2 text-[#071E4A]">{countTotal.toLocaleString()}<span className="text-sm text-stone-500 font-normal ml-1">건</span></div>
+          <div className="text-xs text-stone-500 mt-1">{basis === 'approval' ? '근로복지공단 승인 기준' : '사고 발생 기준'}</div>
         </div>
         <div className="rounded-[20px] p-4 sm:p-5 bg-white border border-red-200 dash-fade-in transition-shadow hover:shadow-md" style={{ animationDelay: '80ms' }}>
           <div className="text-[11px] font-semibold uppercase tracking-widest text-stone-400">사고사망 (T10)</div>

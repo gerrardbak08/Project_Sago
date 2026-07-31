@@ -335,7 +335,11 @@ function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
       </div>
 
       {/* === 동기간 비교 === */}
+      {/* key={yearFilter} — PeriodComparison의 시점 선택(points)은 useState 초기화라 최초 마운트에만
+          계산된다. 연도 필터를 바꿔도 D.monthly만 바뀌고 선택 시점은 그대로 얼어붙어(예: 2024-01~12에
+          고정) 필터를 따라가지 않았다. 필터가 바뀌면 remount해 새 기본 시점으로 다시 잡는다. */}
       <PeriodComparison
+        key={yearFilter}
         monthly={D.monthly}
         storeSnapshots={STORE_SNAPSHOTS}
         workerSnapshots={WORKER_SNAPSHOTS}

@@ -220,12 +220,13 @@ function DeptTeamStore({ D, yearFilter }) {
   return (
     <div className="space-y-3 sm:space-y-4">
       {/* U3: 부문 선택 — 탭 상단 고정 */}
-      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm rounded-xl px-4 py-3 flex items-center gap-2 flex-wrap border border-stone-100 shadow-sm -mx-0.5">
+      {/* 토글 크기는 상단 글로벌 필터(SegmentedToggle size="sm": px-3 py-1.5 text-[11px])와 맞춘다 */}
+      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm rounded-xl px-4 py-2 flex items-center gap-1.5 flex-wrap border border-stone-100 shadow-sm -mx-0.5">
         <span className="text-xs font-bold text-stone-500 uppercase tracking-wide">부문</span>
         {["전체", "수도권", "지방"].map(b => (
-          <button key={b} onClick={() => { setBum(b); setSelDept(null); }} className={`min-h-[44px] px-4 py-2 rounded-full text-sm font-semibold border transition cursor-pointer ${bum === b ? (b === "전체" ? "bg-[#071E4A] text-white border-[#071E4A]" : b === "수도권" ? "bg-blue-600 text-white border-blue-600" : "bg-[#93C5FD] text-[#071E4A] border-[#93C5FD]") : "bg-white border-stone-200 text-stone-600 hover:bg-stone-50"}`}>{b === "전체" ? "전체" : `${b}영업부문`}</button>
+          <button key={b} onClick={() => { setBum(b); setSelDept(null); }} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold border transition cursor-pointer ${bum === b ? (b === "전체" ? "bg-[#071E4A] text-white border-[#071E4A]" : b === "수도권" ? "bg-blue-600 text-white border-blue-600" : "bg-[#93C5FD] text-[#071E4A] border-[#93C5FD]") : "bg-white border-stone-200 text-stone-600 hover:bg-stone-50"}`}>{b === "전체" ? "전체" : `${b}영업부문`}</button>
         ))}
-        {selDept && <button onClick={() => setSelDept(null)} className="min-h-[44px] ml-2 px-3 py-2 rounded-full text-xs font-semibold bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 cursor-pointer"><X size={11} className="inline -mt-0.5 mr-0.5" />{selDept} 선택 해제</button>}
+        {selDept && <button onClick={() => setSelDept(null)} className="ml-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 cursor-pointer"><X size={11} className="inline -mt-0.5 mr-0.5" />{selDept} 선택 해제</button>}
       </div>
 
       {/* === 100명당 IR 배너 (3개 독립 카드, yearFilter 연동) === */}
