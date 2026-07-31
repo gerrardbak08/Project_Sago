@@ -220,13 +220,19 @@ function DeptTeamStore({ D, yearFilter }) {
   return (
     <div className="space-y-3 sm:space-y-4">
       {/* U3: 부문 선택 — 탭 상단 고정 */}
-      {/* 토글 크기는 상단 글로벌 필터(SegmentedToggle size="sm": px-3 py-1.5 text-[11px])와 맞춘다 */}
+      {/* 토글 크기는 상단 글로벌 필터(SegmentedToggle size="sm": px-3 py-1.5 text-[11px])와 맞춘다.
+          TOUCH: 그 크기의 실제 높이는 약 27px로 손가락 조작엔 좁다(WCAG 2.2 AA 24px는 충족, AAA·HIG
+          44px는 미달). 패딩을 키우면 상단 토글과의 크기 일치가 깨지므로, 보이는 크기는 그대로 두고
+          투명 의사요소로 세로 히트영역만 44px로 넓힌다. inset-x-0이라 가로 폭은 그대로 — 좌우 버튼과
+          겹치지 않고, 세로로 넘치는 약 8px는 이 컨테이너의 py-2 안에 들어가 아래 카드와도 안 겹친다.
+          상단 SegmentedToggle에는 같은 처리를 하지 않는다: 필터바가 h-10(40px) 고정이라 히트영역이
+          바 밖으로 나가 인접 행의 클릭을 가로챈다. */}
       <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm rounded-xl px-4 py-2 flex items-center gap-1.5 flex-wrap border border-stone-100 shadow-sm -mx-0.5">
         <span className="text-xs font-bold text-stone-500 uppercase tracking-wide">부문</span>
         {["전체", "수도권", "지방"].map(b => (
-          <button key={b} onClick={() => { setBum(b); setSelDept(null); }} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold border transition cursor-pointer ${bum === b ? (b === "전체" ? "bg-[#071E4A] text-white border-[#071E4A]" : b === "수도권" ? "bg-blue-600 text-white border-blue-600" : "bg-[#93C5FD] text-[#071E4A] border-[#93C5FD]") : "bg-white border-stone-200 text-stone-600 hover:bg-stone-50"}`}>{b === "전체" ? "전체" : `${b}영업부문`}</button>
+          <button key={b} onClick={() => { setBum(b); setSelDept(null); }} className={`relative px-3 py-1.5 rounded-full text-[11px] font-semibold border transition cursor-pointer after:content-[''] after:absolute after:inset-x-0 after:top-1/2 after:-translate-y-1/2 after:h-11 ${bum === b ? (b === "전체" ? "bg-[#071E4A] text-white border-[#071E4A]" : b === "수도권" ? "bg-blue-600 text-white border-blue-600" : "bg-[#93C5FD] text-[#071E4A] border-[#93C5FD]") : "bg-white border-stone-200 text-stone-600 hover:bg-stone-50"}`}>{b === "전체" ? "전체" : `${b}영업부문`}</button>
         ))}
-        {selDept && <button onClick={() => setSelDept(null)} className="ml-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 cursor-pointer"><X size={11} className="inline -mt-0.5 mr-0.5" />{selDept} 선택 해제</button>}
+        {selDept && <button onClick={() => setSelDept(null)} className="relative ml-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 cursor-pointer after:content-[''] after:absolute after:inset-x-0 after:top-1/2 after:-translate-y-1/2 after:h-11"><X size={11} className="inline -mt-0.5 mr-0.5" />{selDept} 선택 해제</button>}
       </div>
 
       {/* === 100명당 IR 배너 (3개 독립 카드, yearFilter 연동) === */}
