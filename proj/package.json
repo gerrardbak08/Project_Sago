@@ -12,7 +12,9 @@
     "data:snapshots": "node scripts/extract-snapshots.mjs",
     "data:approval": "node scripts/extract-approval.mjs",
     "data:livesnapshot": "node scripts/bake-live-snapshot.mjs",
-    "data:accidents:live": "node scripts/update-accidents-from-live.mjs"
+    "data:accidents:live": "node scripts/update-accidents-from-live.mjs",
+    "test": "node --test scripts/*.test.mjs",
+    "validate:eal": "node scripts/validate-eal.mjs"
   },
   "dependencies": {
     "@amplitude/analytics-browser": "^2.43.0",

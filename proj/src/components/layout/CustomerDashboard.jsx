@@ -57,6 +57,13 @@ function CustomerDashboard({ onBack, onAlertClick, onSwitchMode }) {
       </ModeSidebar>
 
       <div className="flex-1 min-w-0 lg:ml-[232px] flex flex-col min-h-screen">
+        {/* ═══ 고객사고 현황 대시보드 타이틀 — 근로자 모드(App.jsx)와 동일한 순서·형식.
+            sticky 헤더 위(비스크롤), 모바일에선 정보 없이 공간만 차지해 숨김 ═══ */}
+        <div className="hidden sm:flex flex-wrap items-baseline gap-x-3 gap-y-1 max-w-[1400px] mx-auto w-full px-3 sm:px-5 pt-3 sm:pt-4 pb-1">
+          <h1 className="text-lg sm:text-xl font-black text-[#071E4A] tracking-tight">고객사고 현황 분석 대시보드</h1>
+          <p className="text-stone-400 text-xs">고객 안전사고 흐름과 보상 현황을 한눈에 봅니다.</p>
+        </div>
+
         {/* ── sticky 헤더: 1행(56px) + 2행(40px) = 96px — 탭바 제거됨 ── */}
         <div className="sticky top-0 z-30 shadow-sm">
 

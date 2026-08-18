@@ -1,21 +1,19 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, LabelList, ComposedChart, Line } from 'recharts';
 import { Banknote, Calendar, TrendingUp, Info, ChevronDown } from 'lucide-react';
 import { DAISO_RED, ALERT_RED, SAFE_GREEN, NV, CHART_BLUE, rankColor } from '../../../constants/colors.js';
 import { MIN_WAGE_DAY, CURRENT_YEAR, INDIRECT_COST_MULTIPLIER, OPERATING_MARGIN, DAILY_VALUE_PER_WORKER } from '../../../constants/metrics.js';
+import { dayRate, wageFor, USE_PRODUCTIVITY, salesOnly, observationPeriod, withEal, totalEal, storeEal, sumEal } from '../../../utils/eal.js';
 import { fmt } from '../../../utils/uiHelpers.jsx';
 import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card, EmptyState } from '../../../components/shared/Card.jsx';
 import { useCountUp, useInView } from '../../../utils/motion.js';
+import MAP_STORES from '../../../data/storesData.js';
 
 // 추정 재무손실 = 실측 근로손실일수 × 일급(최저시급×8시간) × (1 + 간접비 4배, Heinrich)
 // 근로손실일수는 산재 판정(요양·휴업) 시 확정되는 실측치 — 사고경위 건수 × 평균일수(가정) 방식이 아님.
 // 공상비용(실측)은 기록률이 낮아 제외.
-const HEINRICH = 1 + INDIRECT_COST_MULTIPLIER;
-const wageFor = (y) => MIN_WAGE_DAY[y] || MIN_WAGE_DAY[CURRENT_YEAR]; // 일급 = 최저시급 × 8시간
-// 추정손실 단가(원/일) — 인당 1일 생산성 비용이 설정되면 그 값, 아니면 임시로 일급×(1+간접비4배) 하인리히 모델.
-const USE_PRODUCTIVITY = DAILY_VALUE_PER_WORKER != null;
-const dayRate = (y) => USE_PRODUCTIVITY ? DAILY_VALUE_PER_WORKER : wageFor(y) * HEINRICH;
+// 손실 단가(dayRate/wageFor/USE_PRODUCTIVITY)는 eal.js가 단일 출처 — 여기서 재정의하지 않는다.
 const lossWon = (days, y) => (days || 0) * dayRate(y);
 const eok = (won) => Math.round(won / 1e8 * 10) / 10;
 
@@ -27,6 +25,35 @@ function CostRisk({ D, allYearly, yearFilter, basis }) {
   const isAllMode = !yearFilter || yearFilter === "all";
 
   const recs = (yearFilter && yearFilter !== "all" && (D.accidents?.length > 0)) ? D.accidents.filter(r => String(r.year) === yearFilter) : (D.accidents || []);
+
+  // ── 연간 기대손실(EAL) — 영업부문 모수, 사망 제외. 설계문서 §3 ──
+  // recs = 연도 필터 적용된 사고 레코드 (29행). D.accidents는 필터 미적용이므로 쓰지 말 것.
+  const ealPeriod = useMemo(() => observationPeriod(salesOnly(recs)), [recs]);
+  const ealRecords = useMemo(() => withEal(salesOnly(recs), ealPeriod), [recs, ealPeriod]);
+  const ealTotal = useMemo(() => totalEal(ealRecords), [ealRecords]);
+  const ealBasisLabel = ealPeriod.years
+    ? `관측 ${ealPeriod.firstYm}~${ealPeriod.lastCompleteYm} · ${ealPeriod.years.toFixed(1)}년 · 영업부문 ${ealRecords.length}건 기준`
+    : '관측 기간 부족';
+
+  // 매장별 EAL — 신뢰도 가중(Bühlmann). 0건 매장은 동료집단 평균으로 수렴한다.
+  const storeRank = useMemo(() => {
+    if (!ealPeriod.years) return [];
+    const list = MAP_STORES.map((s) => ({ store: s.n, area: s.ar }));
+    return storeEal(ealRecords, list, ealPeriod).slice(0, 20);
+  }, [ealRecords, ealPeriod]);
+  // 매장 마스터(MAP_STORES)에 없는 매장의 EAL — storeEal은 MAP_STORES 목록을 순회하므로
+  // 이런 매장은 Top 20에 아예 나타나지 않고, 그 손실은 lossPerIncident에 섞여 다른 매장에
+  // 조용히 재분배된다(팀 테이블의 unmatchedTeamEal과 같은 문제 — 하드코딩 금지, 런타임 계산).
+  const unmatchedStoreEal = useMemo(() => {
+    if (!ealPeriod.years) return { count: 0, incidents: 0, total: 0 };
+    const storeSet = new Set(MAP_STORES.map((s) => s.n));
+    const missing = sumEal(ealRecords, (r) => r.store, ealPeriod).filter((g) => g.key && !storeSet.has(g.key));
+    return {
+      count: missing.length,
+      incidents: missing.reduce((s, g) => s + g.n, 0),
+      total: missing.reduce((s, g) => s + g.eal, 0),
+    };
+  }, [ealRecords, ealPeriod]);
 
   // 선택 기간(현재 필터·기준) 총 추정 재무손실 — 실측 근로손실일수 기반
   const periodDays = k.loss_days_total || 0;
@@ -83,6 +110,7 @@ function CostRisk({ D, allYearly, yearFilter, basis }) {
   // 산식 배너 collapse
   const [formulaOpen, setFormulaOpen] = useState(false);
 
+
   // 월별 X축 각도·높이 동적
   const mLen = monthlyFinance.length;
   const xAngle  = mLen > 18 ? -45 : mLen > 12 ? -30 : 0;
@@ -112,8 +140,10 @@ function CostRisk({ D, allYearly, yearFilter, basis }) {
         </div>
       )}
 
-      {/* KPI 4-카드 — inView stagger + hover lift */}
-      <div ref={kpiRef} className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* KPI 5-카드 — inView stagger + hover lift. 사망 타일 제거 전엔 6장이라 lg:grid-cols-3에서
+          2행×3열로 딱 맞았다. 5장이 된 지금은 마지막 칸이 비지만, 열을 5로 바꾸면 "총 추정 재무손실
+          87.3억원" 같은 큰 숫자가 눌린다. 카드 폭을 지키고 빈 칸을 받아들인다. */}
+      <div ref={kpiRef} className="grid grid-cols-2 lg:grid-cols-3 gap-3">
 
         {/* Primary — 총 추정 재무손실: col-span-2 on mobile, 1 on lg */}
         <div
@@ -129,15 +159,37 @@ function CostRisk({ D, allYearly, yearFilter, basis }) {
           </div>
           <div className="text-[11px] text-white/65 mt-2 break-keep">
             {USE_PRODUCTIVITY
-              ? `근로손실 ${fmt(periodDays)}일 × 인당 ${fmt(DAILY_VALUE_PER_WORKER)}원/일`
-              : `직접비 ${periodDirectEok.toFixed(1)}억 + 간접비 ${periodIndirectEok.toFixed(1)}억`}
+              ? `근로손실 ${fmt(periodDays)}일 × 인당 ${fmt(DAILY_VALUE_PER_WORKER)}원/일 · 실측분만`
+              : `직접비 ${periodDirectEok.toFixed(1)}억 + 간접비 ${periodIndirectEok.toFixed(1)}억 · 실측분만`}
           </div>
         </div>
 
+        {/* 연간 기대손실(EAL) — 누적이 아니라 연간 환산. 결측 보정 포함이라 위 카드와 배율이 다르다. */}
+        <div className="rounded-lg p-5 bg-white border border-stone-200 dash-slide-up transition-all hover:-translate-y-0.5 hover:shadow-md"
+          style={{ animationDelay: "60ms" }}>
+          <div className="text-xs text-stone-500 font-medium uppercase tracking-wide">연간 기대손실 (EAL)</div>
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <span className="text-3xl sm:text-4xl font-bold tracking-tight tabular-nums text-[#071E4A]">
+              {ealPeriod.years ? (ealTotal / 1e8).toFixed(1) : '—'}
+            </span>
+            <span className="text-base font-medium text-stone-400">억원/년</span>
+          </div>
+          <div className="text-[11px] text-stone-500 mt-2 break-keep">
+            {ealBasisLabel}
+          </div>
+          <div className="text-[11px] text-stone-400 mt-0.5 break-keep">
+            결측 보정 포함 · 사망 제외
+          </div>
+        </div>
+
+        {/* 사망/중대재해 타일 제거 — 이 탭은 금액 축이고 사망은 EAL에서 빠지므로(설계문서 §9.2)
+            "금액 환산 대상 아님"을 스스로 말하는 타일이 여기 있을 자리가 아니었다. 보유 1건은
+            산재 미승인이라 중대재해로 다룰 근거도 없다. 사망 건수는 재해 종류별 분포에 그대로
+            남아 있다. */}
         {USE_PRODUCTIVITY ? (<>
           <div
             className="rounded-lg p-5 bg-white border border-stone-200 dash-slide-up transition-all hover:-translate-y-0.5 hover:shadow-md"
-            style={{ animationDelay: "60ms" }}
+            style={{ animationDelay: "180ms" }}
           >
             <div className="text-xs text-stone-500 font-medium uppercase tracking-wide">인당 1일 생산성</div>
             <div className="flex items-baseline gap-1.5 mt-1">
@@ -150,7 +202,7 @@ function CostRisk({ D, allYearly, yearFilter, basis }) {
           </div>
           <div
             className="rounded-lg p-5 bg-white border border-stone-200 dash-slide-up transition-all hover:-translate-y-0.5 hover:shadow-md"
-            style={{ animationDelay: "120ms" }}
+            style={{ animationDelay: "240ms" }}
           >
             <div className="text-xs text-stone-500 font-medium uppercase tracking-wide">실측 근로손실일수</div>
             <div className="flex items-baseline gap-1.5 mt-1">
@@ -164,7 +216,7 @@ function CostRisk({ D, allYearly, yearFilter, basis }) {
         </>) : (<>
           <div
             className="rounded-lg p-5 bg-white border border-stone-200 dash-slide-up transition-all hover:-translate-y-0.5 hover:shadow-md"
-            style={{ animationDelay: "60ms" }}
+            style={{ animationDelay: "180ms" }}
           >
             <div className="text-xs text-stone-500 font-medium uppercase tracking-wide">직접비 <span className="text-stone-400 normal-case">(휴업손실)</span></div>
             <div className="flex items-baseline gap-1.5 mt-1">
@@ -177,7 +229,7 @@ function CostRisk({ D, allYearly, yearFilter, basis }) {
           </div>
           <div
             className="rounded-lg p-5 bg-white border border-stone-200 dash-slide-up transition-all hover:-translate-y-0.5 hover:shadow-md"
-            style={{ animationDelay: "120ms" }}
+            style={{ animationDelay: "240ms" }}
           >
             <div className="text-xs text-stone-500 font-medium uppercase tracking-wide">간접비 <span className="text-stone-400 normal-case">(×{INDIRECT_COST_MULTIPLIER})</span></div>
             <div className="flex items-baseline gap-1.5 mt-1">
@@ -190,10 +242,10 @@ function CostRisk({ D, allYearly, yearFilter, basis }) {
           </div>
         </>)}
 
-        {/* 매출 환산 — 항상 4번째 */}
+        {/* 매출 환산 — 항상 마지막(6번째) 카드 */}
         <div
           className="col-span-2 lg:col-span-1 rounded-lg p-5 bg-white border border-stone-200 dash-slide-up transition-all hover:-translate-y-0.5 hover:shadow-md"
-          style={{ animationDelay: "180ms" }}
+          style={{ animationDelay: "300ms" }}
         >
           <div className="text-xs text-stone-500 font-medium uppercase tracking-wide">매출 환산 · 건수</div>
           <div className="flex items-baseline gap-1.5 mt-1">
@@ -239,6 +291,34 @@ function CostRisk({ D, allYearly, yearFilter, basis }) {
           </div>
         </div>
       </div>
+
+      {storeRank.length > 0 && (
+        <Card title="연간 기대손실 상위 매장" titleIcon={Banknote}
+          sub={`${ealBasisLabel} · 신뢰도 가중(Bühlmann) 적용 — 사고 0건 매장도 동료집단 평균으로 위험을 배분`}
+          right={<ExportBtn rows={storeRank.map((s, i) => ({ 순위: i + 1, 매장: s.store, 사고건수: s.n, 신뢰도: s.Z, 연간기대손실_원: Math.round(s.eal) }))} filename="매장별_연간기대손실.csv" />}>
+          <div className="space-y-1">
+            {storeRank.map((s, i) => (
+              <div key={s.store} className="flex items-center gap-2 py-1 border-b border-stone-50 text-[12px]">
+                <span className="text-stone-400 tabular-nums w-6 text-right">{i + 1}</span>
+                <span className="font-semibold text-stone-800 truncate flex-1">{s.store}</span>
+                <span className="text-stone-400 tabular-nums whitespace-nowrap">사고 {s.n}건 · 신뢰도 {Math.round(s.Z * 100)}%</span>
+                <span className="font-bold tabular-nums text-[#071E4A] w-20 text-right whitespace-nowrap">
+                  {(s.eal / 1e4).toFixed(0)}만원
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 p-3 rounded-lg bg-stone-50 border border-stone-200 text-xs text-stone-600 break-keep">
+            매장별 기대손실은 자기 실적과 같은 평수대 매장 평균을 사고 건수에 따라 가중 혼합한 값입니다.
+            <span className="text-stone-500"> 사고가 많은 매장일수록 자기 실적 비중(신뢰도)이 높고, 0건 매장은 동료집단 평균에 수렴합니다. 이 축만 혼합을 거치므로 매장 합계는 전사 총액과 일치하지 않습니다.</span>
+          </div>
+          {unmatchedStoreEal.count > 0 && (
+            <div className="mt-2 text-[10px] text-stone-400">
+              ※ 매장 마스터에 없는 매장 {unmatchedStoreEal.count}곳({unmatchedStoreEal.incidents}건) · {(unmatchedStoreEal.total / 1e8).toFixed(2)}억 — 매장 마스터에 등록되지 않아 위 순위에 나타나지 않고, 손실은 동료집단 평균(lossPerIncident)에 섞여 다른 매장에 재분배됩니다
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* 연도별 추정 재무손실 추이 */}
       <Card title="연도별 추정 재무손실 추이" titleIcon={Banknote} sub="사고건수와 추정 재무손실의 연도별 변화 — 기준 전환에 따라 동적 반영" right={<ExportBtn rows={yearlyFinance} filename={`연도별_추정재무손실_${basisLabel}.csv`} />}>

@@ -10,7 +10,7 @@ import { CalcTip, HeatmapGrid, BarRank, Matrix } from '../../../components/share
 import { RISK_COLORS } from '../../../constants/riskColors.js';
 import { useCountUp, useInView } from '../../../utils/motion.js';
 
-function LegalReporting({ D, yearFilter, allYearly, basis, rawKind }) {
+function LegalReporting({ D, yearFilter, allYearly, basis }) {
   const yrLabel = !yearFilter || yearFilter === "all" ? "전체 기간" : `${yearFilter}년`;
   const k = D.kpis;
   const basisLabel = basis === 'approval' ? '산재 승인' : '사고경위';
@@ -28,19 +28,14 @@ function LegalReporting({ D, yearFilter, allYearly, basis, rawKind }) {
   // D.monthly 는 배열 [{ym,y,m,s,j,t}] — 월 총건은 m.t. (객체 형태도 방어)
   const _monthlyArr = Array.isArray(D.monthly) ? D.monthly : Object.values(D.monthly || {});
   const monthlyMax = Math.max(0, ..._monthlyArr.map(m => (typeof m === "number" ? m : (m?.t ?? m?.count ?? 0))));
+  // CRITICAL "사망 발생 → CEO·안전보건총괄·법무팀" 룰 제거 — 보유 1건은 산재 미승인이고 재해 종류가
+  // 사고로 확정되지 않아, 최상위 보고선을 자동 발동시킬 근거가 없다.
   const alertRules = [
-    { type: "CRITICAL", rule: "사망 사고 발생 (전체 기간 기준)", target: "CEO · 안전보건총괄 · 법무팀", count: rawKind?.["사망"] || 0, triggered: Math.floor(rawKind?.["사망"] || 0) > 0, color: { bg:"#FEF2F2", border:"#FCA5A5", badge:"#DC2626" } },
     { type: "HIGH",     rule: `월간 최다 발생 ${monthlyMax}건 (임계치 15건 초과)`, target: "해당 팀장 · 부서장", count: monthlyMax, triggered: monthlyMax > 15, color: { bg:"#FFF7ED", border:"#FDBA74", badge:"#EA580C" } },
     { type: "MEDIUM",   rule: `신입(1년 미만) 사고 비중 ${((tenureUnder1/tenureTotal)*100).toFixed(0)}% (임계치 30% 초과)`, target: "교육팀 · HR팀", count: tenureUnder1, triggered: tenureUnder1 / tenureTotal > 0.30, color: { bg:"#FFFBEB", border:"#FDE68A", badge:"#D97706" } },
     { type: "MEDIUM",   rule: `산재 미제출 ${k.not_submitted || 0}건 ${yearFilter && yearFilter !== "all" ? "(해당 연도 추정)" : "누적"}`, target: "안전보건팀", count: k.not_submitted || 0, triggered: (k.not_submitted || 0) > 0, color: { bg:"#FFFBEB", border:"#FDE68A", badge:"#D97706" } },
     { type: "LOW",      rule: "부서별 월별 패턴 이상 감지 (자동)", target: "부서 안전담당자", count: "자동", triggered: false, color: { bg:"#F8FAFC", border:"#E2E8F0", badge:"#64748B" } },
   ];
-  const submitRate = parseFloat(pct(k.submitted, k.submitted + k.not_submitted));
-
-  // filterData가 연도 정확한 loss_days_total/avg 제공 — 직접 사용
-  const lossTotal = k.loss_days_total;
-  const lossAvg = k.loss_days_avg;
-
   const kpiRef = useRef(null);
   const kpiInView = useInView(kpiRef);
   const chartRef = useRef(null);
@@ -54,7 +49,6 @@ function LegalReporting({ D, yearFilter, allYearly, basis, rawKind }) {
   }, []);
 
   const countTotal    = useCountUp(k.total,                  900, kpiInView);
-  const countDeath    = useCountUp(rawKind?.["사망"] || 0,    900, kpiInView);
   const countCommute  = useCountUp(D.kind["출퇴근"] || 0,     900, kpiInView);
 
   // 막대 위 라벨 — 건수(굵게) + 전년대비 증감율(색상). 라인과 겹쳐도 보이도록 흰 테두리(halo).
@@ -84,27 +78,19 @@ function LegalReporting({ D, yearFilter, allYearly, basis, rawKind }) {
           <span className="px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold">필터 적용 중</span>
         )}
       </div>
-      <div ref={kpiRef} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {/* 사망 카드 제거로 3열 → 2열. 보유 1건은 산재 미승인이라 중대재해로 다룰 근거가 없고,
+          사망 건수는 아래 '재해 종류별 분포'에 그대로 남아 있다. */}
+      <div ref={kpiRef} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* 산재 승인 현황 — 라이브 기준 (상단 필터·기준 전환 연동) */}
         <div className="rounded-[20px] p-4 sm:p-5 bg-white border border-blue-100 relative overflow-hidden dash-fade-in transition-shadow hover:shadow-md" style={{ animationDelay: '0ms' }}>
           <div className="text-[11px] font-semibold uppercase tracking-widest text-stone-400">{basisLabel} 현황</div>
-          <div className="flex items-baseline gap-3 mt-2">
-            <div className="text-3xl font-extrabold tabular-nums text-[#071E4A]">{countTotal.toLocaleString()}<span className="text-sm text-stone-500 font-normal ml-1">건</span></div>
-            <div className="text-xs text-stone-500">{basis === 'approval' ? '근로복지공단 승인 기준' : '사고 발생 기준'}</div>
-          </div>
-          <div className="text-xs text-stone-500 mt-1">
-            근로손실 <b className="tabular-nums">{fmt(lossTotal)}</b>일 · 평균 {lossAvg != null ? Number(lossAvg).toFixed(1) : "-"}일
-            {Number.isFinite(submitRate) && submitRate >= 0 && (
-              <span className="ml-2">· 제출률 <b className="tabular-nums text-stone-700">{submitRate.toFixed(0)}%</b></span>
-            )}
-          </div>
+          {/* 근로손실·평균일·제출률 제거 — 근로손실은 '비용 손실' 탭이 정본이고,
+              제출률은 submitted 필드 미기재를 '미제출'로 세는 값이라 법정 의무 미이행처럼
+              읽히는 오해를 낳았다. 형제 카드(T10·출퇴근)와 같은 라벨/숫자/설명 1줄 구조로 통일. */}
+          <div className="text-3xl font-extrabold tabular-nums mt-2 text-[#071E4A]">{countTotal.toLocaleString()}<span className="text-sm text-stone-500 font-normal ml-1">건</span></div>
+          <div className="text-xs text-stone-500 mt-1">{basis === 'approval' ? '근로복지공단 승인 기준' : '사고 발생 기준'}</div>
         </div>
-        <div className="rounded-[20px] p-4 sm:p-5 bg-white border border-red-200 dash-fade-in transition-shadow hover:shadow-md" style={{ animationDelay: '80ms' }}>
-          <div className="text-[11px] font-semibold uppercase tracking-widest text-stone-400">사고사망 (T10)</div>
-          <div className="text-3xl font-extrabold tabular-nums mt-2" style={{ color: '#D70011' }}>{countDeath.toLocaleString()}<span className="text-sm text-stone-500 font-normal ml-1">건</span></div>
-          <div className="text-xs text-stone-500 mt-1">중대재해 처벌법 대상 · 전체 기간 기준</div>
-        </div>
-        <div className="rounded-[20px] p-4 sm:p-5 bg-white border border-stone-200 dash-fade-in transition-shadow hover:shadow-md" style={{ animationDelay: '160ms' }}>
+        <div className="rounded-[20px] p-4 sm:p-5 bg-white border border-stone-200 dash-fade-in transition-shadow hover:shadow-md" style={{ animationDelay: '80ms' }}>
           <div className="text-[11px] font-semibold uppercase tracking-widest text-stone-400">출퇴근 재해</div>
           <div className="text-3xl font-extrabold tabular-nums mt-2 text-[#071E4A]">{countCommute.toLocaleString()}<span className="text-sm text-stone-500 font-normal ml-1">건</span></div>
           <div className="text-xs text-stone-500 mt-1">통제 외지만 보상 운영</div>

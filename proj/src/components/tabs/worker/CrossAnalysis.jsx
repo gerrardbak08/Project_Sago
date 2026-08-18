@@ -9,6 +9,7 @@ import { ExportBtn } from '../../../utils/exportUtils.jsx';
 import { Card, EstimateBadge } from '../../../components/shared/Card.jsx';
 import { CalcTip, HeatmapGrid, BarRank, Matrix } from '../../../components/shared/ChartHelpers.jsx';
 import { RISK_COLORS } from '../../../constants/riskColors.js';
+import { observationPeriod, withEal, sumEal } from '../../../utils/eal.js';
 
 function CrossAnalysis({ D, yearFilter }) {
   const yrLabel = !yearFilter || yearFilter === "all" ? "전체 기간" : `${yearFilter}년`;
@@ -210,8 +211,23 @@ function CrossAnalysis({ D, yearFilter }) {
         }).filter(r => locCols.some(l => r[l] > 0));
         const avgLoss = (d) => d.lossN ? Math.round(d.loss / d.lossN) : null;
         const topTypeOf = (d) => Object.entries(d.types).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
-        const isAllPeriod = !yearFilter || yearFilter === 'all';
-        const severity = isAllPeriod ? (D.location?.severity || []) : [];
+        // 고위험 조합 — EAL(빈도×심각도) 기준. 기존 D.location.severity는 빌드타임 산출물이라
+        // 연도 필터에 반응하지 않고 평균 휴업일수만으로 정렬돼, 표본 적은 조합이 상위에 올라왔다.
+        const ealPeriod = observationPeriod(accs);
+        const ealRecords = withEal(accs, ealPeriod);
+        const severity = ealPeriod.years
+          ? sumEal(ealRecords, (r) => (r.locMatched ? `${r.typeCanon}|${r.locLabel}` : null), ealPeriod)
+              .filter((g) => g.n >= 5)
+              .slice(0, 8)
+          : [];
+        // g.n(위)은 그룹 전체 레코드 수(결측 보정 포함)라 "평균 N일"의 표본 크기로 오인되기 쉽다.
+        // loss_days가 실측된 레코드만 별도로 세어 옆에 밝힌다 — eal.js는 수정하지 않는다(요구사항).
+        const observedByKey = new Map();
+        for (const r of ealRecords) {
+          if (r.fatal || !r.locMatched || !(r.loss_days > 0)) continue;
+          const key = `${r.typeCanon}|${r.locLabel}`;
+          observedByKey.set(key, (observedByKey.get(key) || 0) + 1);
+        }
         const exportRows = dist.map(d => ({ 장소: d.label, 건수: d.n, 점유율: `${Math.round(d.n / accs.length * 100)}%`, 평균휴업일: avgLoss(d) ?? '', 주유형: topTypeOf(d) }));
         return (
           <Card title="발생 장소 분석" titleIcon={MapPin}
@@ -249,18 +265,24 @@ function CrossAnalysis({ D, yearFilter }) {
             <div className="text-sm font-bold text-stone-700 mb-1">재해유형 × 장소</div>
             <div className="text-xs text-stone-500 mb-2">유형별 집중 장소 확인 — 장소불명 제외 상위 {locCols.length}개 장소</div>
             {locRows.length > 0 ? <Matrix data={locRows} rowKey="type" cols={locCols} /> : <EmptyState message="매트릭스 데이터 없음" />}
-            {/* 고위험 조합 — 표본 5건 이상, 전체 기간 기준 */}
+            {/* 고위험 조합 — 표본 5건 이상, EAL(연간 기대손실) 순 */}
             {severity.length > 0 && (
               <div className="mt-4 pt-3 border-t border-stone-200">
-                <div className="text-sm font-bold text-stone-700 mb-1">고위험 조합 <span className="text-xs font-normal text-stone-400">(유형×장소 · 평균 휴업일수 순 · 표본 5건 이상 · 전체 기간)</span></div>
+                <div className="text-sm font-bold text-stone-700 mb-1">고위험 조합 <span className="text-xs font-normal text-stone-400">(유형×장소 · 연간 기대손실 순 · 표본 5건 이상)</span></div>
+                <div className="text-xs text-stone-500 mb-2">관측 {ealPeriod.firstYm}~{ealPeriod.lastCompleteYm} · {ealPeriod.years.toFixed(1)}년 기준 · 사망 제외</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 mt-2">
-                  {severity.slice(0, 8).map((c, i) => (
-                    <div key={`${c.type}|${c.loc}`} className="flex items-center gap-2 text-[12px] py-0.5">
-                      <span className={`font-extrabold tabular-nums w-12 text-right ${i < 2 ? 'text-red-600' : 'text-stone-800'}`}>{c.loss_days_avg}일</span>
-                      <span className="text-stone-700 break-keep flex-1">{c.type} <span className="text-stone-400">@</span> {c.locLabel}</span>
-                      <span className="text-stone-400 tabular-nums">{c.n}건</span>
-                    </div>
-                  ))}
+                  {severity.map((c, i) => {
+                    const [type, loc] = c.key.split('|');
+                    return (
+                      <div key={c.key} className="flex items-center gap-2 text-[12px] py-0.5">
+                        <span className={`font-extrabold tabular-nums w-16 text-right ${i < 2 ? 'text-red-600' : 'text-stone-800'}`}>
+                          {(c.eal / 1e8).toFixed(2)}억
+                        </span>
+                        <span className="text-stone-700 break-keep flex-1">{type} <span className="text-stone-400">@</span> {loc}</span>
+                        <span className="text-stone-400 tabular-nums whitespace-nowrap">{c.n}건 · 평균 {c.avgLossDays ?? '—'}일(관측 {observedByKey.get(c.key) ?? 0}건)</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

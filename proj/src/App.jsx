@@ -537,9 +537,6 @@ function App() {
           모바일에선 정보 없이 공간만 차지해 숨김. 아래 필터바는 sticky라 스크롤 시 이 자리로 올라와 붙음 ═══ */}
       {dashMode === "worker" && !inAlert && (
         <div className="hidden sm:flex flex-wrap items-baseline gap-x-3 gap-y-1 max-w-[1400px] mx-auto px-3 sm:px-5 pt-3 sm:pt-4 pb-1">
-          <span className="text-[11px] font-extrabold tracking-[0.18em] text-[#E60033] flex items-center gap-1.5 flex-shrink-0">
-            <span className="text-[#003B8F]">✦</span> ASUNG DAISO · SAFETY FIRST
-          </span>
           <h1 className="text-lg sm:text-xl font-black text-[#071E4A] tracking-tight">산업재해 현황 분석 대시보드</h1>
           <p className="text-stone-400 text-xs">매장 사고 흐름을 한눈에 보고, 오늘의 안전 행동을 바로 정합니다.</p>
         </div>
@@ -788,7 +785,7 @@ function App() {
             {tab === "severestore" && <SevereStores D={dataFiltered} yearFilter={yearFilter} />}
             {tab === "parjang" && <ParjangDashboard D={dataFiltered} yearFilter={yearFilter} />}
             {tab === "cost" && <CostRisk D={dataFiltered} allYearly={scopedData.yearly} yearFilter={yearFilter} basis={basis} />}
-            {tab === "legal" && <LegalReporting D={dataFiltered} yearFilter={yearFilter} allYearly={scopedData.yearly} rawKind={scopedData.kind} basis={basis} />}
+            {tab === "legal" && <LegalReporting D={dataFiltered} yearFilter={yearFilter} allYearly={scopedData.yearly} basis={basis} />}
             {tab === "rawdb" && <RawDbViewer rows={LIVE_SNAPSHOT.rows} approvalRows={LIVE_SNAPSHOT.approvalRows} sheetUrl="https://docs.google.com/spreadsheets/d/1pWfoDWXSowQRHBbIiVDgEd_0oK2XcFxtG4R5Kryvfus/edit" />}
             {tab === "guide" && <FieldResponseGuide />}
             {tab === "briefing" && <BriefingGenerator D={data} />}
