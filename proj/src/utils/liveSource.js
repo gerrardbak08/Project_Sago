@@ -108,9 +108,13 @@ export async function fetchLiveSnapshot({ division = '안전보건팀', year = '
   u.searchParams.set('division', division);
   u.searchParams.set('year', String(year));
   u.searchParams.set('month', String(month));
-  // Apps Script 콜드 스타트가 16~20초 → 무한 대기 방지용 상한(25s). 초과 시 스냅샷으로 조용히 안착.
+  // 무한 대기 방지용 상한. 초과 시 스냅샷으로 조용히 안착.
+  // 25s → 60s (2026-08-07): 서버 응답이 21.7/24.7/24.0s로 실측돼 25s 상한이 동전 던지기였다.
+  // 페이로드가 503KB로 커져(문서 작성 당시 90KB) 서버 CacheService(100KB 한도) 단일 캐시도 무효.
+  // 화면은 스냅샷을 즉시 그리고 이 fetch는 백그라운드라, 상한을 늘려도 체감 지연은 없다.
+  // 근본 해결은 서버 청크 캐시 — scripts/APPS_SCRIPT_CACHE_PATCH.md 참조.
   const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-  const timer = ctrl ? setTimeout(() => ctrl.abort(), 25_000) : null;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), 60_000) : null;
   let res;
   try {
     res = await fetch(u, { redirect: 'follow', cache: 'no-store', signal: ctrl?.signal });
