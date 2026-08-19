@@ -59,7 +59,7 @@ function buildPrompt(history, question) {
     `[현재 질문]\n${question}\n\n위 질문에 '현장 대응 가이드'에 근거해 현장에서 바로 실행할 수 있게 답하세요.`;
 }
 
-export default function SafetyAssistant({ data = null, basis = 'incident' }) {
+export default function SafetyAssistant({ data = null, basis = 'incident', yearFilter = 'all' }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]); // { role:'user'|'assistant'|'error', text }
   const [input, setInput] = useState('');
@@ -92,7 +92,7 @@ export default function SafetyAssistant({ data = null, basis = 'incident' }) {
     abortRef.current = new AbortController();
     try {
       const text = await requestAiGuide(buildPrompt(history, q), {
-        system: buildAssistantSystem(data, { basis }),
+        system: buildAssistantSystem(data, { basis, yearFilter }),
         maxTokens: 1024,
         signal: abortRef.current.signal,
       });
@@ -108,7 +108,7 @@ export default function SafetyAssistant({ data = null, basis = 'incident' }) {
     } finally {
       setLoading(false);
     }
-  }, [input, loading, messages, data, basis]);
+  }, [input, loading, messages, data, basis, yearFilter]);
 
   const onKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }

@@ -140,18 +140,45 @@ async function ask(question) {
 const list = EVAL.questions.filter((q) => !ONLY || q.id === ONLY);
 console.log(`안전 도우미 평가 — ${list.length}문항 (평가셋 v${EVAL.version})\n`);
 
-// --dry: 호출 없이 정답 계산만 검증 (평가셋 자체의 건강성 확인)
+// --dry: 호출 없이 (1) 채점 기준 유효성 (2) 다이제스트 정답 포함 여부를 검증.
+//   (2)가 핵심이다 — 다이제스트에 정답이 없으면 모델이 아무리 좋아도 맞힐 수 없다.
+//   즉 LLM 을 부르지 않고도 "이 문항은 구조적으로 실패한다"를 미리 알 수 있다.
 if (DRY) {
-  let bad = 0;
+  const { buildAssistantSystem } = await import('../src/utils/assistantContext.js');
+  const sys = buildAssistantSystem(D, { basis: 'incident' });
+  const digest = sys.slice(sys.indexOf('## 대시보드 데이터 다이제스트'));
+  const guide = sys.slice(0, sys.indexOf('## 대시보드 데이터 다이제스트'));
+
+  let noCriteria = 0, notGrounded = 0;
   for (const q of list) {
     const gt = groundTruth(q.expect);
     const hasCriteria = gt != null || (q.mustInclude || []).length || (q.mustNotInclude || []).length;
-    const mark = hasCriteria ? '✓' : '✗';
-    if (!hasCriteria) bad++;
-    console.log(`  ${mark} ${q.id} [${q.category}] ${gt != null ? `정답=${gt}` : '키워드 기준'}`);
+    if (!hasCriteria) noCriteria++;
+
+    // 근거(grounding) 확인: data 는 다이제스트에, procedure 는 가이드 원문에 정답이 있어야 한다.
+    let grounded = null;
+    if (q.expect?.type === 'compare') {
+      // compare 는 정답 단어('증가')가 아니라 비교할 두 수치가 다이제스트에 있으면 도출 가능하다.
+      grounded = (q.expect.sources || []).every((src) => {
+        const v = resolve(D, src);
+        return typeof v === 'number' ? containsNumber(digest, v) : digest.includes(String(v));
+      });
+    } else if (gt != null) {
+      grounded = typeof gt === 'number' ? containsNumber(digest, gt) : digest.includes(String(gt));
+    } else if (q.category === 'procedure' && (q.mustInclude || []).length) {
+      grounded = q.mustInclude.every((kw) => guide.includes(kw));
+    }
+    if (grounded === false) notGrounded++;
+
+    const mark = !hasCriteria ? '✗' : grounded === false ? '⚠' : '✓';
+    const detail = gt != null ? `정답=${gt}` : '키워드 기준';
+    const why = !hasCriteria ? ' ← 채점 기준 없음' : grounded === false ? ' ← 근거 미포함(구조적 실패 예상)' : '';
+    console.log(`  ${mark} ${q.id} [${q.category}] ${detail}${why}`);
   }
-  console.log(`\n${bad ? `✗ 채점 기준 없는 문항 ${bad}건` : '✓ 전 문항 채점 가능'}`);
-  process.exit(bad ? 1 : 0);
+  console.log(`\n다이제스트 ${digest.length}자 · 가이드 ${guide.length}자`);
+  console.log(noCriteria ? `✗ 채점 기준 없는 문항 ${noCriteria}건` : '✓ 전 문항 채점 가능');
+  console.log(notGrounded ? `⚠ 근거 미포함 ${notGrounded}건 — 다이제스트/가이드 보강 필요` : '✓ 전 문항 근거 확보');
+  process.exit(noCriteria || notGrounded ? 1 : 0);
 }
 
 if (!URL) {

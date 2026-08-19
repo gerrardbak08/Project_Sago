@@ -888,7 +888,7 @@ function App() {
       {showReport && <ReportModal D={scopedData} basis={basis} onClose={() => setShowReport(false)} />}
       {showSearch && <DataSearchModal D={scopedData} onClose={() => setShowSearch(false)} />}
       {/* 안전 도우미 — 현장 대응 가이드 + 대시보드 데이터 기반 챗봇 (전 탭 상시 노출) */}
-      <SafetyAssistant data={scopedData} basis={basis} />
+      <SafetyAssistant data={scopedData} basis={basis} yearFilter={yearFilter} />
       {/* KPI 목표설정 — AdminLoginPanel 게이트(PIN: dasoo2026) → KpiTargetPanel */}
       {showKpi && !kpiAdminUnlocked && (
         <AdminLoginPanel
