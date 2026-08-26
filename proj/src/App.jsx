@@ -547,7 +547,7 @@ function App() {
 
         {/* ── 1행: CI + 회사명 + 모드 토글 (모바일 전용 — 데스크톱은 사이드바) ── */}
         <div className="bg-white border-b border-stone-200 lg:hidden">
-          <div className="max-w-[1400px] mx-auto px-3 sm:px-5 flex items-center gap-2 sm:gap-4" style={{height:56}}>
+          <div className="max-w-[1400px] mx-auto px-3 sm:px-5 flex items-center gap-1 sm:gap-4" style={{height:56}}>
             {/* 다이소 CI 로고 */}
             <img src={DAISO_LOGO} alt="DAISO" className="flex-shrink-0" style={{height:32,width:"auto",objectFit:"contain"}} />
             {/* 제목 + 회사명 */}
@@ -555,30 +555,35 @@ function App() {
               <span className="text-stone-900 font-extrabold leading-none tracking-tight truncate text-base sm:text-xl">
                 근로자 사고 현황
               </span>
-              <span className="text-stone-400 text-[10px] sm:text-xs font-medium leading-none mt-0.5 truncate">
+              {/* 320px 폭에서 2px 초과라도 ellipsis가 통글자 단위로 잘라 "건팀"까지 사라지던 문제.
+                  폰트 렌더링은 기기마다 미세하게 달라 픽셀을 조이는 방식은 다시 깨지기 쉬워, 부제 자체를
+                  가장 좁은 폰에서 숨긴다(타이틀만으로도 화면 식별에 지장 없음). */}
+              <span className="hidden sm:block text-stone-400 text-[10px] sm:text-xs font-medium leading-none mt-0.5 truncate">
                 ㈜아성다이소 · 안전보건팀
               </span>
             </div>
             <div className="flex-1" />
-            {/* 모드 토글 */}
-            <div className="flex items-center gap-1 flex-shrink-0">
+            {/* 모드 토글 — 320px 폭에서 이 3버튼(고정폭)이 타이틀 블록을 23px까지 눌러 헤더
+                타이틀이 통째로 안 보이던 문제(truncate가 빈 문자열처럼 렌더됨). 좁은 폰에서만
+                축약 라벨을 써서 버튼 총 폭을 줄이고 타이틀에 폭을 돌려준다. */}
+            <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
               <button onClick={() => { switchMode("worker"); if (inAlert) setTab("overview"); }} className="cursor-pointer whitespace-nowrap min-h-[36px] flex items-center justify-center active:opacity-75"
                 style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,
                   background: inAlert ? "#F5F5F4" : DAISO_RED, color: inAlert ? "#78716C" : "white", border:"none",
                   transition:"all .2s", transform: inAlert ? "none" : "scale(1.05)"}}>
-                근로자 사고
+                <span className="hidden sm:inline">근로자 사고</span><span className="sm:hidden">근로자</span>
               </button>
               <button onClick={() => switchMode("customer")} className="cursor-pointer whitespace-nowrap min-h-[36px] flex items-center justify-center active:opacity-75"
                 style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,
                   background:"#F5F5F4", color:"#78716C", border:"none",
                   transition:"all .2s"}}>
-                고객 사고
+                <span className="hidden sm:inline">고객 사고</span><span className="sm:hidden">고객</span>
               </button>
               <button onClick={() => setTab("alert_monitor")} className="cursor-pointer whitespace-nowrap min-h-[36px] flex items-center justify-center gap-1 active:opacity-75"
                 style={{padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:700,
                   background: inAlert ? DAISO_RED : "#F5F5F4", color: inAlert ? "white" : "#78716C", border:"none",
                   transition:"all .2s", transform: inAlert ? "scale(1.05)" : "none"}}>
-                <Bell size={11} />알림 관리
+                <Bell size={11} /><span className="hidden sm:inline">알림 관리</span><span className="sm:hidden">알림</span>
               </button>
             </div>
           </div>

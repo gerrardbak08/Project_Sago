@@ -184,7 +184,9 @@ function Overview({ D, yearFilter, role, setTab, onStoreSelect }) {
           alerts.push({
             level: "danger",
             icon: "🔴",
-            title: `집중 사고 매장 — ${hotStores.length}개소 (3건 이상)`,
+            // 좁은 화면에서 줄바꿈이 필요하면 "(3건 이상)" 괄호 안쪽이 아니라 그 앞에서 끊기도록
+            // 비분리공백( )으로 묶는다 — "…(3건" / "이상)" 처럼 괄호가 쪼개지는 걸 방지.
+            title: `집중 사고 매장 — ${hotStores.length}개소 (3건 이상)`,
             desc: `상위: ${hotStores.slice(0,3).map(s=>`${s.store}(${s.total}건)`).join("·")}`,
             tab: "riskmap",
           });

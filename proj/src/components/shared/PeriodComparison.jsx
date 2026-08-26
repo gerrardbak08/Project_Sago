@@ -357,7 +357,8 @@ function PeriodComparison({ monthly, storeSnapshots, workerSnapshots }) {
           <h3 className="text-sm font-bold text-stone-800 tracking-tight">
             사고건수 추이 + 시점별 매장·근로자·평수
           </h3>
-          <span className="text-[11px] text-stone-400">시점 시간순 정렬</span>
+          {/* 차트 제목과 한 줄을 다투다 좁은 화면에서 이 보조 안내문만 2줄로 깨졌다 — 부가 정보라 숨김 */}
+          <span className="hidden sm:inline text-[11px] text-stone-400 flex-shrink-0">시점 시간순 정렬</span>
         </div>
         {sortedPoints.length >= 2 ? (
           <ResponsiveContainer width="100%" height={340} debounce={50}>
@@ -501,8 +502,10 @@ function BanCard({ title, unit, snapshot, field, refYm, decimals = 0 }) {
           {delta > 0 ? '+' : ''}{decimals > 0 ? delta.toFixed(decimals) : fmt(delta)}{unit ? unit : ''}({arrow(delta)}{Math.abs(pct).toFixed(1)}%)
         </div>
       )}
-      <div className="text-[10px] text-stone-400 italic mt-0.5">
-        {refRow?.ym ?? '—'} 기준 · 직전 시점 대비
+      {/* 2열 그리드(모바일 grid-cols-2)에서 카드 폭이 ~110px까지 좁아져 이 캡션이 늘 2줄로 깨졌다.
+          "직전 시점 대비"는 바로 위 증감(+/-) 표시로 이미 짐작되는 정보라 좁은 화면에서는 생략. */}
+      <div className="text-[10px] text-stone-400 italic mt-0.5 truncate">
+        {refRow?.ym ?? '—'} 기준<span className="hidden sm:inline"> · 직전 시점 대비</span>
       </div>
     </div>
   );

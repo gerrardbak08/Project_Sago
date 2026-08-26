@@ -69,35 +69,39 @@ function CustomerDashboard({ onBack, onAlertClick, onSwitchMode }) {
 
           {/* ── 1행: 모바일 헤더 (lg:hidden — 데스크톱은 사이드바) ── */}
           <div className="bg-white border-b border-stone-200 lg:hidden">
-            <div className="max-w-[1400px] mx-auto px-3 sm:px-5 flex items-center gap-2 sm:gap-4" style={{height:56}}>
+            <div className="max-w-[1400px] mx-auto px-3 sm:px-5 flex items-center gap-1 sm:gap-4" style={{height:56}}>
               <img src={DAISO_LOGO} alt="DAISO" className="flex-shrink-0" style={{height:32,width:"auto",objectFit:"contain"}} />
-              <div className="flex flex-col justify-center min-w-0">
-                <span className="text-stone-900 font-extrabold leading-none tracking-tight whitespace-nowrap text-base sm:text-xl">
+              <div className="flex flex-col justify-center min-w-0 overflow-hidden">
+                <span className="text-stone-900 font-extrabold leading-none tracking-tight truncate text-base sm:text-xl">
                   고객 사고 현황
                 </span>
-                <span className="text-stone-400 text-[10px] sm:text-xs font-medium leading-none mt-0.5 whitespace-nowrap">
+                {/* App.jsx와 동일 이유로 가장 좁은 폰에서 부제 숨김 — 픽셀을 조이는 방식은 기기별
+                    폰트 렌더링 차이로 다시 깨지기 쉽다 */}
+                <span className="hidden sm:block text-stone-400 text-[10px] sm:text-xs font-medium leading-none mt-0.5 truncate">
                   ㈜아성다이소 · 매장CS팀
                 </span>
               </div>
               <div className="flex-1" />
-              <div className="flex items-center gap-1 flex-shrink-0">
+              {/* 320px 폭에서 이 3버튼(고정폭)이 타이틀 블록을 눌러 안 보이게 만들던 문제(App.jsx와
+                  동일 구조·동일 버그). 좁은 폰에서만 축약 라벨로 버튼 총 폭을 줄인다. */}
+              <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
                 <button onClick={onBack}
                   className="cursor-pointer whitespace-nowrap flex items-center"
                   style={{padding:"8px 10px",borderRadius:6,fontSize:11,fontWeight:700,
                     minHeight:40,background:"#F5F5F4",color:"#78716C",border:"none"}}>
-                  근로자 사고
+                  <span className="hidden sm:inline">근로자 사고</span><span className="sm:hidden">근로자</span>
                 </button>
                 <button
                   className="cursor-default whitespace-nowrap flex items-center"
                   style={{padding:"8px 10px",borderRadius:6,fontSize:11,fontWeight:700,
                     minHeight:40,background:DEEP_BLUE,color:"white",border:"none"}}>
-                  고객 사고
+                  <span className="hidden sm:inline">고객 사고</span><span className="sm:hidden">고객</span>
                 </button>
                 <button onClick={onAlertClick}
                   className="cursor-pointer whitespace-nowrap flex items-center gap-1"
                   style={{padding:"8px 10px",borderRadius:6,fontSize:11,fontWeight:700,
                     minHeight:40,background:"#F5F5F4",color:"#78716C",border:"none"}}>
-                  <Bell size={11} />알림 관리
+                  <Bell size={11} /><span className="hidden sm:inline">알림 관리</span><span className="sm:hidden">알림</span>
                 </button>
               </div>
             </div>

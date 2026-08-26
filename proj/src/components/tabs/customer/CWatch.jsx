@@ -46,7 +46,9 @@ function CWatch({ D }) {
           <span className="text-xs text-stone-400">{filtered.length}개 매장</span>
         </div>
         <div className="overflow-x-auto -mx-5 px-5">
-          <table className="w-full text-xs">
+          {/* min-w — 9열(#, 매장명, 부문, 영업부, 팀, 건수, 전년比, 보상, 주요유형)을 w-full만으로
+              320px에 욱여넣어 "강남/구리" 같은 조직명이 19회 반복 깨졌다. 바깥 overflow-x-auto에 맡긴다. */}
+          <table className="w-full min-w-[640px] text-xs">
             <thead>
               <tr className="border-b border-stone-200">
                 <th className="py-2 px-2 text-left text-stone-400 font-medium">#</th>

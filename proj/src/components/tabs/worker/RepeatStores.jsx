@@ -130,7 +130,10 @@ function RepeatStores({ D, yearFilter }) {
       <Card title="반복사고 발생 매장" titleIcon={Siren} sub={`총 ${total}개 매장 (사고 건수 순)`}>
         {total === 0 ? <EmptyState message="반복사고 매장이 없습니다" icon={Siren} /> : (
           <div className="overflow-x-auto">
-            <table className="w-full text-xs sm:text-[13px]">
+            {/* min-w — w-full만 있으면 320px에 4개 열(모바일 기준)을 욱여넣어 "주요 유형" 값이
+                (예: "질병 (뇌출혈 등)")이 3줄까지 깨졌다. 바깥 overflow-x-auto가 이미 있으니
+                억지로 줄이지 말고 가로 스크롤에 맡긴다 — 다른 표들과 동일 패턴. */}
+            <table className="w-full min-w-[420px] text-xs sm:text-[13px]">
               <thead>
                 <tr className="text-stone-500 border-b border-stone-200">
                   <th className="text-left font-semibold py-2 px-2 w-[36px] sm:w-auto">순위</th>
@@ -169,7 +172,7 @@ function RepeatStores({ D, yearFilter }) {
                         </td>
                         <td className="py-3 sm:py-2 px-2 text-stone-600 hidden sm:table-cell">{s.dept} · {s.team}</td>
                         <td className="py-3 sm:py-2 px-2 text-stone-500 tabular-nums hidden sm:table-cell">{displayDate(s)}</td>
-                        <td className="py-3 sm:py-2 px-2 text-stone-700">{topTypeOf(s.store, s.topType)}</td>
+                        <td className="py-3 sm:py-2 px-2 text-stone-700 whitespace-nowrap">{topTypeOf(s.store, s.topType)}</td>
                         {/* 건수 */}
                         <td className="py-3 sm:py-2 px-2 text-right font-bold tabular-nums w-[36px] sm:w-auto" style={{ color: displayCount(s) >= 3 ? DANGER : NV }}>{displayCount(s)}건</td>
                       </tr>

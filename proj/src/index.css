@@ -6,6 +6,16 @@
   font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
+/* 한글 줄바꿈 전역 기본값 — 브라우저 기본 CJK 줄바꿈 규칙은 공백이 없어도 음절 사이 아무 데서나
+   줄을 끊는다("3건" 사이, "(3건" 괄호 뒤 등). break-keep(word-break: keep-all) 유틸을 컴포넌트마다
+   opt-in으로 붙여왔는데(16/47 파일에만 적용) 나머지는 여전히 취약했다. 이걸 전역 기본값으로 올리면
+   앞으로 새로 추가되는 텍스트도 자동으로 안전하다. overflow-wrap은 안전망 — 정말 긴 단일 토큰(URL 등)
+   은 그래도 줄바꿈되게 한다. */
+* {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
 /* 모바일 가로 오버플로우 방지 — body 밖으로 스크롤이 새지 않도록 */
 html, body {
   overflow-x: clip;   /* clip: 스크롤 컨테이너를 만들지 않아 sticky 헤더가 뷰포트 기준으로 고정됨 (hidden은 sticky 깨뜨림) */

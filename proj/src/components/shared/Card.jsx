@@ -72,15 +72,19 @@ const Card = ({ title, sub, titleIcon: TitleIcon, children, right, className = "
       onMouseLeave={() => setHovered(false)}
     >
       {(title || right) && (
-        <div className={`flex ${sub ? 'items-start' : 'items-center'} justify-between mb-4`}>
-          <div className="flex items-center gap-2">
-            {TitleIcon && <TitleIcon size={16} strokeWidth={2} className="text-[#003B8F]" />}
-            <div>
-              {title && <div className="font-bold text-[#071E4A] text-[15px] tracking-[-0.015em]">{title}</div>}
+        // 25개 파일에서 재사용되는 이 컴포넌트가 두 슬롯의 폭 우선순위를 정해두지 않아, 검색창+CSV
+        // 버튼처럼 폭이 큰 right에서 타이틀이 임의로 짓눌렸다("매장별 워스트 Top 25"가 51px에 3줄로
+        // 깨짐 → min-w-0/flex-1만 주면 이번엔 31px로 심하게 잘림). 근본 해법은 flex-wrap: 공간이
+        // 충분하면 지금과 완전히 같고, 좁으면 right가 타이틀 아래 새 줄로 자연스럽게 떨어진다.
+        <div className={`flex flex-wrap ${sub ? 'items-start' : 'items-center'} justify-between gap-2 mb-4`}>
+          <div className="flex items-center gap-2 min-w-0">
+            {TitleIcon && <TitleIcon size={16} strokeWidth={2} className="text-[#003B8F] flex-shrink-0" />}
+            <div className="min-w-0">
+              {title && <div className="font-bold text-[#071E4A] text-[15px] tracking-[-0.015em] truncate">{title}</div>}
               {sub && <div className="text-[11px] text-stone-400 mt-0.5">{sub}</div>}
             </div>
           </div>
-          {right}
+          {right && <div className="flex-shrink-0">{right}</div>}
         </div>
       )}
       {children}

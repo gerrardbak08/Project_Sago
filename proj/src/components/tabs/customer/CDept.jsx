@@ -110,8 +110,10 @@ function CDept({ D }) {
         <div className="flex items-center gap-4 mt-2 text-xs text-stone-500">
           <span className="flex items-center gap-1.5"><div style={{width:10,height:10,borderRadius:2,background:CUST_BLUE}}/>수도권</span>
           <span className="flex items-center gap-1.5"><div style={{width:10,height:10,borderRadius:2,background:CUST_AMBER}}/>지방</span>
-          <span className="flex items-center gap-1.5" style={{color:'#0284c7'}}>우측 소자: 보상금액(억원)</span>
-          <span className="ml-auto">막대 클릭 시 해당 영업부 팀별 차트로 필터</span>
+          {/* 좁은 화면에서 색상 범례(수도권·지방)와 이 두 설명 문구가 한 줄을 다투며 깨졌다.
+              차트 읽기에 필수인 색상 범례는 남기고, 부가 설명은 넓은 화면에서만 노출. */}
+          <span className="hidden sm:flex items-center gap-1.5" style={{color:'#0284c7'}}>우측 소자: 보상금액(억원)</span>
+          <span className="hidden sm:inline ml-auto">막대 클릭 시 해당 영업부 팀별 차트로 필터</span>
         </div>
       </Card>
 
