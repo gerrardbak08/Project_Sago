@@ -10,10 +10,19 @@
 html, body {
   overflow-x: clip;   /* clip: 스크롤 컨테이너를 만들지 않아 sticky 헤더가 뷰포트 기준으로 고정됨 (hidden은 sticky 깨뜨림) */
   max-width: 100%;
+  overscroll-behavior-x: none;  /* 가로 방향 바운스(러버밴드) 차단 — 스와이프 끝에서 화면이 옆으로 튕기지 않게 */
 }
 #root {
   overflow-x: clip;
   max-width: 100vw;
+}
+
+/* 더블탭 확대 차단 — index.html의 user-scalable=no는 iOS 10+ Safari가 접근성 이유로 무시하므로
+   실제로 버티는 건 이 규칙이다. manipulation은 더블탭 확대만 막고 핀치줌·스크롤은 그대로 둔다.
+   버튼이 촘촘한 모바일 대시보드에서 연속 탭이 브라우저 확대로 오인되며 화면이 커졌다 작아지고,
+   확대된 상태에서 손가락이 움직이면 좌우로 흔들리는 것처럼 보이던 문제. */
+html {
+  touch-action: manipulation;
 }
 
 .overflow-x-auto::-webkit-scrollbar { display: none; }

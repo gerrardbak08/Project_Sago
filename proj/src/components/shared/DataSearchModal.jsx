@@ -37,7 +37,14 @@ function DataSearchModal({ D, onClose }) {
     <div className="fixed inset-0 z-[60] bg-black/40 flex items-start justify-center overflow-auto p-3 sm:p-6" onClick={onClose}>
       <div onClick={e => e.stopPropagation()} className="bg-white w-full max-w-[920px] rounded-[20px] shadow-xl my-2 overflow-hidden">
         <div className="flex items-center justify-between px-5 sm:px-7 py-4 border-b-2 border-brand-navy" style={{ background: 'linear-gradient(135deg,#071E4A,#003B8F)' }}>
-          <div className="flex items-center gap-2 text-white"><Search size={16} /><span className="font-extrabold">데이터 조회</span><span className="text-[11px] text-white/55">연도·월·영업부·유형·매장으로 검색 (개인정보 마스킹)</span></div>
+          {/* 타이틀 "데이터 조회"가 375px 폭에서 부제와 한 줄다툼하며 단어 중간에서 줄바꿈되던 문제.
+              타이틀은 whitespace-nowrap+flex-shrink-0으로 항상 한 줄 보장, 부제(설명 문구)는
+              폭이 좁으면 통째로 숨김 — 글자를 눌러 넣는 대신 정보 우선순위로 정리. */}
+          <div className="flex items-center gap-2 text-white min-w-0">
+            <Search size={16} className="flex-shrink-0" />
+            <span className="font-extrabold whitespace-nowrap flex-shrink-0">데이터 조회</span>
+            <span className="hidden sm:inline text-[11px] text-white/55 whitespace-nowrap truncate">연도·월·영업부·유형·매장으로 검색 (개인정보 마스킹)</span>
+          </div>
           <button onClick={onClose} className="h-8 w-8 rounded-md text-white/70 hover:bg-white/10 flex items-center justify-center cursor-pointer"><X size={16} /></button>
         </div>
 

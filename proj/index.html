@@ -2,7 +2,10 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- maximum-scale=1, user-scalable=no — 버튼이 촘촘한 모바일 화면에서 더블탭이 브라우저 확대를
+         유발하고, 그 확대 상태에서 손가락이 움직이면 화면이 좌우로 흔들리는 것처럼 보인다.
+         내부 운영 대시보드라 핀치줌 접근성보다 안정된 앱 느낌을 우선한다. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#D70011" />
     <title>매장 안전사고 현황 및 알람서비스 · ㈜아성다이소 안전보건팀</title>
     <meta name="description" content="㈜아성다이소 매장 안전사고 현황 모니터링 및 AI 맞춤형 예방 알람 서비스." />
