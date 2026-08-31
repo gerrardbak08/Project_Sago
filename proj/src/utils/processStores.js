@@ -13,13 +13,17 @@ function countBy(arr, keyFn) {
 // 매장수 카운팅 기준에서 제외할 형태 (가맹점은 본사 영업매장이 아님, 기타출고는 매장이 아님)
 const EXCLUDED_FORMS = new Set(["가맹점", "기타출고"]);
 
+// 폐점여부 필드의 "폐점" 판정값 — 대문자 비교(한글엔 무영향, Y/TRUE 등 legacy 값 대응용)
+const CLOSED_TOKENS = new Set(["폐점", "Y", "TRUE", "1", "예"]);
+
 function processStores(rows) {
   const stores = [];
   const today = new Date();
   for (const r of rows) {
-    // 1) 폐점여부 = Y 제외
-    const closed = r["폐점여부"];
-    if (closed && ["Y", "TRUE", "1", "예"].includes(String(closed).trim().toUpperCase())) continue;
+    // 1) 폐점여부 = 폐점 제외 — 계약값은 "폐점"/"영업중"/빈값=영업중 (constants/schemas.js SCHEMA_STORE 참조).
+    // Y/TRUE/1/예는 과거 업로드 호환용으로 유지.
+    const closed = String(r["폐점여부"] || "").trim().toUpperCase();
+    if (CLOSED_TOKENS.has(closed)) continue;
     // 2) 형태 = 가맹점·기타출고 제외
     const form = r["형태"];
     if (form && EXCLUDED_FORMS.has(String(form).trim())) continue;
