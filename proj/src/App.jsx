@@ -68,9 +68,6 @@ import SevereStores      from './components/tabs/worker/SevereStores.jsx';
 import ParjangDashboard  from './components/tabs/worker/ParjangDashboard.jsx';
 import RawDbViewer       from './components/tabs/worker/RawDbViewer.jsx';
 import FieldResponseGuide from './components/tabs/guide/FieldResponseGuide.jsx';
-import ComplianceMonitor  from './components/tabs/compliance/ComplianceMonitor.jsx';
-import ComplianceInputForm from './components/tabs/compliance/ComplianceInputForm.jsx';
-import ComplianceOverview  from './components/tabs/compliance/ComplianceOverview.jsx';
 import BriefingGenerator   from './components/tabs/worker/BriefingGenerator.jsx';
 import SafetyAssistant    from './components/SafetyAssistant.jsx';
 
@@ -133,19 +130,6 @@ const _INIT_HASH_PARAMS = (() => {
     }
     return params;
   } catch { return {}; }
-})();
-
-// 파트장 모바일 실시 기록 입력 링크 — #compliance-input?program=tbm&store=... (로그인 불필요)
-const _COMPLIANCE_INPUT = (() => {
-  try {
-    if (typeof window === "undefined") return { on: false };
-    const h = window.location.hash || "";
-    if (!/compliance-input/.test(h)) return { on: false };
-    const q = new URLSearchParams(h.includes("?") ? h.slice(h.indexOf("?") + 1) : "");
-    let store = q.get("store") || "";
-    if (store && /%[0-9A-Fa-f]{2}/.test(store)) { try { store = decodeURIComponent(store); } catch {} }
-    return { on: true, program: q.get("program") || "tbm", store };
-  } catch { return { on: false }; }
 })();
 
 // 라이브 시트(Apps Script)가 채우지 못하는 항목이 있는 탭 — '비자동(수동/추정)' 표기 대상
@@ -471,11 +455,6 @@ function App() {
   const bottomNavMore = visibleGroups.filter(g => !BOTTOM_NAV_PRIMARY.includes(g.id));
   const moreNavActive = bottomNavMore.some(g => g === activeGroup);
 
-  // 파트장 모바일 실시 기록 입력 — 로그인 없이 독립 페이지 (링크로 진입)
-  if (_COMPLIANCE_INPUT.on) {
-    return <ComplianceInputForm standalone program={_COMPLIANCE_INPUT.program} stores={data.stores} initialStore={_COMPLIANCE_INPUT.store} />;
-  }
-
   // 랜딩 페이지
   if (showLanding) return (
     <div style={{
@@ -794,10 +773,6 @@ function App() {
             {tab === "rawdb" && <RawDbViewer rows={LIVE_SNAPSHOT.rows} approvalRows={LIVE_SNAPSHOT.approvalRows} sheetUrl="https://docs.google.com/spreadsheets/d/1pWfoDWXSowQRHBbIiVDgEd_0oK2XcFxtG4R5Kryvfus/edit" />}
             {tab === "guide" && <FieldResponseGuide />}
             {tab === "briefing" && <BriefingGenerator D={data} />}
-            {tab === "safety_overview" && <ComplianceOverview stores={data.stores} setTab={setTab} />}
-            {tab === "riskassess" && <ComplianceMonitor program="risk" stores={data.stores} />}
-            {tab === "drill" && <ComplianceMonitor program="drill" stores={data.stores} />}
-            {tab === "tbm" && <ComplianceMonitor program="tbm" stores={data.stores} />}
             {/* 알림 관리 — 사이드바 유지형 통합 (근로자 셸 안에서 렌더) */}
             {inAlert && !alertUnlocked && <AlertPasswordGate onUnlock={() => setAlertUnlocked(true)} />}
             {inAlert && alertUnlocked && (

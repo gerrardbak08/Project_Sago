@@ -20,11 +20,6 @@ const TABS_VIEWER = [
   { id: "cost", l: "비용 손실", short: "비용", Icon: Banknote, hub: 5 },
   { id: "rawdb", l: "사고원본DB", short: "원본DB", Icon: Database, hub: 6 },
   { id: "guide", l: "현장 대응 가이드", short: "대응가이드", Icon: LifeBuoy, hub: 7 },
-  // ── 안전보건 활동(예방) 모듈 ──
-  { id: "safety_overview", l: "안전활동 종합", short: "종합", Icon: LayoutDashboard, hub: 7 },
-  { id: "riskassess", l: "위험성평가", short: "위험성평가", Icon: ScanSearch, hub: 7 },
-  { id: "drill", l: "비상대응훈련", short: "비상훈련", Icon: Siren, hub: 7 },
-  { id: "tbm", l: "TBM현황", short: "TBM", Icon: ClipboardList, hub: 7 },
 ];
 
 const HUB_LABELS = {
@@ -57,7 +52,7 @@ const CTABS = [
 // ── 7개 그룹 통폐합 네비 (13개 탭 id 보존, 논리 그룹으로 묶음) ──
 const TAB_GROUPS = [
   { id: 'g_summary', l: '요약',        short: '요약', Icon: LayoutDashboard, subs: ['overview', 'briefing'] },
-  { id: 'g_safety',  l: '안전보건 활동', short: '안전활동', Icon: ShieldCheck, subs: ['safety_overview', 'riskassess', 'drill', 'tbm', 'guide'] },
+  { id: 'g_safety',  l: '대응 가이드',   short: '가이드', Icon: LifeBuoy,        subs: ['guide'] },
   { id: 'g_org',     l: '조직',        short: '조직', Icon: Building2,       subs: ['dept', 'parjang'] },
   { id: 'g_store',   l: '매장',        short: '매장', Icon: Store,           subs: ['store', 'riskmap'] },
   { id: 'g_trend',   l: '추세·요인',   short: '추세', Icon: TrendingUp,      subs: ['time', 'cross'] },
